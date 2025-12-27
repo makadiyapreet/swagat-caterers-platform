@@ -15,20 +15,44 @@
 
 </div>
 
+## ⚠️ Code Protection Notice
+
+> **🔒 This is a CLOSED-SOURCE, PROPRIETARY project.**
+
+This repository is **PUBLIC for viewing and evaluation purposes ONLY**.
+
+### ❌ NOT Permitted:
+- Copying, cloning, or forking this code
+- Using any part of this code in your own projects
+- Modifying or creating derivative works
+- Commercial or personal use without explicit permission
+- Redistributing or sharing the code
+
+### ✅ Permitted:
+- Viewing the code for learning and understanding
+- Evaluating the project for employment/collaboration opportunities
+- Providing feedback or suggestions to the author
+
+### 📜 Legal Notice:
+All code, designs, and intellectual property are owned exclusively by **Preet Makadiya** and **Swagat Caterers**. Unauthorized use will be pursued legally.
+
+**For licensing or collaboration:** Contact [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com)
+
+---
+
 ## 📖 Table of Contents
 
-- [Overview](#overview)
-- [Vision](#vision)
-- [Key Features](#features)
-- [Tech Stack](#tech-stack)
-- [System Architecture](#architecture)
-- [Getting Started](#getting-started)
-- [Roadmap](#roadmap)
-- [Use Cases](#use-cases)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-- [Author](#author)
-- [License](#license)
+- [Code Protection Notice](#️-code-protection-notice)
+- [Overview](#-overview)
+- [Vision](#-vision)
+- [Key Features](#-features)
+- [Tech Stack](#️-tech-stack)
+- [System Architecture](#️-architecture)
+- [Use Cases](#-use-cases)
+- [Project Stats](#-project-stats)
+- [Author](#-author)
+- [License](#-license)
+- [Contact](#-contact)
 
 ---
 
@@ -266,6 +290,8 @@ Bootstrap 5
 
 ### Planned Architecture (Full-Stack)
 
+> **⚠️ Roadmap Disclaimer:** The backend architecture and implementation details are proprietary and under active development. This roadmap is shared to demonstrate system design thinking and technical planning capabilities, but the actual implementation, logic, and codebase are not open for replication, contribution, or external development.
+
 ```
 ┌──────────────────────────────────────────────────┐
 │              Frontend (React/Next.js)             │
@@ -405,34 +431,48 @@ Passionate about leveraging technology to solve real-world problems and bridge t
 
 ## 📜 License
 
-This project is **proprietary and closed-source**. All rights reserved.
+**This project is PROPRIETARY and CLOSED-SOURCE. All rights reserved.**
 
-### ⚠️ Usage Restrictions
+### ⚠️ Copyright & Usage Restrictions
 
-**This code is NOT available for:**
-- ❌ Personal or commercial use by third parties
-- ❌ Modification or distribution
-- ❌ Copying, forking, or cloning for your own projects
-- ❌ Educational or learning purposes without explicit permission
-- ❌ Portfolio reference or template usage
-- ❌ Any form of reproduction or derivation
+© 2025 Preet Makadiya & Swagat Caterers. All Rights Reserved.
 
-**This code is ONLY for:**
-- ✅ Viewing and understanding the project architecture
-- ✅ Assessment by potential employers or collaborators
-- ✅ Reference in discussions with the original author
+This code and all associated materials are the exclusive intellectual property of Preet Makadiya and Swagat Caterers.
 
-### 📋 Copyright Notice
+### ❌ STRICTLY PROHIBITED:
 
-© 2024 Preet Makadiya. All Rights Reserved.
+- **Copying** any part of this codebase
+- **Forking** or cloning this repository for personal/commercial use
+- **Modifying** or creating derivative works
+- **Redistributing** or sharing the code
+- **Using** any code, design, or logic in your own projects
+- **Selling** or sublicensing any part of this project
+- **Reverse engineering** or extracting business logic
+- **Educational use** without explicit written permission
 
-This project and all associated code, designs, and assets are the exclusive property of Preet Makadiya and Swagat Caterers. Unauthorized use, reproduction, or distribution is strictly prohibited and may result in legal action.
+### ✅ PERMITTED USES:
+
+- **Viewing** the code to understand project architecture
+- **Evaluating** for employment or collaboration opportunities
+- **Referencing** in discussions with the original author only
+- **Providing feedback** via official contact channels
+
+### ⚖️ Legal Enforcement
+
+Unauthorized use, reproduction, or distribution of this code constitutes:
+- Copyright infringement under applicable laws
+- Breach of intellectual property rights
+- Grounds for legal action and monetary damages
+
+All violations will be pursued to the fullest extent of the law.
 
 ### 🤝 Collaboration Inquiries
 
 For licensing, collaboration, or custom development opportunities, please contact:
-- 📧 Email: [preetmakadiya.tech@gmail.com](mailto:preetmakadiya.tech@gmail.com)
-- 💬 WhatsApp: [+91 63549 02842](https://wa.me/916354902842)
+- 📧 Email: [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com)
+- 💬 WhatsApp: [+91 81602 38745](https://wa.me/918160238745)
+
+**Note:** This repository is public solely for portfolio demonstration and professional evaluation. It does not grant any usage rights.
 
 ---
 
@@ -451,8 +491,8 @@ Have questions, suggestions, or want to collaborate?
 
 - 🌐 **Website**: [swagatcaterers.in](https://swagatcaterers.in?ref=github-contact)
 - 🌐 **Portfolio**: [makadiyapreet.github.io/PreetVerseX](https://makadiyapreet.github.io/PreetVerseX/?ref=github)
-- 💬 **WhatsApp**: [+91 63549 02842](https://wa.me/916354902842?text=Hi%20Preet,%20I%20saw%20Swagat%20Caterers%20on%20GitHub!)
-- 📧 **Email**: [preetmakadiya.tech@gmail.com](mailto:preetmakadiya.tech@gmail.com?subject=Swagat%20Caterers%20Project%20Inquiry)
+- 💬 **WhatsApp**: [+91 81602 38745](https://wa.me/918160238745?text=Hi%20Preet,%20I%20saw%20Swagat%20Caterers%20on%20GitHub!)
+- 📧 **Email**: [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com?subject=Swagat%20Caterers%20Project%20Inquiry)
 - 💼 **LinkedIn**: [Preet Makadiya](https://linkedin.com/in/preet-makadiya-13102004-p)
 
 ---
@@ -481,5 +521,9 @@ If you found this project interesting:
 Made with ❤️ by [Preet Makadiya](https://github.com/makadiyapreet)
 
 © 2024 Swagat Caterers. All rights reserved.
+
+**Made with ❤️ by Preet Makadiya**
+
+📧 makadiyapreeta1@gmail.com | 💬 +91 81602 38745
 
 </div>
