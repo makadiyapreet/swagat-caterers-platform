@@ -9,7 +9,7 @@
 
 **Transforming Traditional Catering into a Modern Digital Experience**
 
-[🌐 Live Website](https://swagatcaterers.in/) • [📧 Contact](#contact) • [🚀 Features](#features) • [🗺️ Roadmap](#roadmap)
+[🌐 Live Website](https://swagatcaterers.in?ref=github) • [📧 Contact](#contact) • [🚀 Features](#features) • [💼 Author](#author)
 
 ---
 
@@ -371,22 +371,22 @@ Passionate about leveraging technology to solve real-world problems and bridge t
 - 🔒 Cybersecurity
 
 #### Connect With Me
-- 🌐 Portfolio: [makadiyapreet.github.io/PreetVerseX](https://makadiyapreet.github.io/PreetVerseX/)
+- 🌐 Portfolio: [makadiyapreet.github.io/PreetVerseX](https://makadiyapreet.github.io/PreetVerseX/?ref=github)
 - 💼 GitHub: [@makadiyapreet](https://github.com/makadiyapreet)
 - 🔗 LinkedIn: [Preet Makadiya](https://linkedin.com/in/preet-makadiya-13102004-p)
-- 📧 Email: [preetmakadiya.tech@gmail.com](mailto:preetmakadiya.tech@gmail.com)
-- 💬 WhatsApp: [+91 63549 02842](https://wa.me/916354902842)
+- 📧 Email: [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com?subject=Regarding%20Swagat%20Caterers%20Project)
+- 💬 WhatsApp: [+91 81602 38745](https://wa.me/918160238745?text=Hi%20Preet,%20I%20saw%20your%20Swagat%20Caterers%20project%20on%20GitHub!)
 
 ---
 
 ## 📊 Project Stats
 
 ### Development Timeline
-- **Started**: December 4, 2024
-- **Frontend Completed**: December 23, 2024
+- **Started**: December 4, 2025
+- **Frontend Completed**: December 23, 2025
 - **Development Duration**: 19 days
 - **Current Phase**: Backend Integration
-- **Expected Full Launch**: Q2 2025
+- **Expected Full Launch**: Q2 2026
 
 ### Technical Metrics
 - **Lines of Code**: 10,000+
@@ -400,110 +400,6 @@ Passionate about leveraging technology to solve real-world problems and bridge t
 - **Load Time**: < 2 seconds on 4G
 - **First Contentful Paint**: < 1 second
 - **Mobile Friendly**: 100% Google Mobile-Friendly Test
-
----
-
-## 🖱️ Click Tracking & Analytics
-
-### Available Tracking Methods
-
-The website supports multiple click tracking implementations:
-
-#### 1. **Google Analytics (Recommended)**
-- Complete user journey tracking
-- Real-time analytics dashboard
-- Conversion funnel analysis
-- User demographics and behavior
-- No coding required
-
-**Implementation:**
-```html
-<!-- Add to <head> section of all pages -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'GA_MEASUREMENT_ID');
-</script>
-```
-
-#### 2. **Custom JavaScript Click Counter**
-- Track specific button/link clicks
-- Store data in localStorage or send to backend
-- Custom event tracking
-- No external dependencies
-
-**Basic Implementation:**
-```javascript
-// Track booking button clicks
-document.getElementById('booking-btn').addEventListener('click', function() {
-    // Send to backend or store locally
-    trackClick('booking_button', 'Booking Started');
-});
-
-// Track WhatsApp clicks
-document.querySelector('.whatsapp-btn').addEventListener('click', function() {
-    trackClick('whatsapp', 'WhatsApp Contact');
-});
-
-function trackClick(category, action) {
-    // Store in localStorage
-    let clicks = JSON.parse(localStorage.getItem('clicks') || '{}');
-    clicks[category] = (clicks[category] || 0) + 1;
-    localStorage.setItem('clicks', JSON.stringify(clicks));
-    
-    // Or send to backend API
-    fetch('/api/track-click', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({category, action, timestamp: new Date()})
-    });
-}
-```
-
-#### 3. **Facebook Pixel**
-- Track conversions for Facebook ads
-- Retargeting capabilities
-- Custom audience building
-
-#### 4. **Hotjar / Microsoft Clarity**
-- Heatmap visualization
-- Session recordings
-- User behavior insights
-- Click map analysis
-
-### Key Metrics to Track
-
-**User Engagement:**
-- Page views per session
-- Time on site
-- Bounce rate
-- Scroll depth
-
-**Conversion Tracking:**
-- "Book Now" button clicks
-- "Get Quote" form submissions
-- Phone/WhatsApp clicks
-- PDF menu downloads
-- Custom menu builder usage
-
-**Business Intelligence:**
-- Popular menu items
-- Peak inquiry times
-- Device usage (mobile vs desktop)
-- Geographic distribution
-- Referral sources
-
-### Planned Analytics Features
-
-- [ ] Real-time dashboard showing live clicks
-- [ ] Admin panel with click statistics
-- [ ] Heatmap integration
-- [ ] A/B testing for CTA buttons
-- [ ] Conversion rate optimization tools
-- [ ] Custom event tracking for menu builder
-- [ ] Email notification for high-value clicks
 
 ---
 
@@ -535,8 +431,8 @@ This project and all associated code, designs, and assets are the exclusive prop
 ### 🤝 Collaboration Inquiries
 
 For licensing, collaboration, or custom development opportunities, please contact:
-- 📧 Email: [makadiyapreet1@gmail.com](mailto:preetmakadiya.tech@gmail.com)
-- 💬 WhatsApp: [+91 81602 38745](https://wa.me/918160238745)
+- 📧 Email: [preetmakadiya.tech@gmail.com](mailto:preetmakadiya.tech@gmail.com)
+- 💬 WhatsApp: [+91 63549 02842](https://wa.me/916354902842)
 
 ---
 
@@ -553,10 +449,10 @@ For licensing, collaboration, or custom development opportunities, please contac
 
 Have questions, suggestions, or want to collaborate?
 
-- 🌐 **Website**: [swagatcaterers.in](https://swagatcaterers.in/)
-- 🌐 **Portfolio**: [makadiyapreet.github.io/PreetVerseX](https://makadiyapreet.github.io/PreetVerseX/)
-- 💬 **WhatsApp**: [+91 81602 38745](https://wa.me/918160238745)
-- 📧 **Email**: [makadiyapreet1@gmail.com](mailto:makadiyapreet1@gmail.com)
+- 🌐 **Website**: [swagatcaterers.in](https://swagatcaterers.in?ref=github-contact)
+- 🌐 **Portfolio**: [makadiyapreet.github.io/PreetVerseX](https://makadiyapreet.github.io/PreetVerseX/?ref=github)
+- 💬 **WhatsApp**: [+91 63549 02842](https://wa.me/916354902842?text=Hi%20Preet,%20I%20saw%20Swagat%20Caterers%20on%20GitHub!)
+- 📧 **Email**: [preetmakadiya.tech@gmail.com](mailto:preetmakadiya.tech@gmail.com?subject=Swagat%20Caterers%20Project%20Inquiry)
 - 💼 **LinkedIn**: [Preet Makadiya](https://linkedin.com/in/preet-makadiya-13102004-p)
 
 ---
