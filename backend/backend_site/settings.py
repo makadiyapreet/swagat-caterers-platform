@@ -13,9 +13,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-@3q4zgfjr+qnrd*x!+ie0p!%llo=mtp+$%&ann-mp0*-%%@4a#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 # Application definition
 INSTALLED_APPS = [
@@ -65,15 +67,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend_site.wsgi.application'
 
 # Database
+# DATABASES = {
+#  'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': 'catering_db',
+#        'USER': 'makadiyapreet',
+#        'PASSWORD': '',
+#        'HOST': 'localhost',
+#        'PORT': '5432',
+#    }
+#} 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'catering_db',
-        'USER': 'makadiyapreet',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    "default": dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 # Password validation
