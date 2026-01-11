@@ -10,23 +10,12 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-@3q4zgfjr+qnrd*x!+ie0p!%llo=mtp+$%&ann-mp0*-%%@4a#'
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = 'django-insecure-@3q4zgfjr+qnrd*x!+ie0p!%llo=mtp+$%&ann-mp0*-%%@4a#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = os.environ.get("DEBUG") == "False"
+DEBUG = True
 
-ALLOWED_HOSTS = [
-    "swagat-caterers-platform-production.up.railway.app",
-    ".up.railway.app",
-    "localhost",
-    "127.0.0.1",
-    ]
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://swagat-caterers-platform-production.up.railway.app",
-]
+ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
@@ -103,8 +92,6 @@ USE_TZ = True
 
 # --- STATIC FILES (CORRECTED) ---
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 
 # FIX: Look in the sibling 'frontend' folder for static assets too
 STATICFILES_DIRS = [
