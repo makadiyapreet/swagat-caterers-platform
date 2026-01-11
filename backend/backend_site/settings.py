@@ -13,9 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-@3q4zgfjr+qnrd*x!+ie0p!%llo=mtp+$%&ann-mp0*-%%@4a#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "swagat-caterers-platform-production.up.railway.app",
+    ".up.railway.app",
+    "localhost",
+    "127.0.0.1",
+    ]
 
 # Application definition
 INSTALLED_APPS = [
