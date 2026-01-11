@@ -1,4 +1,4 @@
-from tkinter import Menu
+from .models import Menu
 from rest_framework import serializers
 from .models import Menu_item , Category ,CateringEvent ,Member, MemberLog
 from django.contrib.auth import get_user_model
