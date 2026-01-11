@@ -22,6 +22,10 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://swagat-caterers-platform-production.up.railway.app",
+]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
