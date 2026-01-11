@@ -92,6 +92,8 @@ USE_TZ = True
 
 # --- STATIC FILES (CORRECTED) ---
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # FIX: Look in the sibling 'frontend' folder for static assets too
 STATICFILES_DIRS = [
