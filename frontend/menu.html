@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E2P4ZTV4Z7"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-E2P4ZTV4Z7');
+    </script>
+    <!-- End Google Analytics -->
+
+    <title>Our Menu & Pricing | Swagat Caterers, Rajkot</title>
+
+    <meta name="description" content="Explore the complete catering menu of Swagat Caterers. Authentic Gujarati & Indian dishes with transparent pricing for weddings, events, and parties in Rajkot.">
+    <meta name="keywords" content="Catering Menu Rajkot, Swagat Caterers Menu, Wedding Catering Prices, Gujarati Food Menu">
+
+    <!-- Website Logo / Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="images/logo/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/logo/logo.png">
+
+    <!-- Social Media Preview -->
+    <meta property="og:title" content="Our Menu & Pricing | Swagat Caterers">
+    <meta property="og:description" content="View our royal catering menu with English & Gujarati options. Perfect for weddings, corporate events & celebrations.">
+    <meta property="og:image" content="images/logo/logo.png">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Playfair Display (Section Titles & Prices) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Inter (Body Text Everywhere Else) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- PDF Export (Keep if used) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body style="background-color: #ffffff !important;">
+
+    <div id="urgency-popup-target"></div>
+
+    <div id="navbar-target"></div>
+
+    <header class="bg-black text-white py-5 mt-5">
+        <div class="container text-center py-5" data-aos="fade-down">
+            <h1 class="display-3 fw-bold text-gold">Our Culinary Spreads</h1>
+            <p class="lead text-white-50">From street food chaat to royal thalis, we serve it all.</p>
+        </div>
+    </header>
+
+    <div id="services-target"></div>
+    <div id="signature-target"></div>
+    <div id="menu_book-target"></div>
+
+    <div id="menu_cta-target"></div>
+
+    <div id="pricing-target"></div>
+
+
+    <div id="footer-target"></div>
+    <button id="scrollTopBtn"><i class="bi bi-arrow-up"></i></button>
+
+    <div id="urgency-popup-target"></div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init();</script>
+    <script src="js/loader.js"></script>
+
+    <script>
+        // --- DESKTOP VARIABLES ---
+        let currentLocation = 1;
+        const numOfPapers = 8;
+        const maxLocation = numOfPapers + 1;
+
+        // --- MOBILE VARIABLES ---
+        let mobileCurrentPage = 1;
+        const totalMobilePages = 16; 
+
+        // === MAIN CONTROLLER ===
+        function handleNext() {
+            if (window.innerWidth > 768) {
+                goNextDesktop();
+            } else {
+                goNextMobile();
+            }
+        }
+
+        function handlePrev() {
+            if (window.innerWidth > 768) {
+                goPrevDesktop();
+            } else {
+                goPrevMobile();
+            }
+        }
+
+        // === MOBILE LOGIC (Simple Slider) ===
+        function goNextMobile() {
+            if (mobileCurrentPage < totalMobilePages) {
+                mobileCurrentPage++;
+                updateMobileView();
+            }
+        }
+
+        function goPrevMobile() {
+            if (mobileCurrentPage > 1) {
+                mobileCurrentPage--;
+                updateMobileView();
+            }
+        }
+
+        function updateMobileView() {
+            // Hide all pages
+            document.querySelectorAll('.mobile-page').forEach(page => {
+                page.classList.remove('active-page');
+            });
+            // Show current page
+            const current = document.querySelector(`.mobile-page[data-page="${mobileCurrentPage}"]`);
+            if(current) current.classList.add('active-page');
+            
+            // Update counter
+            document.getElementById('mobile-page-indicator').innerText = `${mobileCurrentPage} / ${totalMobilePages}`;
+        }
+
+        // === DESKTOP LOGIC (3D Flipbook) ===
+        function goNextDesktop() {
+            if (currentLocation < maxLocation) {
+                switch (currentLocation) {
+                    case 1:
+                        openBook();
+                        document.getElementById("p1").classList.add("flipped");
+                        document.getElementById("p1").style.zIndex = 1;
+                        break;
+                    case 2:
+                        document.getElementById("p2").classList.add("flipped");
+                        document.getElementById("p2").style.zIndex = 2;
+                        break;
+                    case 3:
+                        document.getElementById("p3").classList.add("flipped");
+                        document.getElementById("p3").style.zIndex = 3;
+                        break;
+                    case 4:
+                        document.getElementById("p4").classList.add("flipped");
+                        document.getElementById("p4").style.zIndex = 4;
+                        break;
+                    case 5:
+                        document.getElementById("p5").classList.add("flipped");
+                        document.getElementById("p5").style.zIndex = 5;
+                        break;
+                    case 6:
+                        document.getElementById("p6").classList.add("flipped");
+                        document.getElementById("p6").style.zIndex = 6;
+                        break;
+                    case 7:
+                        document.getElementById("p7").classList.add("flipped");
+                        document.getElementById("p7").style.zIndex = 7;
+                        break;
+                    case 8:
+                        document.getElementById("p8").classList.add("flipped");
+                        document.getElementById("p8").style.zIndex = 8;
+                        closeBook(false);
+                        break;
+                }
+                currentLocation++;
+            }
+        }
+
+        function goPrevDesktop() {
+            if (currentLocation > 1) {
+                switch (currentLocation) {
+                    case 2:
+                        closeBook(true);
+                        document.getElementById("p1").classList.remove("flipped");
+                        document.getElementById("p1").style.zIndex = 8;
+                        break;
+                    case 3:
+                        document.getElementById("p2").classList.remove("flipped");
+                        document.getElementById("p2").style.zIndex = 7;
+                        break;
+                    case 4:
+                        document.getElementById("p3").classList.remove("flipped");
+                        document.getElementById("p3").style.zIndex = 6;
+                        break;
+                    case 5:
+                        document.getElementById("p4").classList.remove("flipped");
+                        document.getElementById("p4").style.zIndex = 5;
+                        break;
+                    case 6:
+                        document.getElementById("p5").classList.remove("flipped");
+                        document.getElementById("p5").style.zIndex = 4;
+                        break;
+                    case 7:
+                        document.getElementById("p6").classList.remove("flipped");
+                        document.getElementById("p6").style.zIndex = 3;
+                        break;
+                    case 8:
+                        document.getElementById("p7").classList.remove("flipped");
+                        document.getElementById("p7").style.zIndex = 2;
+                        break;
+                    case 9:
+                        openBook();
+                        document.getElementById("p8").classList.remove("flipped");
+                        document.getElementById("p8").style.zIndex = 1;
+                        break;
+                }
+                currentLocation--;
+            }
+        }
+
+        function openBook() {
+            document.getElementById("book").style.transform = "translateX(50%)";
+        }
+
+        function closeBook(isAtBeginning) {
+            if (isAtBeginning) {
+                document.getElementById("book").style.transform = "translateX(0%)";
+            } else {
+                document.getElementById("book").style.transform = "translateX(100%)";
+            }
+        }
+
+        // 5. DIRECT PAGE CLICK LOGIC
+        // This handles clicking on the page itself
+        window.turnPage = function(pageNum) {
+             // Logic to deduce next/prev based on click
+             if (pageNum > currentLocation) {
+                 window.goNextPage();
+             } else if (pageNum < currentLocation) {
+                 window.goPrevPage();
+             }
+        };
+    </script>
+</body>
+</html>

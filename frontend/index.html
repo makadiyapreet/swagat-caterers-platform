@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E2P4ZTV4Z7"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-E2P4ZTV4Z7');
+    </script>
+    <!-- End Google Analytics -->
+
+    <title>Swagat Caterers | Best Catering Service in Rajkot</title>
+
+    <meta name="description" content="Swagat Caterers provides authentic Indian catering for weddings, corporate events, and parties in Rajkot. 12+ years of experience. Book now!">
+    <meta name="keywords" content="Caterers in Rajkot, Wedding Catering, Gujarati Food, Corporate Lunch, Event Management">
+
+    <!-- Website Logo / Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="images/logo/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/logo/logo.png">
+
+    <link rel="icon" href="images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="images/logo/favicon.png">
+
+    <!-- Social Media Preview -->
+    <meta property="og:title" content="Swagat Caterers | Best Catering Service in Rajkot">
+    <meta property="og:description" content="Premium catering services for weddings, corporate events & parties in Rajkot.">
+    <meta property="og:image" content="images/logo/logo.png">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Playfair Display (Titles & Prices) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Inter (Body Text) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body style="background-color: #ffffff !important; background-image: none !important;">
+
+    <div id="splash-overlay">
+        <div class="splash-screen">
+            <div class="splash-content">
+                <img src="images/logo/logo.png" alt="Swagat Logo" class="mb-3" style="width: 150px; height: auto; border-radius: 10px;">
+                <h1 class="display-3 fw-bold" style="font-family: 'Playfair Display', serif; letter-spacing: 2px;">SWAGAT CATERERS</h1>
+                <p class="lead fw-bold text-uppercase mt-2" style="letter-spacing: 4px; font-size: 0.9rem;">Est. 2014 • Rajkot</p>
+                <div class="spinner-border mt-4" role="status" style="width: 2rem; height: 2rem; border-width: 3px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="navbar-target"></div>
+
+    <div id="home_hero-target"></div>
+    <div id="marquee-target"></div>
+    <div id="highlights-target"></div>
+    <div id="features-target"></div>
+    <div id="hygiene-target"></div>
+    <div id="services_overview-target"></div>
+    <div id="blog-target"></div>
+    <div id="testimonials-target"></div>
+    <div id="stats-target"></div>
+    <div id="final_cta_home-target"></div>
+
+    <div id="footer-target"></div>
+
+    <button id="scrollTopBtn" title="Go to top" style="bottom: 100px;"><i class="bi bi-arrow-up"></i></button>
+
+    <div id="urgency-popup-target"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script> AOS.init({ startEvent: 'DOMContentLoaded', duration: 1000, once: true }); </script>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+          new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,gu,hi', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script src="js/loader.js"></script>
+
+    <script>
+        window.addEventListener('load', function() {
+            
+            // 1. SPLASH SCREEN LOGIC
+            const splash = document.getElementById('splash-overlay');
+            
+            // 🔴 TEMPORARILY COMMENTED OUT FOR TESTING
+            // const hasSeenSplash = sessionStorage.getItem('swagatSplashSeen');
+
+            // if (hasSeenSplash) {
+            //    if(splash) splash.style.display = 'none';
+            // } else {
+                
+                // FORCE SHOW SPLASH EVERY TIME (For Development)
+                setTimeout(() => {
+                    if(splash) {
+                        splash.style.opacity = '0'; // Fade out effect
+                        setTimeout(() => splash.style.display = 'none', 500); // Remove after fade
+                    }
+                    // sessionStorage.setItem('swagatSplashSeen', 'true'); // Don't save yet
+                }, 4000); // Reduced to 4 seconds for faster testing
+            // }
+
+            // 2. URGENCY POPUP LOGIC
+            setTimeout(function() {
+                const modal = document.getElementById('urgencyModal');
+                if(modal) modal.style.display = 'flex';
+            }, 10000);
+        });
+
+        // 3. CLOSE POPUP FUNCTION
+        function closeUrgencyPopup() {
+            const modal = document.getElementById('urgencyModal');
+            if(modal) modal.style.display = 'none';
+        }
+
+        // 4. SCROLL TO TOP LOGIC
+        const scrollBtn = document.getElementById("scrollTopBtn");
+        window.onscroll = function() {
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                scrollBtn.style.display = "block";
+            } else {
+                scrollBtn.style.display = "none";
+            }
+        };
+        scrollBtn.onclick = function() {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        };
+
+    </script>
+
+</body>
+</html>

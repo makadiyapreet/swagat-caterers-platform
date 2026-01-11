@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E2P4ZTV4Z7"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-E2P4ZTV4Z7');
+    </script>
+    <!-- End Google Analytics -->
+     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <title>Build Your Custom Menu | Swagat Caterers</title>
+
+    <link rel="icon" type="image/png" sizes="32x32" href="images/logo/logo.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;600&family=Noto+Sans+Gujarati:wght@400;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        /* 1. UI STYLES */
+        :root { --gold: #d4af37; --gold-dark: #b39028; }
+        
+        body { padding-top: 80px; /* Increased space for taller header */ }
+        
+        /* Font Helpers */
+        .font-serif { font-family: 'Playfair Display', serif; }
+        .font-gujarati { font-family: 'Noto Sans Gujarati', sans-serif !important; }
+        .text-gold { color: var(--gold) !important; }
+
+        /* --- HEADER STYLES --- */
+        .custom-navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--gold);
+            min-height: 70px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        .nav-logo { height: 50px; width: auto; }
+        .nav-brand-text { font-size: 1.3rem; letter-spacing: 0.5px; color: #222; }
+        .nav-phone { font-size: 1rem; color: var(--gold-dark); font-weight: 700; text-decoration: none; }
+        
+        /* --- MOBILE RESPONSIVE BUTTON FIX --- */
+        .language-selector {
+            background: #ffffff;
+            padding: 6px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: 1px solid #f0f0f0;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .lang-option {
+            flex: 1; 
+            padding: 12px 0;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            color: #888;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            user-select: none;
+        }
+
+        .lang-option:hover { background: #fffcf0; color: #d4af37; }
+
+        .btn-check:checked + .lang-option {
+            background: linear-gradient(135deg, #d4af37 0%, #b39028 100%);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .lang-letter {
+            font-size: 1.3rem;
+            font-weight: 800;
+            opacity: 0.9;
+            background: rgba(255,255,255,0.2);
+            width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+        }
+
+        /* Accordion & Form Styles */
+        .border-gold-light { border: 1px solid rgba(212, 175, 55, 0.3); }
+        .accordion-button { background-color: #fff; color: #333; font-family: 'Playfair Display', serif; font-size: 1.1rem; }
+        .accordion-button:not(.collapsed) { background-color: var(--gold); color: white; box-shadow: none; }
+        .accordion-button:focus { box-shadow: none; }
+        .form-check-input { margin-right: 15px !important; transform: scale(1.3); cursor: pointer; border: 2px solid #ccc; }
+        .hover-gold:hover { border-color: var(--gold) !important; background-color: #fffcf5; }
+        .form-check-input:checked { background-color: var(--gold) !important; border-color: var(--gold) !important; }
+
+        /* Custom Input Styling */
+        .custom-item-wrapper {
+            margin-top: 15px;
+            border-top: 1px dashed #ddd;
+            padding-top: 10px;
+        }
+        .custom-dish-input {
+            border: 1px solid #e0e0e0;
+            background-color: #fdfdfd;
+            resize: vertical;
+            font-size: 0.95rem;
+        }
+        .custom-dish-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 5px rgba(212, 175, 55, 0.2);
+            background-color: #fff;
+        }
+
+        /* -------------------------------------------
+           2. MOBILE-SAFE PRINT STYLES
+        ------------------------------------------- */
+        
+        #printable-area { display: none; }
+
+        @media print {
+            body > *:not(#printable-area) { display: none !important; }
+
+            #printable-area { 
+                display: block !important; 
+                position: absolute; top: 0; left: 0; width: 100%;
+            }
+
+            html, body { margin: 0; padding: 0; background: #fff !important; height: auto; overflow: visible; }
+
+            table { width: 100%; border-collapse: collapse; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            
+            /* Print Header Layout */
+            .print-header-container {
+                width: 100%;
+                border-bottom: 2px solid #d4af37;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .client-info-box { border: 1px solid #ccc; padding: 15px 20px; margin-bottom: 30px; background: white; }
+            .info-row { display: flex !important; justify-content: space-between; margin-bottom: 8px; }
+            .info-label { font-weight: bold; font-size: 14px; margin-right: 5px; color: #000; }
+            .info-value { font-weight: normal; font-size: 14px; color: #000; }
+
+            .print-category { font-size: 16px; font-weight: bold; color: #d4af37; margin-top: 20px; border-bottom: 1px solid #eee; }
+            .print-list { padding-left: 20px; margin-top: 8px; list-style: disc; }
+            .print-list li { margin-bottom: 4px; font-size: 13px; color: #333; }
+            
+            .footer-space { height: 100px; }
+            
+            .print-footer-fixed {
+                position: fixed; bottom: 0; left: 0; width: 100%; height: 100px;
+                background: white; text-align: center; border-top: 2px solid #d4af37;
+                padding-top: 15px; font-size: 11px; color: #444; line-height: 1.6;
+            }
+            
+            .print-watermark {
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                width: 60%; opacity: 0.06 !important; z-index: -1; filter: grayscale(100%);
+            }
+            
+            a.text-black { color: #000 !important; text-decoration: none !important; }
+            
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+    </style>
+</head>
+<body style="background-color: #ffffff !important;">
+
+    <nav class="navbar fixed-top custom-navbar shadow-sm">
+    <div class="container d-flex align-items-center">
+
+        <!-- LEFT SIDE : Back Button -->
+        <div>
+            <a href="menu.html" class="btn btn-outline-dark fw-bold">
+                <i class="bi bi-arrow-left"></i> Back to Menu
+            </a>
+        </div>
+
+        <!-- RIGHT SIDE : Logo -->
+        <a class="navbar-brand d-flex align-items-center gap-2 ms-auto" href="index.html">
+            <img src="images/logo/logo.png" alt="Logo" class="nav-logo">
+            <div class="d-flex flex-column justify-content-center text-end">
+                <span class="font-serif fw-bold nav-brand-text d-none d-sm-block" style="line-height: 1.1; text-align: left;">
+                    Swagat Caterers
+                </span>
+                <span class="font-serif fw-bold nav-brand-text d-block d-sm-none" style="line-height: 1.1; text-align: left;">
+                    Swagat Caterers
+                </span>
+                <span class="text-secondary" style="font-size: 0.75rem; letter-spacing: 0.3px;">
+                    Mota Mava, Kalavad Road, Rajkot
+                </span>
+            </div>
+        </a>
+
+    </div>
+</nav>
+
+    <section class="py-5" id="builder" style="background-color: #fcfcfc;">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h5 class="text-gold text-uppercase" style="letter-spacing: 2px;">Design Your Feast</h5>
+                <h2 class="display-4 font-serif">A Signature Menu Designed Just for You</h2>
+                <div class="mx-auto mt-3" style="width: 50px; height: 3px; background: #d4af37;"></div>
+            </div>
+
+            <div class="row justify-content-center mb-5">
+                <div class="col-12 col-md-8"> 
+                    <div class="language-selector">
+                        <input type="radio" class="btn-check" name="lang_select" id="btnEn" autocomplete="off" checked onchange="setLanguage('en')">
+                        <label class="lang-option" for="btnEn">
+                            <span class="lang-letter">A</span> 
+                            <span>English</span>
+                        </label>
+
+                        <input type="radio" class="btn-check" name="lang_select" id="btnGu" autocomplete="off" onchange="setLanguage('gu')">
+                        <label class="lang-option font-gujarati" for="btnGu">
+                            <span class="lang-letter" style="font-size: 1.2rem;">અ</span> 
+                            <span>ગુજરાતી</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-5">
+                <div class="col-lg-7">
+                    <form id="menuForm">
+                        <div class="accordion custom-accordion" id="menuAccordion">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-warning" role="status"></div>
+                                <p>Loading Menu Items...</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-white rounded border-gold-light shadow-sm">
+                            <h5 class="text-gold mb-3 font-serif"><i class="bi bi-pencil-fill me-2"></i>Any Special Requests?</h5>
+                            <textarea id="specialNotes" class="form-control bg-light border-0" rows="3" placeholder="Ex: Jain Food needed, Less Spicy..."></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card shadow-lg border-0 sticky-top" style="top: 100px;">
+                        <div class="card-header bg-black text-white py-4 text-center" style="border-bottom: 3px solid #d4af37;">
+                            <h4 class="m-0 font-serif" style="letter-spacing: 1px; color: #d4af37;">YOUR SELECTION</h4>
+                        </div>
+                        
+                        <div class="card-body bg-white p-4" id="menuSummaryCard">
+                            <div class="text-center mb-4">
+                                <img src="images/logo/logo.png" style="width: 80px;" class="mb-2">
+                                <h6 class="text-uppercase fw-bold small text-muted">Swagat Caterers</h6>
+                            </div>
+
+                            <h6 class="text-gold border-bottom pb-2 mb-3 font-serif" style="color: #d4af37;">Selected Dishes</h6>
+                            <ul id="selectedList" class="list-group list-group-flush mb-4">
+                                <li class="list-group-item text-muted small fst-italic border-0 ps-0">No dishes selected yet...</li>
+                            </ul>
+                            
+                            <h6 class="text-gold border-bottom pb-2 mb-2 font-serif" style="color: #d4af37;">Notes</h6>
+                            <p id="summaryNotes" class="small text-dark fst-italic mb-4">None</p>
+
+                            <div class="mb-3">
+                                <label class="small fw-bold text-muted">Your Name <span class="text-danger">*</span></label>
+                                <input type="text" id="clientName" class="form-control" placeholder="Enter Your Name">
+                                <div id="nameError" class="text-danger small mt-1"></div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="small fw-bold text-muted">Phone Number <span class="text-danger">*</span></label>
+                                <input type="tel" id="clientPhone" class="form-control" placeholder="+91 XXXXX XXXXX">
+                                <div id="phoneError" class="text-danger small mt-1"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-light p-4">
+                            <div class="d-grid gap-3">
+                                <button onclick="handleDownloadAndCapture()" class="btn btn-outline-dark py-2">
+                                    <i class="bi bi-download me-2"></i> Download PDF
+                                </button>
+                                <button onclick="sendMenuEmail(false)" class="btn btn-warning text-white fw-bold shadow-sm" style="background-color: #d4af37; border: none;">
+                                    <i class="bi bi-send-fill me-2"></i> Send Enquiry
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </section>
+
+    <div id="printable-area">
+        
+        <img src="images/logo/logo.png" class="print-watermark">
+
+        <table>
+            <thead>
+                <tr>
+                    <td>
+                        <div class="print-header-container">
+                            <table style="width: 100%; border: none;">
+                                <tr>
+                                    <td style="text-align: left; vertical-align: bottom; width: 30%; font-size: 13px; line-height: 1.5; color: #000;">
+                                        <span style="font-weight: bold; font-size: 15px;">Atul Patel</span><br>
+                                        <a href="tel:+919428251083" class="text-black text-decoration-none">+91 94282 51083</a><br>
+                                        <a href="tel:+917041911177" class="text-black text-decoration-none">+91 70419 11177</a>
+                                    </td>
+
+                                    <td style="text-align: center; vertical-align: bottom; width: 40%;">
+                                        <img src="images/logo/logo.png" style="width: 70px; margin-bottom: 5px;" alt="Logo"><br>
+                                        <span style="font-size: 22px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">SWAGAT CATERERS</span>
+                                        <a href="https://www.google.com/maps?q=Swagat+Caterers,+Mota+Mava,+Kalavad+Road,+Rajkot+–+360005" class="text-black text-decoration-none">
+                                            <span style="display: block; font-size: 12px; color: #555; margin-top: 3px;">
+                                                Mota Mava, Kalavad Road, Rajkot – 360005                                        
+                                            </span>
+                                        </a>
+                                    </td>
+
+                                    <td style="text-align: right; vertical-align: bottom; width: 30%; font-size: 13px; line-height: 1.5; color: #000;">
+                                        <span style="font-weight: bold; font-size: 15px;">Sanjay Patel</span><br>
+                                        <a href="tel:+919624745133" class="text-black text-decoration-none">+91 96247 45133</a><br>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="print-body">
+                            <div class="client-info-box">
+                                <div class="info-row">
+                                    <div><span class="info-label">Prepared For:</span><span class="info-value print-client-name" id="p-name"></span></div>
+                                    <div><span class="info-label">Date:</span><span class="info-value print-date" id="p-date"></span></div>
+                                </div>
+                                <div class="info-row" style="margin-top: 15px;">
+                                    <div><span class="info-label">Phone:</span><span class="info-value print-client-phone" id="p-phone"></span></div>
+                                </div>
+                            </div>
+
+                            <div class="print-menu-list" id="p-menu-list"></div>
+
+                            <div class="print-notes-wrapper" id="p-notes-wrapper" style="display: none; margin-top:30px; border-top:1px dashed #ccc; padding-top:10px;">
+                                <strong>Special Requests:</strong>
+                                <div class="print-notes-text" id="p-notes-text" style="font-style: italic; margin-top:5px;"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+
+            <tfoot>
+                <tr>
+                    <td>
+                        <div class="footer-space"></div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="print-footer-fixed">
+            <div style="margin-bottom: 5px; font-weight: bold; color: #000; font-size: 14px;">
+                Thank you for choosing <span style="color: #d4af37;">Swagat Caterers</span>
+            </div>
+            
+            <div style="font-size: 12px; margin-top: 5px;">
+                ✉️ <a href="mailto:swagatcaterersofficial@gmail.com" class="text-black text-decoration-none">swagatcaterersofficial@gmail.com</a>
+                <span class="mx-2">|</span>
+                🌐 <a href="https://www.swagatcaterers.in" class="text-black text-decoration-none">www.swagatcaterers.in</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-target"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init();</script>
+    
+    <script src="js/loader.js"></script>
+    <script src="js/menu_data_en.js"></script>
+    <script src="js/menu_data_gu.js"></script>
+
+    <script>
+        // 1. GLOBAL VARIABLES
+        let currentLang = 'en'; 
+        let activeMenuData = []; 
+
+        // 2. INITIALIZATION
+        window.addEventListener('load', function() {
+            activeMenuData = (typeof menuData_EN !== 'undefined') ? menuData_EN : [];
+            setTimeout(generateMenu, 500);
+            
+            const notesInput = document.getElementById('specialNotes');
+            if(notesInput){
+                notesInput.addEventListener('input', function(e) {
+                    const text = e.target.value.trim();
+                    document.getElementById('summaryNotes').innerText = text ? text : "None";
+                });
+            }
+        });
+
+        // 3. CORE FUNCTIONS
+        function setLanguage(lang) {
+            currentLang = lang;
+            if(lang === 'gu' && typeof menuData_GU !== 'undefined') {
+                activeMenuData = menuData_GU;
+            } else if (typeof menuData_EN !== 'undefined') {
+                activeMenuData = menuData_EN;
+            }
+            generateMenu();
+            updateSummary();
+        }
+
+        function generateMenu() {
+            const container = document.getElementById('menuAccordion');
+            if (activeMenuData.length === 0) {
+                container.innerHTML = '<div class="text-danger p-4 text-center">Error: Menu Data not found.</div>';
+                return;
+            }
+
+            const checkedIndices = [];
+            document.querySelectorAll('.dish-item:checked').forEach(input => {
+                checkedIndices.push(input.value);
+            });
+
+            const customInputValues = {};
+            document.querySelectorAll('.custom-dish-input').forEach(input => {
+                const catIndex = input.dataset.catindex;
+                if (input.value.trim() !== "") {
+                    customInputValues[catIndex] = input.value;
+                }
+            });
+
+            let html = '';
+            activeMenuData.forEach((category, catIndex) => {
+                const headingId = `heading${catIndex}`;
+                const collapseId = `collapse${catIndex}`;
+                
+                let itemsHtml = '';
+                category.items.forEach((itemText, itemIndex) => {
+                    const indexValue = `${catIndex}_${itemIndex}`;
+                    const uniqueId = `dish_${indexValue}`;
+                    const isChecked = checkedIndices.includes(indexValue) ? 'checked' : '';
+
+                    itemsHtml += `
+                        <div class="col-md-6">
+                            <div class="form-check hover-gold p-2 rounded d-flex align-items-center">
+                                <input class="form-check-input dish-item" type="checkbox" 
+                                    value="${indexValue}" 
+                                    id="${uniqueId}" 
+                                    ${isChecked}>
+                                <label class="form-check-label w-100 cursor-pointer pt-1 ${currentLang === 'gu' ? 'font-gujarati' : ''}" for="${uniqueId}">
+                                    ${itemText}
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const savedCustomValue = customInputValues[catIndex] || "";
+                const placeholder = (currentLang === 'gu') 
+                    ? "અન્ય વસ્તુઓ ઉમેરો (એક લીટીમાં એક)..." 
+                    : "Add other items here (One item per line)...";
+
+                itemsHtml += `
+                    <div class="col-12 custom-item-wrapper">
+                        <label class="small fw-bold text-muted mb-1"><i class="bi bi-plus-circle me-1"></i> Add Custom Items (Multiple):</label>
+                        <textarea 
+                            class="form-control custom-dish-input rounded bg-light" 
+                            rows="2"
+                            placeholder="${placeholder}" 
+                            data-catindex="${catIndex}" 
+                            id="custom_input_${catIndex}">${savedCustomValue}</textarea>
+                    </div>
+                `;
+
+                html += `
+                    <div class="accordion-item border-0 mb-3 shadow-sm rounded overflow-hidden">
+                        <h2 class="accordion-header" id="${headingId}">
+                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                                <span class="me-3 fs-5">${category.icon}</span> 
+                                <span class="${currentLang === 'gu' ? 'font-gujarati' : ''}">${category.category}</span>
+                            </button>
+                        </h2>
+                        <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                            <div class="accordion-body bg-light">
+                                <div class="row g-2">${itemsHtml}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+
+            document.querySelectorAll('.dish-item').forEach(item => {
+                item.addEventListener('change', updateSummary);
+            });
+
+            document.querySelectorAll('.custom-dish-input').forEach(input => {
+                input.addEventListener('input', updateSummary);
+            });
+        }
+
+        function getOrganizedSelection() {
+            let organizedData = [];
+            let emailText = "";
+            activeMenuData.forEach((cat, catIndex) => {
+                const selectedItems = [];
+
+                const inputs = document.querySelectorAll(`.dish-item[value^="${catIndex}_"]:checked`);
+                inputs.forEach(input => {
+                    const parts = input.value.split('_'); 
+                    const itemIndex = parseInt(parts[1]);
+                    const itemName = cat.items[itemIndex]; 
+                    selectedItems.push(itemName);
+                });
+
+                const customInput = document.getElementById(`custom_input_${catIndex}`);
+                if (customInput && customInput.value.trim() !== "") {
+                    const lines = customInput.value.split(/\r?\n/);
+                    lines.forEach(line => {
+                        if(line.trim() !== "") {
+                            selectedItems.push(`(Custom) ${line.trim()}`);
+                        }
+                    });
+                }
+
+                if(selectedItems.length > 0) {
+                    organizedData.push({ category: cat.category, items: selectedItems });
+                    emailText += `\n[ ${cat.category} ]\n` + selectedItems.map(i => ` - ${i}`).join("\n") + "\n";
+                }
+            });
+            return { htmlData: organizedData, textData: emailText };
+        }
+
+        function updateSummary() {
+            const listContainer = document.getElementById('selectedList');
+            const selection = getOrganizedSelection();
+            listContainer.innerHTML = ''; 
+
+            if (selection.htmlData.length === 0) {
+                listContainer.innerHTML = '<li class="list-group-item text-muted small fst-italic border-0 ps-0">No dishes selected yet...</li>';
+                return;
+            }
+
+            selection.htmlData.forEach(group => {
+                const catHeader = document.createElement('li');
+                catHeader.className = `list-group-item bg-light fw-bold small text-gold py-1 ${currentLang === 'gu' ? 'font-gujarati' : ''}`;
+                catHeader.innerText = group.category;
+                listContainer.appendChild(catHeader);
+
+                group.items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = `list-group-item border-0 ps-3 py-1 small ${currentLang === 'gu' ? 'font-gujarati' : ''}`;
+                    
+                    if(item.startsWith("(Custom)")) {
+                        li.innerHTML = `<i class="bi bi-pencil-fill text-warning me-2"></i> ${item.replace('(Custom) ', '')}`;
+                        li.classList.add("text-primary"); 
+                    } else {
+                        li.innerHTML = `<i class="bi bi-check2 text-success me-2"></i> ${item}`;
+                    }
+                    
+                    listContainer.appendChild(li);
+                });
+            });
+        }
+
+        function validateInputs() {
+            const nameEl = document.getElementById('clientName');
+            const phoneEl = document.getElementById('clientPhone');
+            const nameError = document.getElementById('nameError');
+            const phoneError = document.getElementById('phoneError');
+            
+            let valid = true;
+            nameError.innerText = ""; phoneError.innerText = "";
+
+            if (nameEl.value.trim().length < 2) { 
+                nameError.innerText = "Name is required."; 
+                valid = false; 
+            }
+            if (phoneEl.value.trim().length < 10) { 
+                phoneError.innerText = "Valid Phone Number required."; 
+                valid = false; 
+            }
+            return valid;
+        }
+
+        // 4. BACKEND COMMUNICATION
+        async function sendToBackend(data, silentMode = false) {
+            try {
+                // Make sure this points to your Django port (likely 8000)
+                const response = await fetch("http://127.0.0.1:8000/send-email/", { 
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    console.log("Email sent via Django!");
+                    
+                    if (!silentMode) {
+                        // ATTRACTIVE SUCCESS POPUP
+                        Swal.fire({
+                            title: 'Enquiry Sent!',
+                            text: 'Thank you! We have received your menu selection. We will contact you shortly.',
+                            icon: 'success',
+                            confirmButtonText: 'Done',
+                            confirmButtonColor: '#d4af37', // Your Gold Color
+                            background: '#fff',
+                            backdrop: `
+                                rgba(0,0,123,0.1)
+                                left top
+                                no-repeat
+                            `
+                        }).then((result) => {
+                            // REFRESH PAGE AFTER CLICKING OK
+                            if (result.isConfirmed) {
+                                window.location.reload();
+                            }
+                        });
+                    }
+                } else {
+                    console.error("Django Error:", result.message);
+                    if (!silentMode) {
+                        // ATTRACTIVE ERROR POPUP
+                        Swal.fire({
+                            title: 'Oops!',
+                            text: 'Something went wrong. Please call us directly if this persists.',
+                            icon: 'error',
+                            confirmButtonColor: '#d4af37'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Network Error:", error);
+                if (!silentMode) {
+                    // NETWORK ERROR POPUP
+                    Swal.fire({
+                        title: 'Connection Error',
+                        text: 'Please check your internet connection and try again.',
+                        icon: 'warning',
+                        confirmButtonColor: '#d4af37'
+                    });
+                }
+            }
+        }
+
+        // 5. BUTTON HANDLERS
+        async function handleDownloadAndCapture() {
+            if (!validateInputs()) return;
+
+            const selection = getOrganizedSelection();
+            if(selection.htmlData.length === 0) {
+                alert("Please select at least one dish!");
+                return;
+            }
+
+            const nameEl = document.getElementById('clientName');
+            const phoneEl = document.getElementById('clientPhone');
+            const notesEl = document.getElementById('specialNotes');
+
+            const messageBody = `PDF Downloaded!\nLanguage: ${currentLang.toUpperCase()}\nName: ${nameEl.value}\nPhone: ${phoneEl.value}\nNotes: ${notesEl.value}\n\nMENU:\n${selection.textData}`;
+
+            const emailData = {
+                name: nameEl.value,
+                phone: phoneEl.value,
+                message: messageBody,
+                subject: "New PDF Download - Swagat Caterers"
+            };
+
+            // Send Silently
+            sendToBackend(emailData, true);
+
+            // Update Print Layout
+            document.getElementById('p-name').innerText = nameEl.value;
+            document.getElementById('p-phone').innerText = phoneEl.value;
+            document.getElementById('p-date').innerText = new Date().toLocaleDateString('en-GB');
+
+            let finalHtml = "";
+            selection.htmlData.forEach(group => {
+                const fontClass = currentLang === 'gu' ? 'font-gujarati' : '';
+                finalHtml += `<div class="keep-together">
+                    <div class="print-category ${fontClass}">${group.category}</div>
+                    <ul class="print-list">`;
+                
+                group.items.forEach(item => { 
+                    const cleanItem = item.replace('(Custom) ', '');
+                    finalHtml += `<li class="${fontClass}">${cleanItem}</li>`; 
+                });
+                
+                finalHtml += `</ul></div>`;
+            });
+            document.getElementById('p-menu-list').innerHTML = finalHtml;
+
+            const noteWrapper = document.getElementById('p-notes-wrapper');
+            if(notesEl.value.trim() !== "") {
+                noteWrapper.style.display = "block";
+                document.getElementById('p-notes-text').innerText = notesEl.value;
+            } else {
+                noteWrapper.style.display = "none";
+            }
+
+            const originalTitle = document.title;
+            document.title = `${nameEl.value}_Swagat_Menu`; 
+            
+            window.print();
+
+            setTimeout(() => { document.title = originalTitle; }, 1000);
+        }
+
+        function sendMenuEmail(skipValidation) {
+            if (!validateInputs()) return;
+            const selection = getOrganizedSelection();
+            if(selection.htmlData.length === 0) {
+                alert("Please select at least one dish!");
+                return;
+            }
+            const name = document.getElementById('clientName').value;
+            const phone = document.getElementById('clientPhone').value;
+            const notes = document.getElementById('specialNotes').value;
+
+            const messageBody = `Manual Enquiry (${currentLang.toUpperCase()})\nName: ${name}\nPhone: ${phone}\n\nMENU:\n${selection.textData}\n\nNotes: ${notes}`;
+
+            const emailData = {
+                name: name,
+                phone: phone,
+                message: messageBody,
+                subject: "New Website Enquiry - Swagat Caterers"
+            };
+
+            // Send with Alert
+            sendToBackend(emailData, false);
+        }
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,11 @@
+{
+  "name": "swagat-caterers-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend for Swagat Caterers",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  }
+}
+

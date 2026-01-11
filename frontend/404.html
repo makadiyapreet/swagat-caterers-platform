@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E2P4ZTV4Z7"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-E2P4ZTV4Z7');
+    </script>
+    <!-- End Google Analytics -->
+
+    <title>Page Not Found | Swagat Caterers, Rajkot</title>
+
+    <!-- SEO (404 pages should be index-safe but clear) -->
+    <meta name="description" content="The page you are looking for could not be found. Return to Swagat Caterers for premium catering services in Rajkot.">
+
+    <!-- Website Logo / Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="images/logo/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/logo/logo.png">
+
+    <!-- Social Media Preview (Optional but Safe) -->
+    <meta property="og:title" content="Page Not Found | Swagat Caterers">
+    <meta property="og:description" content="Looks like this page is still cooking. Head back to Swagat Caterers for delicious experiences.">
+    <meta property="og:image" content="images/logo/logo.png">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Playfair Display (Headings / 404 Number) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Inter (Body Text) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <!-- Lottie Animation Support (Chef / Catering Animation) -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fffcf5;
+            background-image: radial-gradient(#d4af37 0.8px, transparent 0.8px), radial-gradient(#d4af37 0.8px, #fffcf5 0.8px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .error-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.15);
+            text-align: center;
+            max-width: 700px; /* Increased Max Width */
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            position: relative;
+        }
+
+        /* --- ANIMATION CONTAINER --- */
+        .animation-wrapper {
+            position: relative;
+            width: 450px; /* WIDER container to fit large cutlery */
+            height: 240px; /* TALLER container */
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        /* --- CUTLERY STYLING (UPDATED SIZE) --- */
+        .cutlery {
+            width: 180px;   /* WAS 50px */
+            height: 200px; /* WAS 140px */
+            position: absolute;
+            bottom: 10px;
+        }
+        
+        .cutlery path {
+            fill: url(#goldGradient);
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.15));
+        }
+
+        .fork {
+            left: -20px; /* Pushed out further */
+        }
+
+        .knife {
+            right: -20px; /* Pushed out further */
+        }
+
+        /* --- SERVING DISH (CENTER) --- */
+        .serving-dish {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            z-index: 2;
+            margin-bottom: 0px;
+        }
+
+        .tray {
+            width: 220px;
+            height: 25px;
+            background: linear-gradient(90deg, #b4901e, #ebd37d, #b4901e);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0;
+            left: -10px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            z-index: 10;
+        }
+
+        .lid {
+            width: 200px;
+            height: 110px;
+            background: linear-gradient(135deg, #f3e5ab 0%, #d4af37 40%, #b4901e 100%);
+            border-radius: 110px 110px 0 0;
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            z-index: 20;
+            transform-origin: bottom right;
+            animation: liftLid 4s ease-in-out infinite;
+            box-shadow: inset -5px -5px 15px rgba(0,0,0,0.15);
+        }
+
+        .lid::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            transform: rotate(-30deg);
+        }
+
+        .lid::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle at 30% 30%, #fff, #d4af37);
+            border-radius: 50%;
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .hidden-text {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            font-weight: 800;
+            color: #1a1a1a;
+            z-index: 5;
+            text-shadow: 2px 2px 0px rgba(212, 175, 55, 0.3);
+            animation: textAppear 4s ease-in-out infinite;
+        }
+
+        /* STEAM */
+        .steam {
+            position: absolute;
+            background: rgba(150, 150, 150, 0.4);
+            border-radius: 50%;
+            filter: blur(5px);
+            width: 10px;
+            height: 25px;
+            top: 20px;
+            left: 50%;
+            opacity: 0;
+            z-index: 1;
+        }
+        .steam:nth-child(1) { left: 40%; animation: steamRise 4s 1s infinite; }
+        .steam:nth-child(2) { left: 50%; animation: steamRise 4s 1.4s infinite; }
+        .steam:nth-child(3) { left: 60%; animation: steamRise 4s 1.8s infinite; }
+
+        /* KEYFRAMES */
+        @keyframes liftLid {
+            0%, 15%, 100% { transform: translateY(0) rotate(0deg); }
+            45%, 70% { transform: translateY(-110px) rotate(-20deg); } 
+        }
+
+        @keyframes textAppear {
+            0%, 15%, 100% { opacity: 0; transform: scale(0.8); }
+            45%, 70% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes steamRise {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-60px) scale(1.5); opacity: 0; }
+        }
+
+        /* TEXT & BUTTON */
+        .error-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #1a1a1a;
+        }
+
+        .error-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .btn-gold {
+            background: linear-gradient(45deg, #d4af37, #f3e5ab, #d4af37);
+            background-size: 200% auto;
+            color: #1a1a1a;
+            border-radius: 50px;
+            padding: 15px 45px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.4s;
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+        .btn-gold:hover {
+            background-position: right center;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.5);
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg width="0" height="0">
+        <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#b4901e;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#ebd37d;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#b4901e;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <div class="error-card">
+
+        <div class="animation-wrapper">
+            
+            <svg class="cutlery fork" viewBox="-11 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                    <g id="Icon-Set" transform="translate(-111.000000, -463.000000)">
+                        <path d="M120,463 C119.448,463 119,463.448 119,464 L119,471 C119,472.407 118.163,473.356 117,473.802 L117,464 C117,463.448 116.552,463 116,463 C115.448,463 115,463.448 115,464 L115,473.802 C113.837,473.356 113,472.407 113,471 L113,464 C113,463.448 112.552,463 112,463 C111.448,463 111,463.448 111,464 L111,471 C111,473.419 112.718,475.437 115,475.899 L115,494 C115,494.553 115.448,495 116,495 C116.552,495 117,494.553 117,494 L117,475.899 C119.282,475.437 121,473.419 121,471 L121,464 C121,463.448 120.552,463 120,463" id="fork"></path>
+                    </g>
+                </g>
+            </svg>
+
+            <div class="serving-dish">
+                <div class="steam"></div>
+                <div class="steam"></div>
+                <div class="steam"></div>
+                
+                <div class="lid"></div>
+                <div class="hidden-text">404</div>
+                <div class="tray"></div>
+            </div>
+
+            <svg class="cutlery knife" viewBox="-12 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                    <g id="Icon-Set-Filled" transform="translate(-166.000000, -465.000000)">
+                        <path d="M168,465 L167,465 C166.448,465 166,465.448 166,466 L166,495 C166,496.104 166.896,497 168,497 C169.104,497 170,496.104 170,495 L170,483 L174,483 C174,471.22 168,465 168,465" id="knife"></path>
+                    </g>
+                </g>
+            </svg>
+            
+        </div>
+
+        <h1 class="error-title">Oops! This Platter Isn’t Ready.</h1>
+
+        <p class="error-text">
+            It looks like this page is still in the kitchen.<br>
+            Don't worry, our chefs are preparing something special.
+        </p>
+
+        <a href="index.html" class="btn btn-gold">
+            <i class="bi bi-house-door-fill me-2"></i> Back to Menu
+        </a>
+
+    </div>
+
+</body>
+</html>
