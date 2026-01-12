@@ -22,8 +22,8 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-# DEBUG = os.getenv("DEBUG") == "True"
+#DEBUG = True
+DEBUG = os.getenv("DEBUG") == "True"
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.environ.get(
