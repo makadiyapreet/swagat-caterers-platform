@@ -19,17 +19,44 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from catering.views import frontend_home
+from catering import views
+from django.contrib.auth import views as auth_views
+
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
+    path('', frontend_home, name='frontend_home'),
+
     # 1. The Menu API (This now looks inside catering/urls.py)
     path('api/menu/', include('catering.urls')),
     path('', include('catering.urls')),
     # 2. The Authentication APIs (Login/Signup)
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
+
+    path('menu/', views.menu, name='menu'),
+    path('about/', views.about, name='about'),
+    path('gallery/', views.gallery, name='gallery'),
+    path('contact/', views.contact, name='contact'),
+    path('book-now/', views.book_now, name='book_now'),
+    path("custom-menu/", views.custom_menu, name="custom_menu"),
+    path("index/", views.index, name="index"),
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("registration-pending/", views.registration_pending, name="registration_pending"),
+    path("login/", views.login_page, name="login"),
+    path("signup/", views.signup_page, name="signup"),
+    path("profile/", views.profile, name="profile"),
+    path("tracker/", views.tracker, name="tracker"),
+    path("booking/", views.booking, name="booking"),
+    path("direct-menu/", views.direct_menu, name="direct_menu"),
+    path("create-menu/", views.create_menu, name="create_menu"),
+    path("print-bill/", views.print_bill, name="print_bill"),
+
+
+    path('api/', include('catering.urls'))
 ]
 
 # This allows images to load

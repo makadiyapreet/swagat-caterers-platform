@@ -10,14 +10,20 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR points to your 'backend' folder
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+PROJECT_ROOT = BASE_DIR.parent   # 👈 this points to project-root
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/dashboard/"
+LOGOUT_REDIRECT_URL = "/"
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-@3q4zgfjr+qnrd*x!+ie0p!%llo=mtp+$%&ann-mp0*-%%@4a#'
-SECRET_KEY = os.environ.get("SECRET_KEY")
+#SECRET_KEY = 'django-insecure-swagat-caterers-dev-key-123'
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-swagat-caterers-dev-key-123"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = os.getenv("DEBUG") == "True"
+DEBUG = True
+# DEBUG = os.getenv("DEBUG") == "True"
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.environ.get(
@@ -58,11 +64,12 @@ ROOT_URLCONF = 'backend_site.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # FIX: We use BASE_DIR.parent to step out of 'backend' and find 'frontend'
-        'DIRS': [BASE_DIR.parent / 'frontend'], 
+        # FIX: We use BASE_DIR.parent to step out of 'backend' and find 'templates'
+        'DIRS': [BASE_DIR.parent / 'templates'], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -126,9 +133,9 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
-# FIX: Look in the sibling 'frontend' folder for static assets too
+# FIX: Look in the sibling 'templates' folder for static assets too
 STATICFILES_DIRS = [
-    BASE_DIR.parent / 'frontend',
+    BASE_DIR.parent / 'templates',
 ]
 
 # Default primary key field type
@@ -173,4 +180,4 @@ SITE_URL = "https://swagatcaterers.in"
 
 # Media Files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'

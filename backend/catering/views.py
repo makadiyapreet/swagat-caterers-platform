@@ -14,6 +14,10 @@ from .serializers import *
 from django.http import JsonResponse
 from django.core.mail import send_mail
 import json
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+
 
 # --- IMPORTS ---
 from .models import Category, Menu_item, CateringEvent, Member, MemberLog , Menu, Booking
@@ -211,3 +215,65 @@ def send_enquiry_email(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+# --- 8. FRONTEND HOME VIEW ---
+def frontend_home(request):
+    return render(request, "index.html")
+
+def index(request):
+    return render(request, "index.html")
+
+def menu(request):
+    return render(request, "menu.html")
+
+def about(request):
+    return render(request, "about.html")
+
+def gallery(request):
+    return render(request, "gallery.html")
+
+def contact(request):
+    return render(request, "contact.html")
+
+def book_now(request):
+    return render(request, "booknow.html")
+
+def custom_menu(request):
+    return render(request, "customize_menu.html")
+
+@login_required
+def dashboard(request):
+    return render(request, "dashboard.html")
+
+def registration_pending(request):
+    return render(request, "registration_pending.html")
+
+def login_page(request):
+    return render(request, "login.html")
+
+def signup_page(request):
+    return render(request, "signup.html")
+
+@login_required
+def profile(request):
+    return render(request, "profile.html")
+
+@login_required
+def tracker(request):
+    return render(request, "tracker.html")
+
+@login_required
+def booking(request):
+    return render(request, "booking.html")
+
+@login_required
+def direct_menu(request):
+    return render(request, "direct_menu.html")
+
+@login_required
+def create_menu(request):
+    return render(request, "create_menu.html")
+
+@login_required
+def print_bill(request):
+    return render(request, "print_bill.html")
