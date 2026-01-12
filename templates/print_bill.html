@@ -1,0 +1,461 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Print Bill - Swagat Caterers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root { --gold: #D4AF37; --dark: #1a1a1a; --light: #f8f9fa; --border: #e9ecef; }
+        * { box-sizing: border-box; }
+
+        body { background: var(--light); font-family: 'Inter', sans-serif; padding: 20px; color: #333; margin: 0; }
+
+        .invoice-box {
+            max-width: 900px; margin: 0 auto; background: white; padding: 40px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.08); border-radius: 4px; 
+        }
+
+        /* HEADER */
+        .header-row { 
+            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 2px solid var(--gold); padding-bottom: 30px; margin-bottom: 30px;
+        }
+
+        .brand-section { display: flex; align-items: center; gap: 15px; }
+        
+        .logo-img { height: 70px; width: auto; object-fit: contain; }
+
+        .brand-text h1 { 
+            font-family: 'Playfair Display', serif; color: var(--black); margin: 0; 
+            font-size: 32px; line-height: 1; text-transform: uppercase;
+        }
+        
+        .brand-text p { margin: 5px 0 0 0; font-size: 13px; color: #555; line-height: 1.4; }
+
+        .invoice-details { text-align: right; }
+        .invoice-label { 
+            font-size: 40px; font-weight: 900; color: #eee; letter-spacing: 2px; 
+            line-height: 0.8; margin-bottom: 10px;
+        }
+        .meta-group { font-size: 14px; color: #333; margin-bottom: 4px; }
+        .meta-label { font-weight: 600; color: #999; margin-right: 5px; text-transform: uppercase; font-size: 11px; }
+
+        /* CLIENT SECTION */
+        .client-section { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        .client-col { width: 48%; }
+        
+        .section-label { 
+            font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; 
+            letter-spacing: 1px; margin-bottom: 8px; display: block;
+            border-bottom: 1px solid #eee; padding-bottom: 5px;
+        }
+
+        .client-name { font-size: 18px; font-weight: 700; color: var(--dark); margin: 0 0 5px 0; }
+        .client-info { font-size: 14px; color: #555; margin-bottom: 2px; }
+
+        /* ADD BAR */
+        .add-event-bar { 
+            background: #fffcf5; border: 1px dashed var(--gold); padding: 12px; border-radius: 6px; 
+            margin-bottom: 25px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+        }
+        .event-select { flex: 1; padding: 10px; border: 1px solid #e0c055; border-radius: 4px; background: white; font-size: 14px; }
+        .btn-add-event { background: var(--gold); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        /* TABLE */
+        .table-responsive { overflow-x: auto; margin-bottom: 30px; border: 1px solid #eee; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        
+        th { 
+            background: var(--dark); color: white; padding: 12px 15px; text-align: left; 
+            font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 14px; }
+        
+        .inp-desc { width: 100%; border: none; padding: 5px; font-weight: 500; font-family: inherit; font-size: 14px; outline: none; }
+        .inp-num { width: 80px; text-align: right; border: 1px solid #ddd; padding: 8px; border-radius: 4px; font-weight: bold; font-family: inherit; font-size: 14px; }
+        .row-total { font-weight: 700; text-align: right; color: var(--dark); }
+        .btn-del { color: #e74c3c; cursor: pointer; font-size: 18px; margin-left: 10px; opacity: 0.5; }
+        .btn-del:hover { opacity: 1; }
+
+        /* TOTALS */
+        .total-section { display: flex; justify-content: flex-end; padding-top: 10px; }
+        .total-box { text-align: right; background: #fdfdfd; padding: 20px; border-radius: 8px; border: 1px solid #eee; min-width: 250px; }
+        .total-label { font-size: 12px; color: #777; font-weight: 600; text-transform: uppercase; }
+        .total-value { font-size: 28px; color: #000; font-weight: 700; margin-top: 5px; line-height: 1; }
+
+        /* FOOTER */
+        .invoice-footer { margin-top: 60px; text-align: center; border-top: 2px solid var(--gold); padding-top: 20px; }
+        .footer-text { color: #555; font-size: 14px; font-weight: 500; margin-bottom: 5px; }
+        .footer-sub { color: #999; font-size: 12px; }
+
+        /* ACTIONS */
+        .action-bar { max-width: 900px; margin: 30px auto; display: flex; justify-content: space-between; gap: 15px; }
+        .btn-big { padding: 16px 30px; border-radius: 50px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 16px; }
+        .btn-pdf { background: var(--dark); color: white; flex: 1; }
+        .btn-pdf:hover { background: var(--gold); transform: translateY(-2px); }
+        .btn-back { background: white; color: #333; flex: 1; border: 1px solid #ddd; }
+        
+        .btn-add-row { width: 100%; padding: 15px; border: 2px dashed #ddd; background: none; color: #888; font-weight: bold; cursor: pointer; border-radius: 6px; transition: 0.2s; font-size: 14px; }
+        .btn-add-row:hover { border-color: var(--gold); color: var(--gold); background: #fffcf5; }
+
+        /* --- RESPONSIVE CSS --- */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .invoice-box { padding: 20px; border-radius: 0; box-shadow: none; }
+            
+            /* Header Stacking */
+            .header-row { flex-direction: column; align-items: center; text-align: center; gap: 20px; padding-bottom: 20px; }
+            .brand-section { flex-direction: column; text-align: center; }
+            .invoice-details { text-align: center; width: 100%; }
+            .invoice-label { font-size: 32px; }
+
+            /* Client Info Stacking */
+            .client-section { flex-direction: column; gap: 25px; margin-bottom: 20px; }
+            .client-col { width: 100%; text-align: center; }
+            
+            /* Merge Bar Stacking */
+            .add-event-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+            .btn-add-event { width: 100%; }
+
+            /* Totals */
+            .total-section { justify-content: center; }
+            .total-box { width: 100%; text-align: center; }
+
+            /* Actions */
+            .action-bar { flex-direction: column-reverse; } /* Back button below Download */
+            .btn-big { width: 100%; }
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .invoice-box { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+            .action-bar, .add-event-bar, .btn-add-row, .btn-del { display: none; }
+            input { border: none; background: transparent; padding: 0; }
+            .inp-num { text-align: right; width: auto; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="invoice-box" id="print-area">
+        <div class="header-row">
+            <div class="brand-section">
+                <img src="{% static 'images/logo/logo.png' %}" class="logo-img" id="invoice-logo" alt="Logo" crossorigin="anonymous">
+                <div class="brand-text">
+                    <h1>Swagat Caterers</h1>
+                    <p>Rajkot, Gujarat | +91 94282 51083<br>Premium Catering Services</p>
+                </div>
+            </div>
+            
+            <div class="invoice-details">
+                <div class="invoice-label">INVOICE</div>
+                <div class="meta-group"><span class="meta-label">Date:</span> <span id="bill-date"></span></div>
+                <div class="meta-group"><span class="meta-label">Invoice #:</span> <span id="inv-num">...</span></div>
+            </div>
+        </div>
+
+        <div class="client-section">
+            <div class="client-col">
+                <span class="section-label">Bill To</span>
+                <h3 class="client-name" id="client-name">Loading...</h3>
+                <div class="client-info" id="client-contact">...</div>
+            </div>
+            <div class="client-col">
+                <span class="section-label">Event Details</span>
+                <div class="client-info" id="event-details" style="font-weight: 600;">...</div>
+                <div class="client-info" id="event-venue">...</div>
+            </div>
+        </div>
+
+        <div class="add-event-bar">
+            <span style="font-size:13px; font-weight:bold; color:#b59020;">➕ Merge Bill:</span>
+            <select id="other-events-select" class="event-select">
+                <option value="">Loading events...</option>
+            </select>
+            <button class="btn-add-event" onclick="addSelectedEvent()">Add</button>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="50%">Description</th>
+                        <th width="15%" style="text-align:right;">Price (₹)</th>
+                        <th width="10%" style="text-align:right;">Qty</th>
+                        <th width="20%" style="text-align:right;">Total</th>
+                        <th width="5%"></th>
+                    </tr>
+                </thead>
+                <tbody id="bill-body"></tbody>
+            </table>
+        </div>
+
+        <button class="btn-add-row" onclick="addManualRow()">+ Add Extra Item / Expense</button>
+
+        <div class="total-section">
+            <div class="total-box">
+                <div class="total-label">Grand Total</div>
+                <div class="total-value">₹ <span id="grand-total">0.00</span></div>
+            </div>
+        </div>
+
+        <div class="invoice-footer">
+            <p class="footer-text">Thank you for choosing Swagat Caterers!</p>
+            <p class="footer-sub">We look forward to serving you again soon.</p>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <a href="{% url 'dashboard' %}" class="btn-big btn-back">← Dashboard</a>
+        <button class="btn-big btn-pdf" onclick="generatePDF()">📄 Download Invoice</button>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        const mainEventId = new URLSearchParams(window.location.search).get('event_id');
+        if (!token || !mainEventId) window.location.href = "{% url 'dashboard' %}";
+
+        let allEventsList = []; 
+
+        // FORMAT: DD-MM-YYYY
+        function formatDate(input) {
+        const d = (input instanceof Date) ? input : new Date(input);
+        return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+        }
+
+        async function init() {
+            const today = new Date();
+            document.getElementById('bill-date').innerText = formatDate(today);
+            document.getElementById('inv-num').innerText = `INV-${mainEventId}-${Date.now().toString().slice(-4)}`;
+
+            try {
+                // Fetch Main Event
+                const res = await fetch(`http://127.0.0.1:8000/api/menu/events/${mainEventId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const mainEvent = await res.json();
+                
+                document.getElementById('client-name').innerText = mainEvent.title;
+                
+                let contact = mainEvent.contact_number || "No contact";
+                if(mainEvent.description && mainEvent.description.includes("Contact:")) {
+                    contact = mainEvent.description.split("Contact:")[1].split("Note:")[0].trim();
+                }
+                document.getElementById('client-contact').innerText = `Mo: ${contact}`;
+                document.getElementById('event-details').innerText = formatDate(mainEvent.date);
+                document.getElementById('event-venue').innerText = mainEvent.venue;
+
+                addEventRowsToTable(mainEvent);
+
+                // Fetch All Events
+                const allRes = await fetch(`http://127.0.0.1:8000/api/menu/events/`, { headers: { 'Authorization': `Token ${token}` } });
+                allEventsList = await allRes.json();
+                populateEventDropdown(mainEvent.title);
+
+            } catch (e) { console.error(e); }
+        }
+
+        function populateEventDropdown(clientName) {
+            const sel = document.getElementById('other-events-select');
+            sel.innerHTML = '<option value="">-- Select Event to Merge --</option>';
+            allEventsList.forEach(ev => {
+                if (ev.id != mainEventId) { 
+                    const isMatch = ev.title.toLowerCase().includes(clientName.toLowerCase().split(' ')[0]);
+                    const mark = isMatch ? "⭐ " : "";
+                    sel.innerHTML += `<option value="${ev.id}">${mark}${ev.title} (${formatDate(ev.date)})</option>`;
+                }
+            });
+        }
+
+        async function addSelectedEvent() {
+            const id = document.getElementById('other-events-select').value;
+            if(!id) return;
+            const res = await fetch(`http://127.0.0.1:8000/api/menu/events/${id}/`, { headers: { 'Authorization': `Token ${token}` } });
+            const ev = await res.json();
+            
+            const tbody = document.getElementById('bill-body');
+            const sep = document.createElement('tr');
+            sep.innerHTML = `<td colspan="5" style="background:#fff8e1; font-weight:bold; font-size:12px; color:#b59020; padding:10px 15px; border-bottom:1px solid #e0c055;">
+                MERGED EVENT: ${ev.title} (${formatDate(ev.date)})
+            </td>`;
+            tbody.appendChild(sep);
+            addEventRowsToTable(ev);
+        }
+
+        function addEventRowsToTable(eventObj) {
+            const dateStr = formatDate(eventObj.date);
+            if (eventObj.menus && eventObj.menus.length > 0) {
+                eventObj.menus.forEach(menu => {
+                    const price = parseFloat(menu.price_per_plate) || 0;
+                    const description = `${menu.title} - ${dateStr}`;
+                    addRow(description, price, eventObj.guests);
+                });
+            } else {
+                const description = `${eventObj.event_type || 'Catering Service'} - ${dateStr}`;
+                addRow(description, 0, eventObj.guests);
+            }
+        }
+
+        function addManualRow() { addRow("", 0, 1); }
+
+        function addRow(desc, price, qty) {
+            const tbody = document.getElementById('bill-body');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input class="inp-desc" value="${desc}" placeholder="Item Description"></td>
+                <td align="right"><input class="inp-num p-inp" type="number" value="${price}" oninput="calc(this)"></td>
+                <td align="right"><input class="inp-num q-inp" type="number" value="${qty}" oninput="calc(this)"></td>
+                <td align="right" class="row-total">0.00</td>
+                <td align="center"><span class="btn-del" onclick="this.closest('tr').remove(); total();">&times;</span></td>
+            `;
+            tbody.appendChild(tr);
+            calc(tr.querySelector('.p-inp'));
+        }
+
+        function calc(el) {
+            const row = el.closest('tr');
+            const p = parseFloat(row.querySelector('.p-inp').value) || 0;
+            const q = parseFloat(row.querySelector('.q-inp').value) || 0;
+            row.querySelector('.row-total').innerText = (p * q).toFixed(2);
+            total();
+        }
+
+        function total() {
+            let sum = 0;
+            document.querySelectorAll('.row-total').forEach(e => sum += parseFloat(e.innerText));
+            document.getElementById('grand-total').innerText = sum.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        }
+
+        function getBase64Image(img) {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth; 
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            return canvas.toDataURL("image/png");
+        }
+
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait' });
+
+            const addWatermark = (pdfDoc) => {
+                pdfDoc.saveGraphicsState();
+                pdfDoc.setTextColor(240, 240, 240); 
+                pdfDoc.setFontSize(18); 
+                pdfDoc.setFont("helvetica", "bold italic");
+                const watermarkText = "SWAGAT CATERERS";
+                const pageWidth = pdfDoc.internal.pageSize.getWidth();
+                const pageHeight = pdfDoc.internal.pageSize.getHeight();
+                const xStep = 60; const yStep = 60; const rotationAngle = 35;
+                for (let y = 30; y < pageHeight; y += yStep) {
+                    for (let x = 30; x < pageWidth; x += xStep) {
+                        pdfDoc.text(watermarkText, x, y, { align: 'center', angle: rotationAngle, baseline: 'middle' });
+                    }
+                }
+                pdfDoc.restoreGraphicsState();
+            };
+
+            addWatermark(doc);
+
+            doc.setFillColor(212, 175, 55); 
+            doc.rect(0, 0, 210, 40, 'F');
+
+            const logoImg = document.getElementById("invoice-logo");
+            if (logoImg.complete && logoImg.naturalHeight !== 0) {
+                try {
+                    const imgData = getBase64Image(logoImg);
+                    doc.addImage(imgData, 'PNG', 15, 5, 30, 30);
+                } catch(e) {}
+            }
+
+            doc.setFont("times", "bold"); 
+            doc.setTextColor(255, 255, 255); 
+            doc.setFontSize(26);
+            doc.text("SWAGAT CATERERS", 50, 20); 
+            
+            doc.setFont("helvetica", "normal"); 
+            doc.setFontSize(10);
+            doc.text("Rajkot, Gujarat | +91 94282 51083", 50, 28);
+
+            doc.setFont("helvetica", "bold"); 
+            doc.setFontSize(22);
+            doc.setTextColor(44, 62, 80); 
+            doc.text("INVOICE", 195, 20, {align:'right'});
+            
+            doc.setFontSize(10); 
+            doc.setFont("helvetica", "normal");
+            doc.text(`Date: ${document.getElementById('bill-date').innerText}`, 195, 28, {align:'right'});
+            doc.text(`Invoice #: ${document.getElementById('inv-num').innerText}`, 195, 34, {align:'right'});
+
+            const startY = 55;
+            doc.setDrawColor(200); 
+            doc.line(15, startY, 195, startY);
+            
+            doc.setFont("helvetica", "bold"); 
+            doc.setTextColor(212, 175, 55);
+            doc.text("BILL TO", 15, startY + 10);
+            doc.text("EVENT DETAILS", 120, startY + 10);
+            
+            doc.setTextColor(44, 62, 80); 
+            doc.setFontSize(14);
+            doc.text(document.getElementById('client-name').innerText, 15, startY + 20);
+            
+            doc.setFontSize(11); 
+            doc.setFont("helvetica", "normal");
+            doc.text(document.getElementById('client-contact').innerText, 15, startY + 27);
+
+            doc.setFontSize(12);
+            doc.text(document.getElementById('event-details').innerText, 120, startY + 20);
+            doc.setFontSize(11);
+            doc.text(document.getElementById('event-venue').innerText, 120, startY + 27);
+
+            const rows = [];
+            document.querySelectorAll('#bill-body tr').forEach(tr => {
+                if(tr.innerText.includes("MERGED EVENT")) {
+                    rows.push([{content: tr.innerText.trim(), colSpan: 4, styles: {fillColor: [255, 248, 225], fontStyle: 'bold', textColor: [181, 144, 32]}}]);
+                } else {
+                    const desc = tr.querySelector('.inp-desc').value;
+                    const price = tr.querySelector('.p-inp').value;
+                    const qty = tr.querySelector('.q-inp').value;
+                    const tot = tr.querySelector('.row-total').innerText;
+                    rows.push([desc, price, qty, tot]);
+                }
+            });
+
+            doc.autoTable({
+                startY: startY + 35,
+                head: [['Description', 'Price', 'Qty', 'Total']],
+                body: rows,
+                theme: 'grid',
+                headStyles: { fillColor: [44, 62, 80], textColor: 255 },
+                columnStyles: { 1: {halign:'right'}, 2: {halign:'right'}, 3: {halign:'right', fontStyle:'bold'} },
+                didDrawPage: function (data) { if (data.pageNumber > 1) addWatermark(doc); }
+            });
+
+            let finalY = doc.lastAutoTable.finalY + 15;
+            doc.setFont("helvetica", "bold"); 
+            doc.setFontSize(14); 
+            doc.setTextColor(0, 0, 0); 
+            doc.text(`Grand Total:   Rs. ${document.getElementById('grand-total').innerText}`, 195, finalY, {align:'right'});
+
+            doc.setDrawColor(212, 175, 55); 
+            doc.setLineWidth(1); 
+            doc.line(15, 275, 195, 275);
+            
+            doc.setFontSize(9); 
+            doc.setTextColor(100); 
+            doc.setFont("helvetica", "italic");
+            doc.text("Thank you for choosing Swagat Caterers! We look forward to serving you again.", 105, 282, {align:'center'});
+
+            doc.save(`Invoice_${document.getElementById('client-name').innerText}.pdf`);
+        }
+
+        init();
+    </script>
+</body>
+</html>

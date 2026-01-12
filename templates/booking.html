@@ -1,0 +1,195 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Booking - Swagat Caterers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #D4AF37; --bg: #f8f9fa; --text: #2c3e50; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border-top: 5px solid var(--gold); }
+        h2 { color: var(--gold); font-family: 'Playfair Display', serif; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .btn-save { background: var(--gold); color: white; }
+        .btn-cancel { background: #eee; color: #333; margin-top: 10px; }
+        
+        /* Helper to hide elements */
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 id="page-title">Loading...</h2>
+        <form id="bookingForm">
+            <div class="form-group">
+                <label>Client Name</label>
+                <input type="text" id="title" required>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="form-group">
+                <label>Venue</label>
+                <input type="text" id="venue" placeholder="e.g. Swagat Hall">
+            </div>
+            <div class="form-group">
+                <label>Event Type</label>
+                <select id="event_type">
+                    <option value="Wedding">Wedding (Shaadi)</option>
+                    <option value="Reception">Reception</option>
+                    <option value="Engagement">Engagement (Ring Ceremony)</option>
+                    <option value="Sangeet">Sangeet / Garba Night</option>
+                    <option value="Haldi">Haldi / Mehndi</option>
+                    <option value="House Warming">House Warming (Vastu)</option>
+                    <option value="Baby Shower">Baby Shower (Shrimant)</option>
+                    <option value="Birthday">Birthday Party</option>
+                    <option value="Anniversary">Anniversary</option>
+                    <option value="Corporate">Corporate Event</option>
+                    <option value="Social Gathering">Social Gathering</option>
+                    <option value="Religious">Religious Function</option>
+                    <option value="Other">Other Gathering</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Guests</label>
+                <input type="number" id="guests" required>
+            </div>
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="text" id="contact_number" required>
+            </div>
+            
+            <div class="form-group" id="status-group">
+                <label>Status</label>
+                <select id="status">
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="description" rows="3"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-save" id="btn-submit">Save</button>
+            <button type="button" class="btn btn-cancel" onclick="window.location.href='/dashboard/'">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        if(!token) window.location.href = "login.html";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('event_id');
+        const dateParam = urlParams.get('date');
+        let isAdmin = false;
+
+        async function init() {
+            try {
+                // 1. Check User Role
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` } });
+                if(!uRes.ok) throw new Error("Auth failed");
+                const user = await uRes.json();
+                
+                isAdmin = user.is_staff || user.is_superuser;
+
+                // 2. Adjust UI based on Role
+                if (isAdmin) {
+                    document.getElementById('status-group').classList.remove('hidden');
+                    document.getElementById('page-title').innerText = eventId ? "Edit Booking" : "New Booking";
+                    document.getElementById('btn-submit').innerText = eventId ? "Update Booking" : "Create Booking";
+                } else {
+                    // Regular User
+                    document.getElementById('status-group').classList.add('hidden');
+                    document.getElementById('page-title').innerText = "Request Booking";
+                    document.getElementById('btn-submit').innerText = "Send Request";
+                    // If editing, regular user logic (optional, usually they can't edit once requested)
+                    if(eventId) document.getElementById('page-title').innerText = "Edit Request";
+                }
+
+                // 3. Load Data if Editing
+                if (eventId) {
+                    loadEventData(eventId);
+                } else if (dateParam) {
+                    document.getElementById('date').value = dateParam;
+                }
+
+            } catch(e) { 
+                console.error(e); 
+                window.location.href = "/login/";
+            }
+        }
+
+        async function loadEventData(id) {
+            try {
+                const res = await fetch('api/menu/events/${id}/', { headers: { 'Authorization': `Token ${token}` } });
+                const data = await res.json();
+                
+                document.getElementById('title').value = data.title;
+                document.getElementById('date').value = data.date;
+                document.getElementById('venue').value = data.venue;
+                document.getElementById('event_type').value = data.event_type;
+                document.getElementById('guests').value = data.guests;
+                document.getElementById('contact_number').value = data.contact_number || "";
+                document.getElementById('status').value = data.status;
+                document.getElementById('description').value = data.description;
+            } catch(e) { console.error(e); alert("Error loading event."); }
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Logic: Admins can set status, Users are forced to 'pending'
+            const statusValue = isAdmin ? document.getElementById('status').value : 'pending';
+
+            const payload = {
+                title: document.getElementById('title').value,
+                date: document.getElementById('date').value,
+                venue: document.getElementById('venue').value,
+                event_type: document.getElementById('event_type').value,
+                guests: document.getElementById('guests').value,
+                contact_number: document.getElementById('contact_number').value,
+                status: statusValue,
+                description: document.getElementById('description').value
+            };
+
+            const url = eventId 
+                ? `http://127.0.0.1:8000/api/menu/events/${eventId}/` // Edit
+                : `http://127.0.0.1:8000/api/menu/events/`; // Create
+            
+            const method = eventId ? 'PATCH' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    if (isAdmin) {
+                        alert(eventId ? "Booking Updated Successfully!" : "Booking Created Successfully!");
+                    } else {
+                        alert("Request Sent Successfully! We will contact you shortly.");
+                    }
+                    window.location.href = "/dashboard/";
+                } else {
+                    alert("Error saving booking. Please check details.");
+                }
+            } catch(e) { console.error(e); alert("Network Error"); }
+        });
+
+        init();
+    </script>
+</body>
+</html>
