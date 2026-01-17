@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict VTLRXMSSiXql429MfAN6dvz0jV8ZN4STB5GyyvGIpAzH3brhLY9vlqRGy6EU3ZW
+\restrict oeBex9QBoMSsoIS8AcTu2N8S6e5fUEYvA0bF4GbhWyLQbV8sRapmsTv91OUPKcx
 
 -- Dumped from database version 14.20 (Homebrew)
 -- Dumped by pg_dump version 14.20 (Homebrew)
@@ -737,6 +737,7 @@ COPY public.catering_category (id, name, image, gujarati_name, "order") FROM std
 
 COPY public.catering_cateringevent (id, title, date, guests, event_type, contact_number, description, status, venue, advance_amount, rate, staff_count) FROM stdin;
 6	Preet	2026-01-29	1234	Corporate	8160238745	no	confirmed	Palace	0.00	0.00	0
+8	Preet	2026-01-17	234	Wedding	8160238745		pending	Swagat Caterers	0.00	0.00	0
 \.
 
 
@@ -770,6 +771,7 @@ COPY public.catering_memberlog (id, date, place, staff_count, rate, total_amount
 
 COPY public.catering_menu (id, title, created_at, event_id, price_per_plate, note) FROM stdin;
 5	Lunch	2026-01-12 21:00:35.182168+05:30	6	344.00	
+6	Lunch	2026-01-17 19:48:57.494394+05:30	8	1110.00	
 \.
 
 
@@ -1597,6 +1599,14 @@ COPY public.catering_menu_items (id, menu_id, menu_item_id) FROM stdin;
 65	5	19
 66	5	20
 67	5	604
+68	6	228
+69	6	6
+70	6	7
+71	6	234
+72	6	13
+73	6	238
+74	6	239
+75	6	17
 \.
 
 
@@ -1605,8 +1615,8 @@ COPY public.catering_menu_items (id, menu_id, menu_item_id) FROM stdin;
 --
 
 COPY public.catering_user (id, password, last_login, is_superuser, username, first_name, last_name, is_staff, is_active, date_joined, email, phone_number, profile_image, user_type) FROM stdin;
-2	pbkdf2_sha256$1200000$6M7DwfjzAmcIu0ps6Az3Vq$2tpnmfNYCBIQvepqZFfD1VfHwc7jUogSkc0o/MeRGIU=	2026-01-11 13:26:05.029181+05:30	f	preetpatel			f	t	2026-01-02 09:56:17.832731+05:30	preet131004m@gmail.com	9427788144	profile_images/default.png	customer
-1	pbkdf2_sha256$1200000$HTVERZSwCoGOacHuCYlzr6$Qln//CNx8VqsM+ZCEytEWJJrGYrGY22M7Hg939daa1A=	2026-01-12 20:39:02.674639+05:30	t	Preet			t	t	2026-01-01 11:40:14.554355+05:30	makadiyapreet1@gmail.com	8160238745	profile_images/er_wgqf_hI7KN5b.jpg	customer
+2	pbkdf2_sha256$1200000$CIjhupItV6sbjzXocTe9tI$RxPbPJ3mAzd68qfliJ8beSreWYLFW8k4sFt0HnOAnPM=	2026-01-17 19:39:02.685271+05:30	f	preetpatel			f	t	2026-01-02 09:56:17.832731+05:30	preet131004m@gmail.com	9427788144	profile_images/default_user.png	customer
+1	pbkdf2_sha256$1200000$HTVERZSwCoGOacHuCYlzr6$Qln//CNx8VqsM+ZCEytEWJJrGYrGY22M7Hg939daa1A=	2026-01-17 19:47:57.497723+05:30	t	Preet			t	t	2026-01-01 11:40:14.554355+05:30	makadiyapreet1@gmail.com	8160238745	profile_images/er_wgqf_hI7KN5b.jpg	customer
 \.
 
 
@@ -1770,6 +1780,7 @@ COPY public.django_admin_log (id, action_time, object_id, object_repr, action_fl
 137	2026-01-11 11:36:11.944638+05:30	827	Ice Cream	3		9	1
 138	2026-01-11 11:36:11.944655+05:30	826	Chocolate Brownie	3		9	1
 139	2026-01-11 11:36:11.944673+05:30	825	Candy	3		9	1
+140	2026-01-17 19:38:49.809498+05:30	2	preetpatel (customer)	2	[{"changed": {"fields": ["password"]}}]	10	1
 \.
 
 
@@ -1838,6 +1849,7 @@ COPY public.django_migrations (id, app, name, applied) FROM stdin;
 34	catering	0012_menu_note	2026-01-02 23:45:10.161882+05:30
 35	catering	0013_booking	2026-01-03 15:13:08.096183+05:30
 36	catering	0014_cateringevent_advance_amount_cateringevent_rate_and_more	2026-01-11 12:51:18.996968+05:30
+37	catering	0015_alter_user_profile_image	2026-01-17 19:45:39.581503+05:30
 \.
 
 
@@ -1847,7 +1859,7 @@ COPY public.django_migrations (id, app, name, applied) FROM stdin;
 
 COPY public.django_session (session_key, session_data, expire_date) FROM stdin;
 wvrvid5k5dkpg9sdvm2ridq4g409xwhg	.eJxVjDsOwjAQBe_iGkX2Gn9CiURPQ22t12scQRwpTirE3QlSCmjnzbyXCLguJayN5zAkcRJKHH5ZRHpw_Q6EC89DvXc7at1lxOF5LVPl26ZWHPm8238XBVvZepmSN5KSI6OtcuB1dgYAFRqbYiYP0nttCeIRJWRgpiyjtq5PWqlei_cHcLc4cQ:1veyud:cMqv7X6M6L-BNytbo8_ojnWhauLwphlDIj77qBKdlQ0	2026-01-25 22:37:35.273972+05:30
-jyc08f19d184g3qbpny38wwt62k41ln2	.eJxVjDsOwjAQBe_iGkX-xHFMiURPQ22td9fYghgpTirE3QlSCmjnzbyXCLAuOayN51BIHIUSh18WAe9cvwPCwnOpt25HrTtPUB6X_Kx83dQKE592--8iQ8tb7zgq6DVZowfdp9F6Z0kRJi8VGYrSGctoB-VQsicgp0djJHiFCTmyeH8AdvM5OA:1vfJX9:krR_MKSr_iiGWPLT2uJS-A4C9oHjMoIZcoABHHAfBgg	2026-01-26 20:38:43.599206+05:30
+kluyrfxjjpcmfz502t9qvg1gx15l3waz	.eJxVjDsOwjAQBe_iGkX-xHFMiURPQ22td9fYghgpTirE3QlSCmjnzbyXCLAuOayN51BIHIUSh18WAe9cvwPCwnOpt25HrTtPUB6X_Kx83dQKE592--8iQ8tb7zgq6DVZowfdp9F6Z0kRJi8VGYrSGctoB-VQsicgp0djJHiFCTmyeH8AdvM5OA:1vh6yv:BxS-y152LaHWhCjkvsW_2FTcAVoOlvcAMJO9sp4C1Vs	2026-01-31 19:38:49.821287+05:30
 \.
 
 
@@ -1890,7 +1902,7 @@ SELECT pg_catalog.setval('public.catering_category_id_seq', 27, true);
 -- Name: catering_cateringevent_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_cateringevent_id_seq', 6, true);
+SELECT pg_catalog.setval('public.catering_cateringevent_id_seq', 8, true);
 
 
 --
@@ -1904,21 +1916,21 @@ SELECT pg_catalog.setval('public.catering_cateringevent_menu_items_id_seq', 2, t
 -- Name: catering_member_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_member_id_seq', 3, true);
+SELECT pg_catalog.setval('public.catering_member_id_seq', 4, true);
 
 
 --
 -- Name: catering_memberlog_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_memberlog_id_seq', 21, true);
+SELECT pg_catalog.setval('public.catering_memberlog_id_seq', 22, true);
 
 
 --
 -- Name: catering_menu_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_menu_id_seq', 5, true);
+SELECT pg_catalog.setval('public.catering_menu_id_seq', 6, true);
 
 
 --
@@ -1932,7 +1944,7 @@ SELECT pg_catalog.setval('public.catering_menu_item_id_seq', 906, true);
 -- Name: catering_menu_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_menu_items_id_seq', 67, true);
+SELECT pg_catalog.setval('public.catering_menu_items_id_seq', 75, true);
 
 
 --
@@ -1960,7 +1972,7 @@ SELECT pg_catalog.setval('public.catering_user_user_permissions_id_seq', 1, fals
 -- Name: django_admin_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.django_admin_log_id_seq', 139, true);
+SELECT pg_catalog.setval('public.django_admin_log_id_seq', 140, true);
 
 
 --
@@ -1974,7 +1986,7 @@ SELECT pg_catalog.setval('public.django_content_type_id_seq', 16, true);
 -- Name: django_migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.django_migrations_id_seq', 36, true);
+SELECT pg_catalog.setval('public.django_migrations_id_seq', 37, true);
 
 
 --
@@ -2534,5 +2546,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VTLRXMSSiXql429MfAN6dvz0jV8ZN4STB5GyyvGIpAzH3brhLY9vlqRGy6EU3ZW
+\unrestrict oeBex9QBoMSsoIS8AcTu2N8S6e5fUEYvA0bF4GbhWyLQbV8sRapmsTv91OUPKcx
 

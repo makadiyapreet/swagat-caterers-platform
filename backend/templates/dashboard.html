@@ -192,33 +192,7 @@
         const CREATE_MENU_URL = "{% url 'create_menu' %}";
         const PRINT_BILL_URL = "{% url 'print_bill' %}";
         const BOOKING_URL = "/dashboard/booking/";
-        async function checkAuth() {
-            const token = localStorage.getItem('authToken');
-
-            if (!token) {
-                console.log("No token found, redirecting to login...");
-                window.location.href = "/login/";
-                return;
-            }
-
-            try {
-                const res = await fetch('/auth/users/me/', {
-                    headers: { 
-                        // Ensure there is a space after 'Token'
-                        'Authorization': `Token ${token}` 
-                    }
-                });
-
-                if (!res.ok) {
-                    // If the token is invalid/expired, clear it and redirect
-                    localStorage.removeItem('authToken');
-                    window.location.href = "/login/";
-                }
-            } catch (err) {
-                console.error("Auth verify failed:", err);
-            }
-        }
-
+       
         let currentDate = new Date();
         let allEvents = [];
         let isSuperUser = false;
@@ -236,27 +210,48 @@
         }
 
         async function init() {
+            const token = localStorage.getItem('authToken'); // ✅ Define token here
+            if (!token) return; // Guard against null token
+
             try {
                 const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
+                if (!uRes.ok) throw new Error("Unauthorized");
+                
                 const user = await uRes.json();
                 isSuperUser = user.is_staff || user.is_superuser;
-                document.getElementById('welcome-msg').innerText = `Welcome, ${user.username}`;
-                if(user.profile_image) document.getElementById('nav-img').src = user.profile_image;
+                
+                // Populate UI
+                const welcomeEl = document.getElementById('welcome-msg');
+                if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username}`;
+                
+                const navImg = document.getElementById('nav-img');
+                if(user.profile_image && navImg) navImg.src = user.profile_image;
 
-                const cRes = await fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } });
-                const iRes = await fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } });
-                const eRes = await fetch('/api/menu/events/', { headers: { 'Authorization': `Token ${token}` }});
+                // Fetch Data Parallelly for speed
+                const [cRes, iRes, eRes] = await Promise.all([
+                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
+                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } }),
+                    fetch('/api/menu/events/', { headers: { 'Authorization': `Token ${token}` } })
+                ]);
+
                 allEvents = await eRes.json();
                 categories = await cRes.json();
                 allItems = await iRes.json();
+
                 if (!isSuperUser) {
-                    // Hide the Add Booking and Create Menu buttons for simple users
-                    document.querySelector('.btn-booking').style.display = 'none';
-                    document.querySelector('.btn-quick-menu').style.display = 'none';
+                    // Use optional chaining or check if elements exist
+                    document.querySelector('.btn-booking')?.style.setProperty('display', 'none');
+                    document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'none');
                 }
+                
                 renderCalendar(currentDate);
                 renderUpcoming();
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error("Initialization failed:", e);
+                // If the initial user fetch fails, the token is likely bad
+                localStorage.removeItem('authToken');
+                window.location.href = "/login/";
+            }
         }
 
         // --- CALENDAR ---
@@ -714,7 +709,6 @@
             } catch(e) { console.error(e); alert("Error generating PDF"); }
         }
 
-        checkAuth();
         init();
     </script>
     <script>
