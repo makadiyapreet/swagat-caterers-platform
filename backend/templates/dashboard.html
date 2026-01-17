@@ -210,47 +210,60 @@
         }
 
         async function init() {
-            const token = localStorage.getItem('authToken'); // ✅ Define token here
-            if (!token) return; // Guard against null token
+            // 1. You MUST grab the fresh token from storage INSIDE init
+            const token = localStorage.getItem('authToken'); 
+
+            if (!token) {
+                window.location.href = "/login/";
+                return;
+            }
 
             try {
-                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
-                if (!uRes.ok) throw new Error("Unauthorized");
-                
+                // 2. Use that fresh token for the user verification call
+                const uRes = await fetch('/auth/users/me/', { 
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+
+                if (!uRes.ok) {
+                    // If Railway rejects the token, go back to login
+                    localStorage.removeItem('authToken');
+                    window.location.href = "/login/";
+                    return;
+                }
+
                 const user = await uRes.json();
                 isSuperUser = user.is_staff || user.is_superuser;
                 
-                // Populate UI
-                const welcomeEl = document.getElementById('welcome-msg');
-                if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username}`;
+                // Update UI elements
+                const welcomeMsg = document.getElementById('welcome-msg');
+                if (welcomeMsg) welcomeMsg.innerText = `Welcome, ${user.username}`;
                 
                 const navImg = document.getElementById('nav-img');
                 if(user.profile_image && navImg) navImg.src = user.profile_image;
 
-                // Fetch Data Parallelly for speed
+                // 3. Fetch all other data using the same fresh token
+                const headers = { 'Authorization': `Token ${token}` };
                 const [cRes, iRes, eRes] = await Promise.all([
-                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
-                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } }),
-                    fetch('/api/menu/events/', { headers: { 'Authorization': `Token ${token}` } })
+                    fetch('/api/menu/categories/', { headers }),
+                    fetch('/api/menu/menu-items/', { headers }),
+                    fetch('/api/menu/events/', { headers })
                 ]);
 
                 allEvents = await eRes.json();
                 categories = await cRes.json();
                 allItems = await iRes.json();
 
+                // Hide buttons for non-admins
                 if (!isSuperUser) {
-                    // Use optional chaining or check if elements exist
                     document.querySelector('.btn-booking')?.style.setProperty('display', 'none');
                     document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'none');
                 }
-                
+
                 renderCalendar(currentDate);
                 renderUpcoming();
+
             } catch(e) { 
-                console.error("Initialization failed:", e);
-                // If the initial user fetch fails, the token is likely bad
-                localStorage.removeItem('authToken');
-                window.location.href = "/login/";
+                console.error("Dashboard Load Error:", e);
             }
         }
 
