@@ -158,43 +158,56 @@
             return cookieValue;
         }
 
-        // 1. FRONTEND CHECK: Do passwords match?
         if (password !== confirmPass) {
             messageBox.className = "message error";
             messageBox.innerText = "Passwords do not match!";
-            return; // Stop here
+            return;
         }
 
         messageBox.innerText = "Processing...";
         messageBox.className = "message";
 
         try {
-            // 2. Send data (including phone_number)
             const response = await fetch('/auth/users/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' , 'X-CSRFToken': getCookie('csrftoken')},
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
                 body: JSON.stringify({ 
                     username: username, 
                     email: email, 
                     password: password,
-                    phone_number: phone // Sending the new field
+                    phone_number: phone 
                 })
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                window.location.href = "/registration-pending/";
-            } else {
+            // --- CRITICAL FIX: CHECK IF RESPONSE IS OK BEFORE JSON ---
+            if (!response.ok) {
+                const textBody = await response.text(); 
+                console.error("Server Error Detail:", textBody);
+                
+                try {
+                    // Try to parse JSON errors if they exist (400 errors)
+                    const errorJson = JSON.parse(textBody);
+                    const errorMsg = Object.values(errorJson)[0][0] || "Registration failed";
+                    messageBox.innerText = errorMsg;
+                } catch (e) {
+                    // If it's a 500 error (HTML), show a generic message
+                    messageBox.innerText = "Server error (500). Please check backend logs.";
+                }
+                
                 messageBox.className = "message error";
-                // Show errors (e.g., "Phone number already exists")
-                const errorMsg = Object.values(data)[0][0] || "Registration failed";
-                messageBox.innerText = errorMsg;
+                return;
             }
+
+            // Success case
+            window.location.href = "/registration-pending/";
+
         } catch (error) {
-            console.error(error);
+            console.error("Connection Error:", error);
             messageBox.className = "message error";
-            messageBox.innerText = "Server connection failed.";
+            messageBox.innerText = "Network error. Check your connection.";
         }
     });
 </script>
