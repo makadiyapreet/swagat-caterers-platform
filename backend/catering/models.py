@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 # 1. CUSTOM USER MODEL
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15, unique=True)
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     profile_image = models.ImageField(upload_to='profile_images/', default='profile_images/default_user.png', blank=True)
     
     ROLE_CHOICES = (

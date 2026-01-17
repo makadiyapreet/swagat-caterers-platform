@@ -1,9 +1,26 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Category, Menu_item, Member, MemberLog, CateringEvent, Menu , Booking
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import User, Category, Menu_item, Member, MemberLog, CateringEvent, Menu, Booking
 
-# 1. Register User
-admin.site.register(User, UserAdmin)
+class MyUserAdmin(UserAdmin):
+    model = User
+    # This shows your custom fields in the list view
+    list_display = ['username', 'email', 'phone_number', 'user_type', 'is_staff']
+    
+    # This adds your custom fields to the edit screens
+    fieldsets = UserAdmin.fieldsets + (
+        ('Custom Fields', {'fields': ('phone_number', 'user_type', 'profile_image')}),
+    )
+    # This adds your custom fields to the "Add User" screen
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Custom Fields', {'fields': ('phone_number', 'user_type', 'email')}),
+    )
+
+# Replace your current register line with this:
+admin.site.register(User, MyUserAdmin)
 
 # 2. Inline for Menu Items (Edit items inside Category)
 class MenuItemInline(admin.TabularInline):
