@@ -223,19 +223,19 @@ def send_enquiry_email(request):
 # --- 8. MANUAL SESSION LOGIN FOR DJOSER ---
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def manual_login_with_session(request):
+def manual_session_login(request):
     username = request.data.get('username')
     password = request.data.get('password')
     
-    # Use your custom backend logic to check Email/Phone/Username
+    # This uses your custom backend to check Email/Phone/Username
     user = authenticate(request, username=username, password=password)
     
     if user is not None:
         if user.is_active:
-            # 1. Create the Session Cookie (Fixes @login_required)
-            login(request, user)
+            # 1. Start the Session (This fixes the @login_required loop)
+            login(request, user) 
             
-            # 2. Get or Create the Token (For your JS fetch calls)
+            # 2. Get the Token (This keeps your Dashboard data working)
             token, _ = Token.objects.get_or_create(user=user)
             
             return Response({
