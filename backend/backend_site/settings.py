@@ -28,8 +28,7 @@ DEBUG = os.getenv("DEBUG") == "True"
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS",
-    "127.0.0.1,localhost"
-    "swagat-caterers-platform-production.up.railway.app"
+    "127.0.0.1,localhost,swagat-caterers-platform-production.up.railway.app"
 ).split(",")
 
 # Application definition
@@ -136,6 +135,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # FIX: Look in the sibling 'static' folder for static assets too
 STATICFILES_DIRS = [
     BASE_DIR.parent / 'templates',
+    BASE_DIR.parent / "templates" / "css",
+    BASE_DIR.parent / "templates" / "js",
+    BASE_DIR.parent / "templates" / "images",
 ]
 
 # Default primary key field type
