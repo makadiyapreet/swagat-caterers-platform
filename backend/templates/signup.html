@@ -186,28 +186,41 @@
             if (!response.ok) {
                 const textBody = await response.text(); 
                 console.error("Server Error Detail:", textBody);
-                
+                messageBox.className = "message error";
+
                 try {
-                    // Try to parse JSON errors if they exist (400 errors)
+                    // Try to parse the specific error JSON from Django
                     const errorJson = JSON.parse(textBody);
-                    const errorMsg = Object.values(errorJson)[0][0] || "Registration failed";
-                    messageBox.innerText = errorMsg;
+                    let errorMessages = [];
+
+                    for (const [field, messages] of Object.entries(errorJson)) {
+                        // Clean up field names (e.g., "phone_number" -> "phone number")
+                        const friendlyField = field.replace('_', ' ');
+                        errorMessages.push(`${friendlyField}: ${messages.join(' ')}`);
+                    }
+
+                    // Show all specific errors (duplicate email, weak password, etc.)
+                    messageBox.innerText = errorMessages.join('\n');
                 } catch (e) {
-                    // If it's a 500 error (HTML), show a generic message
+                    // If parsing fails, it's likely a 500 HTML error page
                     messageBox.innerText = "Server error (500). Please check backend logs.";
                 }
-                
-                messageBox.className = "message error";
-                return;
+                return; // Stop execution here
             }
 
-            // Success case
-            window.location.href = "/registration-pending/";
+            // 2. Handle Success (201 Created)
+            messageBox.className = "message success";
+            messageBox.innerText = "Account created successfully! Redirecting...";
+            
+            setTimeout(() => {
+                window.location.href = "/registration-pending/";
+            }, 1500);
 
         } catch (error) {
+            // 3. Handle Network Failures (Offline, DNS issues)
             console.error("Connection Error:", error);
             messageBox.className = "message error";
-            messageBox.innerText = "Network error. Check your connection.";
+            messageBox.innerText = "Network error. Could not connect to the server.";
         }
     });
 </script>
