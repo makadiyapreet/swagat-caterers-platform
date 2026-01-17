@@ -478,44 +478,80 @@
         async function saveAllTrackers() {
             const date = document.getElementById('tracker-date').value;
             const place = document.getElementById('tracker-place').value;
+            
+            // Basic validation
             if(!date || !place) return alert("Date and Place are Compulsory!");
 
             const rows = document.querySelectorAll('#member-table tr');
             const updates = [];
             let count = 0;
 
-            rows.forEach(row => {
+            // We use the token from your global scope
+            const token = localStorage.getItem('authToken');
+
+            for (const row of rows) {
                 const id = row.getAttribute('data-id');
-                const staff = parseInt(row.querySelector('.inp-staff').value) || 0;
-                const advance = parseFloat(row.querySelector('.inp-adv').value) || 0;
-                const settle = parseFloat(row.querySelector('.inp-settle').value) || 0;
+                
+                // --- SAFETY CHECKS: Find inputs first ---
+                const staffInput = row.querySelector('.inp-staff');
+                const advInput = row.querySelector('.inp-adv');
+                const settleInput = row.querySelector('.inp-settle');
+
+                // Skip this row if it doesn't have an ID or the necessary inputs
+                if (!id || !staffInput || !advInput || !settleInput) continue;
+
+                // --- Now it is safe to read .value ---
+                const staff = parseInt(staffInput.value) || 0;
+                const advance = parseFloat(advInput.value) || 0;
+                const settle = parseFloat(settleInput.value) || 0;
                 
                 const memberData = members.find(m => m.id == id);
                 const rate = memberData ? parseFloat(memberData.default_rate || 500) : 0;
                 
                 const total = staff * rate;
-                const bal = parseFloat(row.dataset.balance);
+                const bal = parseFloat(row.dataset.balance) || 0;
 
+                // Only add to updates if there is actual data to save
                 if(staff > 0 || advance > 0 || settle > 0) {
                     const newBal = bal + total - advance - settle;
+                    
                     updates.push(fetch(`/api/menu/members/${id}/`, {
                         method: 'PATCH',
-                        headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' , 'X-CSRFToken': getCookie('csrftoken')},
+                        headers: { 
+                            'Authorization': `Token ${token}`, 
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken') // Ensure getCookie helper is at top of script
+                        },
                         body: JSON.stringify({
                             advance_amount: newBal,
-                            log_date: date, log_place: place, log_staff: staff, log_rate: rate,
-                            log_total: total, log_advance: advance, log_settle: settle, log_entry_by: currentUser
+                            log_date: date, 
+                            log_place: place, 
+                            log_staff: staff, 
+                            log_rate: rate,
+                            log_total: total, 
+                            log_advance: advance, 
+                            log_settle: settle, 
+                            log_entry_by: currentUser
                         })
                     }));
                     count++;
                 }
-            });
+            }
 
             if(count === 0) return alert("No entries to save.");
-            await Promise.all(updates);
-            alert("Saved Successfully!");
-            fetchMembers();
-            document.querySelectorAll('.inp-staff, .inp-adv, .inp-settle').forEach(i => i.value = '');
+
+            try {
+                // Wait for all Railway API calls to finish
+                await Promise.all(updates);
+                alert("Saved Successfully!");
+                
+                // Refresh the table and clear inputs
+                fetchMembers();
+                document.querySelectorAll('.inp-staff, .inp-adv, .inp-settle').forEach(i => i.value = '');
+            } catch (error) {
+                console.error("Save Error:", error);
+                alert("Something went wrong while saving. Check console for details.");
+            }
         }
 
         // ... [Standard Functions] ...

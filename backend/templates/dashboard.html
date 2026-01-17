@@ -116,6 +116,84 @@
             .event-details-grid { grid-template-columns: 1fr; } /* Stack details in modal */
             .action-row { flex-direction: column; } /* Stack modal buttons */
         }
+        @media (max-width: 1024px) {
+            .container { margin: 15px auto; padding: 0 15px 100px 15px; }
+            .dash-grid { grid-template-columns: 1fr; gap: 20px; }
+            .welcome-hero { padding: 30px 20px; }
+            .welcome-hero h1 { font-size: 28px; }
+        }
+
+        /* For Mobile Phones (below 768px) */
+        @media (max-width: 768px) {
+            /* Navbar tweaks */
+            .dashboard-nav { 
+                padding: 10px 15px; 
+                flex-direction: row; /* Keep logo and profile side-by-side */
+                justify-content: space-between; 
+            }
+            .brand { font-size: 20px; }
+            .nav-logo { height: 35px; }
+            .nav-actions { gap: 10px; }
+            .profile-btn { padding: 4px 10px 4px 4px; font-size: 14px; }
+            .nav-profile-img { width: 32px; height: 32px; }
+
+            /* Calendar - Making text smaller so it fits */
+            .calendar-grid { gap: 4px; }
+            .day { 
+                padding: 12px 2px; 
+                font-size: 13px; 
+                border-radius: 6px; 
+            }
+            .day-name { font-size: 11px; }
+            .event-dot { width: 4px; height: 4px; bottom: 3px; }
+
+            /* Big Bottom Buttons */
+            .bottom-actions { 
+                flex-direction: column; 
+                gap: 12px; 
+                margin-top: 30px; 
+            }
+            .btn-big { 
+                padding: 16px; 
+                font-size: 16px; 
+            }
+
+            /* Modal Adjustments */
+            .modal-content { 
+                width: 92%; 
+                max-height: 90vh; 
+                overflow-y: auto; 
+            }
+            .modal-header { padding: 15px 20px; }
+            .modal-title { font-size: 20px; }
+            .modal-body { padding: 20px; }
+            
+            .event-details-grid { 
+                grid-template-columns: 1fr; /* Stack labels and values */
+                gap: 15px; 
+            }
+            
+            /* Tables inside Modals */
+            .btn-dl, .btn-edit-menu {
+                padding: 6px 10px;
+                margin: 4px 2px;
+                display: inline-block; /* Prevent overlapping buttons */
+            }
+
+            /* Stack Admin Action Buttons */
+            .action-row { 
+                flex-direction: column; 
+                gap: 8px; 
+            }
+            .btn-modal { width: 100%; }
+        }
+
+        /* Extra Small Screens (Small phones) */
+        @media (max-width: 480px) {
+            .day { padding: 8px 1px; font-size: 12px; }
+            .welcome-hero h1 { font-size: 22px; }
+            .brand span { display: none; } /* Hide text, keep logo if too small */
+        }
     </style>
 </head>
 <body>
