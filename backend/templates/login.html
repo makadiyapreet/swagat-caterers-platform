@@ -172,11 +172,13 @@
             messageBox.className = "message";
 
             try {
-                const response = await fetch('/auth/token/login/', {
+                const response = await fetch('/api/manual-login/', { // Change this URL
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    // IMPORTANT: We send 'loginInput' as 'username'. 
-                    // Our custom backend (EmailPhoneUsernameBackend) will check this value against all 3 columns.
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        // Sessions need CSRF protection
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    },
                     body: JSON.stringify({ username: loginInput, password: password })
                 });
 
