@@ -29,6 +29,7 @@ DEBUG = os.getenv("DEBUG") == "True"
 ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS",
     "127.0.0.1,localhost"
+    ".railway.app"
 ).split(",")
 
 # Application definition
@@ -65,7 +66,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         # FIX: We use BASE_DIR.parent to step out of 'backend' and find 'templates'
-        'DIRS': [BASE_DIR.parent / 'templates'], 
+        'DIRS': [BASE_DIR / 'templates'], # <--- Templates go here
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,9 +134,9 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
-# FIX: Look in the sibling 'templates' folder for static assets too
+# FIX: Look in the sibling 'static' folder for static assets too
 STATICFILES_DIRS = [
-    BASE_DIR.parent / 'templates',
+    BASE_DIR.parent / 'static',
 ]
 
 # Default primary key field type
