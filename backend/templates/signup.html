@@ -182,45 +182,35 @@
                 })
             });
 
+            const textBody = await response.text();
+
             // --- CRITICAL FIX: CHECK IF RESPONSE IS OK BEFORE JSON ---
             if (!response.ok) {
-                const textBody = await response.text(); 
                 console.error("Server Error Detail:", textBody);
                 messageBox.className = "message error";
 
                 try {
-                    // Try to parse the specific error JSON from Django
+                    // Try to parse as JSON (for 400 Bad Request)
                     const errorJson = JSON.parse(textBody);
                     let errorMessages = [];
-
                     for (const [field, messages] of Object.entries(errorJson)) {
-                        // Clean up field names (e.g., "phone_number" -> "phone number")
-                        const friendlyField = field.replace('_', ' ');
-                        errorMessages.push(`${friendlyField}: ${messages.join(' ')}`);
+                        errorMessages.push(`${field.replace('_', ' ')}: ${messages.join(' ')}`);
                     }
-
-                    // Show all specific errors (duplicate email, weak password, etc.)
                     messageBox.innerText = errorMessages.join('\n');
                 } catch (e) {
-                    // If parsing fails, it's likely a 500 HTML error page
-                    messageBox.innerText = "Server error (500). Please check backend logs.";
+                    // It's a 500 HTML error
+                    messageBox.innerText = "Server Crash (500): Check Railway Logs for Database Migrations.";
                 }
-                return; // Stop execution here
+                return;
             }
 
-            // 2. Handle Success (201 Created)
-            messageBox.className = "message success";
-            messageBox.innerText = "Account created successfully! Redirecting...";
-            
-            setTimeout(() => {
-                window.location.href = "/registration-pending/";
-            }, 1500);
+            // Success Path
+            window.location.href = "/registration-pending/";
 
         } catch (error) {
-            // 3. Handle Network Failures (Offline, DNS issues)
             console.error("Connection Error:", error);
             messageBox.className = "message error";
-            messageBox.innerText = "Network error. Could not connect to the server.";
+            messageBox.innerText = "Network error. Server may be offline.";
         }
     });
 </script>
