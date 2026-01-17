@@ -64,7 +64,7 @@ ROOT_URLCONF = 'backend_site.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [PROJECT_ROOT / 'templates'], # <--- Templates go here
+        'DIRS': [BASE_DIR / 'templates'], # <--- Templates go here
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -134,7 +134,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # FIX: Look in the sibling 'static' folder for static assets too
 STATICFILES_DIRS = [
-    PROJECT_ROOT / 'templates',
+    BASE_DIR / 'templates',
 ]
 
 # Default primary key field type

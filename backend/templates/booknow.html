@@ -1,0 +1,151 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E2P4ZTV4Z7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-E2P4ZTV4Z7');
+    </script>
+    <title>Book Your Event | Swagat Caterers, Rajkot</title>
+
+    <meta name="description" content="Book your wedding, corporate event, or celebration with Swagat Caterers in Rajkot. Get a custom catering quote, select packages, and plan your event effortlessly.">
+    <meta name="keywords" content="Book Catering Rajkot, Swagat Caterers Booking, Wedding Catering Booking, Event Catering Enquiry">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/logo/logo.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/logo/logo.png' %}">
+
+    <meta property="og:title" content="Book Your Event | Swagat Caterers">
+    <meta property="og:description" content="Plan your wedding or event with Swagat Caterers. Book now for premium catering services in Rajkot.">
+    <meta property="og:image" content="{% static 'images/logo/logo.png' %}">
+    <meta property="og:type" content="website">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body style="background-color: #ffffff !important;">
+
+    {% include "components/urgency_popup.html" %}
+    {% include "components/navbar.html" %}
+
+    <header class="bg-black text-white py-5 mt-5">
+        <div class="container text-center py-5" data-aos="fade-down">
+            <h1 class="display-3 fw-bold text-gold">Book Your Date</h1>
+            <p class="lead text-white-50">Secure your event date with Swagat Caterers.</p>
+        </div>
+    </header>
+
+    {% include "components/contact_form.html" %}
+    {% include "components/footer.html" %}
+
+    <button id="scrollTopBtn"><i class="bi bi-arrow-up"></i></button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init();</script>
+    
+    <script>
+        // ==========================================
+        // 1. DATE VALIDATION (Prevent Past Dates)
+        // ==========================================
+        const dateCheckInterval = setInterval(function() {
+            const dateInput = document.getElementById("date");
+            
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0'); 
+                const dd = String(today.getDate()).padStart(2, '0');
+                const minDate = `${yyyy}-${mm}-${dd}`;
+                
+                dateInput.setAttribute("min", minDate);
+                clearInterval(dateCheckInterval);
+                console.log("Date validation active.");
+            }
+        }, 500);
+
+        // ==========================================
+        // 2. DJANGO BACKEND CONNECTION (Send Data)
+        // ==========================================
+        document.addEventListener('submit', function(e) {
+            // IMPORTANT: Ensure your loaded form has id="bookingForm"
+            if (e.target && e.target.id === 'bookingForm') {
+                e.preventDefault(); 
+                
+                const form = e.target;
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn ? submitBtn.innerText : 'Send';
+
+                // Disable button to prevent double clicks
+                if(submitBtn) {
+                    submitBtn.innerText = "Sending...";
+                    submitBtn.disabled = true;
+                }
+
+                // Prepare Data
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                // Send to Django
+                // NOTE: Replace 'http://127.0.0.1:8000' with your live URL when deployed
+                fetch('http://127.0.0.1:8000/api/book-event/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // --- NEW BEAUTIFUL POPUP START ---
+                        Swal.fire({
+                            title: 'Booking Request Sent!',
+                            text: 'Thank you, ' + data.name + '! We have received your details and will contact you shortly.',
+                            icon: 'success',
+                            confirmButtonText: 'Great!',
+                            confirmButtonColor: '#B8860B', // Your Gold Color
+                            background: '#ffffff',
+                            color: '#333'
+                        });
+                        // --- NEW BEAUTIFUL POPUP END ---
+                        
+                        form.reset(); 
+                    } else {
+                        Swal.fire({
+                            title: 'Oops...',
+                            text: 'Something went wrong. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#B8860B'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Network Error:', error);
+                    Swal.fire({
+                        title: 'Connection Error',
+                        text: 'Unable to connect to the server.',
+                        icon: 'error',
+                        confirmButtonColor: '#B8860B'
+                    });
+                })
+            }
+        });
+    </script>
+</body>
+</html>
