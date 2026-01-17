@@ -202,10 +202,25 @@
 const TOKEN = localStorage.getItem("authToken");
 if (!TOKEN) window.location.href = "{% url 'login' %}";
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 async function loadProfile() {
     try {
         const res = await fetch("/auth/users/me/", {
-            headers: { Authorization: `Token ${TOKEN}` }
+            headers: { Authorization: `Token ${TOKEN}` , 'X-CSRFToken': getCookie('csrftoken') }
         });
         const data = await res.json();
 
@@ -246,7 +261,7 @@ document.getElementById("profile-form").addEventListener("submit", async e => {
     try {
         const res = await fetch("/api/menu/update-profile/", {
             method: "PATCH",
-            headers: { Authorization: `Token ${TOKEN}` },
+            headers: { Authorization: `Token ${TOKEN}` , 'X-CSRFToken': getCookie('csrftoken') },
             body: formData
         });
 

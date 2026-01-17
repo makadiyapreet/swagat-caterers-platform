@@ -108,6 +108,7 @@ class EventViewSet(viewsets.ModelViewSet):
 # --- 5. NEW TRACKER VIEWSETS ---
 
 class MemberViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
 

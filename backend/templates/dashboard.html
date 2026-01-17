@@ -199,6 +199,21 @@
         let allItems = [];
         let categories = [];
 
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         // --- HELPER: DATE FORMATTER (DD-MM-YYYY) ---
         function formatDateDisplay(yyyy_mm_dd) {
             if (!yyyy_mm_dd) return "-";
@@ -221,7 +236,7 @@
             try {
                 // 2. Use that fresh token for the user verification call
                 const uRes = await fetch('/auth/users/me/', { 
-                    headers: { 'Authorization': `Token ${token}` } 
+                    headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} 
                 });
 
                 if (!uRes.ok) {
@@ -243,7 +258,7 @@
                 if(user.profile_image && navImg) navImg.src = user.profile_image;
 
                 // 3. Fetch all other data using the same token
-                const headers = { 'Authorization': `Token ${token}` };
+                const headers = { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')};
                 const [cRes, iRes, eRes] = await Promise.all([
                     fetch('/api/menu/categories/', { headers }),
                     fetch('/api/menu/menu-items/', { headers }),
@@ -478,7 +493,7 @@
                 // Ensure this line looks exactly like this:
                 const res = await fetch(`/api/menu/events/${id}/`, { 
                     method: 'DELETE', 
-                    headers: { 'Authorization': `Token ${token}` } 
+                    headers: { 'Authorization': `Token ${token}` ,'X-CSRFToken': getCookie('csrftoken') } 
                 });
                 
                 if (res.ok) { 
@@ -497,7 +512,7 @@
         // --- UPDATED PDF GENERATOR FOR DASHBOARD ---
         async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
             try {
-                const res = await fetch(`/api/menu/menus/${menuId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/menus/${menuId}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
                 if(!res.ok) throw new Error("Could not fetch menu items");
                 const menu = await res.json();
                 

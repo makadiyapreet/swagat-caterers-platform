@@ -223,6 +223,21 @@
 
         let allEventsList = []; 
 
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         // FORMAT: DD-MM-YYYY
         function formatDate(input) {
         const d = (input instanceof Date) ? input : new Date(input);
@@ -236,7 +251,7 @@
 
             try {
                 // Fetch Main Event
-                const res = await fetch(`/api/menu/events/${mainEventId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/events/${mainEventId}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
                 const mainEvent = await res.json();
                 
                 document.getElementById('client-name').innerText = mainEvent.title;
@@ -252,7 +267,7 @@
                 addEventRowsToTable(mainEvent);
 
                 // Fetch All Events
-                const allRes = await fetch(`/api/menu/events/`, { headers: { 'Authorization': `Token ${token}` } });
+                const allRes = await fetch(`/api/menu/events/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
                 allEventsList = await allRes.json();
                 populateEventDropdown(mainEvent.title);
 
@@ -274,7 +289,7 @@
         async function addSelectedEvent() {
             const id = document.getElementById('other-events-select').value;
             if(!id) return;
-            const res = await fetch(`/api/menu/events/${id}/`, { headers: { 'Authorization': `Token ${token}` } });
+            const res = await fetch(`/api/menu/events/${id}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
             const ev = await res.json();
             
             const tbody = document.getElementById('bill-body');

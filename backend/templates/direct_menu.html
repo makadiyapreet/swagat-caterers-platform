@@ -199,11 +199,26 @@
         let currentEventData = null;
         let viewLang = 'en'; // Controls what language is shown on screen
 
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         async function init() {
             try {
                 // 1. Verify Admin Status First
                 const userRes = await fetch('/auth/users/me/', { 
-                    headers: { 'Authorization': `Token ${token}` } 
+                    headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} 
                 });
                 
                 if (!userRes.ok) throw new Error("Auth failed");
@@ -227,8 +242,8 @@
 
                 // 2. Load Data if Admin
                 const [catRes, itemRes] = await Promise.all([
-                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
-                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } })
+                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} }),
+                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} })
                 ]);
                 categories = await catRes.json();
                 allItems = await itemRes.json();
@@ -252,7 +267,7 @@
             document.getElementById('btn-save-db').style.display = 'flex'; 
             
             try {
-                const res = await fetch(`/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} });
                 currentEventData = await res.json();
                 
                 document.getElementById('linked-name').innerText = currentEventData.title;
@@ -272,7 +287,7 @@
 
         async function loadExistingMenu(mid) {
             try {
-                const res = await fetch(`/api/menu/menus/${mid}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/menus/${mid}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} });
                 const menu = await res.json();
                 
                 menu.items.forEach(id => {
@@ -581,7 +596,8 @@
                     method: method,
                     headers: { 
                         'Authorization': `Token ${token}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
                     },
                     body: JSON.stringify(payload)
                 });

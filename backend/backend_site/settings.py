@@ -187,7 +187,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://swagat-caterers-platform-production.up.railway.app",
+    'https://swagat-caterers-platform-production.up.railway.app',
     # "https://swagatcaterers.in", # If you have a custom domain
 ]
 

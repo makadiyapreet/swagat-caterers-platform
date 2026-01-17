@@ -1,0 +1,81 @@
+ALLOWED_HOSTS
+swagat-caterers-platform-production.up.railway.app
+
+
+
+DATABASE_URL
+postgresql://postgres:QBGoacyOPPsHIFRCuTltQsbReQzbWEkE@postgres.railway.internal:5432/railway
+
+
+
+DEBUG
+False
+
+
+
+DJANGO_SETTINGS_MODULE
+backend_site.settings
+
+
+
+PYTHON_VERSION
+3.14
+
+
+
+SECRET_KEY
+ls=ird!&)*+=!k(qi50%-pm%=#ryp#6259a*qdzo!-2w966gj@
+
+
+
+API_KEY
+184849885423291
+https://console.cloudinary.com/
+
+
+API_SECRET
+BJqeCQVpBhEUhB_HX6tAXy3F1Uo
+https://console.cloudinary.com/
+
+
+CLOUDINARY_CLOUD_NAME
+do7olo8kc
+https://console.cloudinary.com/
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Update DB 
+- python manage.py makemigrations
+- python manage.py migrate
+
+Create Superuser
+- python manage.py createsuperuser
+
+Collect Static Files
+- python manage.py collectstatic
+- python manage.py collectstatic --noinput
+
+Run Server
+- python manage.py runserver
+- gunicorn backend_site.wsgi
+- gunicorn backend_site.wsgi --bind
+
+Git Commands
+- git add .
+- git commit -m "Your commit message"
+- git push 
+
+Update Requirements
+- pip freeze > requirements.txt
+
+Backup Database
+- pg_dump -U makadiyapreet -d catering_db > backup.sql   
+
+Restore Database
+- psql -U makadiyapreet -d catering_db < backup.sql
+
+Update Railway DB 
+psql "Public DB" < backup.sql
+

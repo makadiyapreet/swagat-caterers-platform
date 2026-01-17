@@ -93,11 +93,24 @@
         const eventId = urlParams.get('event_id');
         const dateParam = urlParams.get('date');
         let isAdmin = false;
-
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
         async function init() {
             try {
                 // 1. Check User Role
-                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` } });
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
                 if(!uRes.ok) throw new Error("Auth failed");
                 const user = await uRes.json();
                 
@@ -133,7 +146,7 @@
         async function loadEventData(id) {
             try {
                 const res = await fetch(`/api/menu/events/${id}/`, { 
-                    headers: { 'Authorization': `Token ${token}` } 
+                    headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } 
                 });
                 
                 if (!res.ok) throw new Error("Event not found");
@@ -184,7 +197,8 @@
                     method: method,
                     headers: { 
                         'Authorization': `Token ${token}`, 
-                        'Content-Type': 'application/json' 
+                        'Content-Type': 'application/json' ,
+                        'X-CSRFToken': getCookie('csrftoken')
                     },
                     body: JSON.stringify(payload)
                 });

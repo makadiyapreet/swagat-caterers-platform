@@ -256,6 +256,22 @@
         const token = localStorage.getItem('authToken');
         if (!token) window.location.href = "{% url 'login' %}";
 
+        // --- 1. ADDED CSRF HELPER ---
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         let members = [];
         let reportData = [];
         let currentUser = "";
@@ -266,7 +282,7 @@
 
         async function init() {
             try {
-                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')}});
                 const user = await uRes.json();
                 currentUser = user.username;
                 isSuperUser = user.is_superuser || user.is_staff;
@@ -484,7 +500,7 @@
                     const newBal = bal + total - advance - settle;
                     updates.push(fetch(`/api/menu/members/${id}/`, {
                         method: 'PATCH',
-                        headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' },
+                        headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' , 'X-CSRFToken': getCookie('csrftoken')},
                         body: JSON.stringify({
                             advance_amount: newBal,
                             log_date: date, log_place: place, log_staff: staff, log_rate: rate,
@@ -525,7 +541,7 @@
                 const rate = row.querySelector('.rate-edit-input').value;
                 updates.push(fetch(`/api/menu/members/${id}/`, {
                     method: 'PATCH',
-                    headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' },
+                    headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                     body: JSON.stringify({ default_rate: rate })
                 }));
             });
@@ -764,7 +780,7 @@
             const data = { name: document.getElementById('m-name').value, phone: document.getElementById('m-phone').value, default_rate: document.getElementById('m-rate').value, advance_amount: document.getElementById('m-advance').value };
             const method = id ? 'PATCH' : 'POST';
             const url = id ? `/api/menu/members/${id}/` : '/api/menu/members/';
-            await fetch(url, { method: method, headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            await fetch(url, { method: method, headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json','X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify(data) });
             document.getElementById('memberModal').style.display = 'none';
             fetchMembers();
         });
