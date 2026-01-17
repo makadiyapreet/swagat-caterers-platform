@@ -187,3 +187,10 @@ CSRF_TRUSTED_ORIGINS = [
     "https://swagat-caterers-platform-production.up.railway.app",
     # "https://swagatcaterers.in", # If you have a custom domain
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True

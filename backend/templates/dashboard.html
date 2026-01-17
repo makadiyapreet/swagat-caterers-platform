@@ -193,7 +193,25 @@
         const PRINT_BILL_URL = "{% url 'print_bill' %}";
         const BOOKING_URL = "/dashboard/booking/";
         const token = localStorage.getItem('authToken');
-        if (!token) window.location.href = "{% url 'login' %}";
+        async function checkAuth() {
+            if (!token) {
+                window.location.href = "/login/"; // No token? Kick to login.
+                return;
+            }
+
+            try {
+                const res = await fetch('/auth/users/me/', {
+                    headers: { 'Authorization': `Token ${token}` }
+                });
+                if (!res.ok) {
+                    // Token expired or invalid? Kick to login.
+                    localStorage.removeItem('authToken'); 
+                    window.location.href = "/login/"; 
+                }
+            } catch (err) {
+                console.error("Auth check failed", err);
+            }
+        }
 
         let currentDate = new Date();
         let allEvents = [];
@@ -690,6 +708,7 @@
             } catch(e) { console.error(e); alert("Error generating PDF"); }
         }
 
+        checkAuth();
         init();
     </script>
     <script>
