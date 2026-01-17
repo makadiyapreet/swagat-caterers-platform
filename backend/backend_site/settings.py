@@ -64,7 +64,7 @@ ROOT_URLCONF = 'backend_site.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR.parent / 'templates'], # <--- Templates go here
+        'DIRS': [BASE_DIR / 'templates'], # <--- Templates go here
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -85,22 +85,22 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
     DATABASES = {
-        "default": dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=True
-        )
+        'default': dj_database_url.parse(DATABASE_URL)
     }
+    # Important: Railway Postgres requires SSL in production
+    DATABASES['default']['CONN_MAX_AGE'] = 600
+    # Use this to avoid SSL errors on some Railway plans
+    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 else:
     DATABASES = {
         'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'catering_db',
-        'USER': 'makadiyapreet',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'catering_db',
+            'USER': 'makadiyapreet',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
     }
 # DATABASES = {
 #  'default': {
@@ -134,10 +134,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # FIX: Look in the sibling 'static' folder for static assets too
 STATICFILES_DIRS = [
-    BASE_DIR.parent / 'templates',
-    BASE_DIR.parent / "templates" / "css",
-    BASE_DIR.parent / "templates" / "js",
-    BASE_DIR.parent / "templates" / "images",
+    BASE_DIR / 'templates',
+    BASE_DIR / "templates" / "css",
+    BASE_DIR / "templates" / "js",
+    BASE_DIR / "templates" / "images",
 ]
 
 # Default primary key field type
