@@ -163,7 +163,7 @@ EMAIL_HOST_PASSWORD = 'cqib xpwa cxwo mtri'  # App Password
 DEFAULT_FROM_EMAIL = 'swagatcaterersofficial@gmail.com'
 
 # Custom User & Auth
-AUTH_USER_MODEL = 'catering.CustomUser'
+AUTH_USER_MODEL = 'catering.User'
 AUTHENTICATION_BACKENDS = [
     'catering.backends.EmailPhoneUsernameBackend',
     'django.contrib.auth.backends.ModelBackend',
