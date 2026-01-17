@@ -22,15 +22,15 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-#DEBUG = os.getenv("DEBUG") == "True"
+#DEBUG = True
+DEBUG = os.getenv("DEBUG") == "True"
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = os.environ.get(
-    "ALLOWED_HOSTS",
-    "127.0.0.1,localhost,swagat-caterers-platform-production.up.railway.app"
-).split(",")
-
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "swagat-caterers-platform-production.up.railway.app"
+]
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -188,9 +188,18 @@ CSRF_TRUSTED_ORIGINS = [
     # "https://swagatcaterers.in", # If you have a custom domain
 ]
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
 if not DEBUG:
+    # Tell Django it's behind a secure proxy (Railway)
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # Force all connections to HTTPS
+    SECURE_SSL_REDIRECT = True
+    
+    # Ensure cookies are only sent over HTTPS
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = True
+    
+    # Recommended for performance on Railway
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
