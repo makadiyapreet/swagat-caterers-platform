@@ -85,5 +85,5 @@ Restore Database
 - psql -U makadiyapreet -d catering_db < backup.sql
 
 Update Railway DB 
-psql "Public DB" < backup.sql
+psql "postgresql://postgres:QnXUYPWujhjokpkBxqlqtINiBiKEMvyz@gondola.proxy.rlwy.net:10415/railway" < backup.sql
 

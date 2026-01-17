@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bK7w2iDQloJEuapxoAYiLpbryz4Cls59HrkybdqkKu77E3HuCFjoHRdnQQgitIQ
+\restrict XovjuV9JzdnQQAITuGA9Z459RKHRM3Ljq0FPKePxgQ8w7zKMPVhvXuf8gPhiLGK
 
 -- Dumped from database version 14.20 (Homebrew)
 -- Dumped by pg_dump version 14.20 (Homebrew)
@@ -411,7 +411,7 @@ CREATE TABLE public.catering_user (
     is_active boolean NOT NULL,
     date_joined timestamp with time zone NOT NULL,
     email character varying(254) NOT NULL,
-    phone_number character varying(15) NOT NULL,
+    phone_number character varying(15),
     profile_image character varying(100) NOT NULL,
     user_type character varying(10) NOT NULL
 );
@@ -1617,6 +1617,7 @@ COPY public.catering_menu_items (id, menu_id, menu_item_id) FROM stdin;
 COPY public.catering_user (id, password, last_login, is_superuser, username, first_name, last_name, is_staff, is_active, date_joined, email, phone_number, profile_image, user_type) FROM stdin;
 2	pbkdf2_sha256$1200000$CIjhupItV6sbjzXocTe9tI$RxPbPJ3mAzd68qfliJ8beSreWYLFW8k4sFt0HnOAnPM=	2026-01-17 19:39:02.685271+05:30	f	preetpatel			f	t	2026-01-02 09:56:17.832731+05:30	preet131004m@gmail.com	9427788144	profile_images/default_user.png	customer
 1	pbkdf2_sha256$1200000$HTVERZSwCoGOacHuCYlzr6$Qln//CNx8VqsM+ZCEytEWJJrGYrGY22M7Hg939daa1A=	2026-01-17 19:47:57.497723+05:30	t	Preet			t	t	2026-01-01 11:40:14.554355+05:30	makadiyapreet1@gmail.com	8160238745	profile_images/er_wgqf_hI7KN5b.jpg	customer
+3	pbkdf2_sha256$1200000$H9s8mw5BBqJlSmhlWKOUEJ$ERH86N9O48Od0hpFn2uJOsiJxmp/CSQCkR7VhNvWx70=	\N	t	Devil			t	t	2026-01-18 01:12:17.486663+05:30	vreet.patel.1324@gmail.com	9999999999	profile_images/default_user.png	customer
 \.
 
 
@@ -1850,6 +1851,7 @@ COPY public.django_migrations (id, app, name, applied) FROM stdin;
 35	catering	0013_booking	2026-01-03 15:13:08.096183+05:30
 36	catering	0014_cateringevent_advance_amount_cateringevent_rate_and_more	2026-01-11 12:51:18.996968+05:30
 37	catering	0015_alter_user_profile_image	2026-01-17 19:45:39.581503+05:30
+38	catering	0016_alter_user_phone_number	2026-01-18 01:00:13.224706+05:30
 \.
 
 
@@ -1958,7 +1960,7 @@ SELECT pg_catalog.setval('public.catering_user_groups_id_seq', 1, false);
 -- Name: catering_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_user_id_seq', 2, true);
+SELECT pg_catalog.setval('public.catering_user_id_seq', 3, true);
 
 
 --
@@ -1986,7 +1988,7 @@ SELECT pg_catalog.setval('public.django_content_type_id_seq', 16, true);
 -- Name: django_migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.django_migrations_id_seq', 37, true);
+SELECT pg_catalog.setval('public.django_migrations_id_seq', 38, true);
 
 
 --
@@ -2546,5 +2548,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bK7w2iDQloJEuapxoAYiLpbryz4Cls59HrkybdqkKu77E3HuCFjoHRdnQQgitIQ
+\unrestrict XovjuV9JzdnQQAITuGA9Z459RKHRM3Ljq0FPKePxgQ8w7zKMPVhvXuf8gPhiLGK
 
