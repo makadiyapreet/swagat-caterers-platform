@@ -238,7 +238,7 @@ def book_now(request):
 def custom_menu(request):
     return render(request, "customize_menu.html")
 
-@login_required
+# @login_required
 def dashboard(request):
     return render(request, "dashboard.html")
 

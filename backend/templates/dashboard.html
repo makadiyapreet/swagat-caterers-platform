@@ -221,11 +221,12 @@
             try {
                 // 2. Use that fresh token for the user verification call
                 const uRes = await fetch('/auth/users/me/', { 
-                    headers: { 'Authorization': `Token ${token}` }
+                    headers: { 'Authorization': `Token ${token}` } 
                 });
 
                 if (!uRes.ok) {
-                    // If Railway rejects the token, go back to login
+                    // If Railway/Django rejects the token, clear it and go back to login
+                    console.error("Token invalid or session expired");
                     localStorage.removeItem('authToken');
                     window.location.href = "/login/";
                     return;
@@ -234,14 +235,14 @@
                 const user = await uRes.json();
                 isSuperUser = user.is_staff || user.is_superuser;
                 
-                // Update UI elements
-                const welcomeMsg = document.getElementById('welcome-msg');
-                if (welcomeMsg) welcomeMsg.innerText = `Welcome, ${user.username}`;
+                // Update UI
+                const welcomeEl = document.getElementById('welcome-msg');
+                if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username}`;
                 
                 const navImg = document.getElementById('nav-img');
                 if(user.profile_image && navImg) navImg.src = user.profile_image;
 
-                // 3. Fetch all other data using the same fresh token
+                // 3. Fetch all other data using the same token
                 const headers = { 'Authorization': `Token ${token}` };
                 const [cRes, iRes, eRes] = await Promise.all([
                     fetch('/api/menu/categories/', { headers }),
@@ -253,7 +254,7 @@
                 categories = await cRes.json();
                 allItems = await iRes.json();
 
-                // Hide buttons for non-admins
+                // Hide admin buttons if necessary
                 if (!isSuperUser) {
                     document.querySelector('.btn-booking')?.style.setProperty('display', 'none');
                     document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'none');
