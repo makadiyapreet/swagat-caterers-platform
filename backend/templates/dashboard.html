@@ -192,24 +192,30 @@
         const CREATE_MENU_URL = "{% url 'create_menu' %}";
         const PRINT_BILL_URL = "{% url 'print_bill' %}";
         const BOOKING_URL = "/dashboard/booking/";
-        const token = localStorage.getItem('authToken');
         async function checkAuth() {
+            const token = localStorage.getItem('authToken');
+
             if (!token) {
-                window.location.href = "/login/"; // No token? Kick to login.
+                console.log("No token found, redirecting to login...");
+                window.location.href = "/login/";
                 return;
             }
 
             try {
                 const res = await fetch('/auth/users/me/', {
-                    headers: { 'Authorization': `Token ${token}` }
+                    headers: { 
+                        // Ensure there is a space after 'Token'
+                        'Authorization': `Token ${token}` 
+                    }
                 });
+
                 if (!res.ok) {
-                    // Token expired or invalid? Kick to login.
-                    localStorage.removeItem('authToken'); 
-                    window.location.href = "/login/"; 
+                    // If the token is invalid/expired, clear it and redirect
+                    localStorage.removeItem('authToken');
+                    window.location.href = "/login/";
                 }
             } catch (err) {
-                console.error("Auth check failed", err);
+                console.error("Auth verify failed:", err);
             }
         }
 

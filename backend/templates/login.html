@@ -183,22 +183,16 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Save Session Token
                     localStorage.setItem('authToken', data.auth_token);
-                    // Save the display name for the dashboard
                     localStorage.setItem('username', loginInput);
 
-                    // Handle "Remember Me" logic
-                    if (rememberMe) {
-                        localStorage.setItem('savedUsername', loginInput);
-                    } else {
-                        localStorage.removeItem('savedUsername');
-                    }
+                    // DEBUG: Verify token is actually in storage before leaving
+                    console.log("Token stored successfully:", localStorage.getItem('authToken'));
 
                     messageBox.className = "message success";
-                    messageBox.innerText = "Login Successful!";
+                    messageBox.innerText = "Login Successful! Redirecting...";
                     
-                    // Redirect to Dashboard
+                    // Use the trailing slash to avoid 301 redirects
                     setTimeout(() => window.location.href = "/dashboard/", 1000);
                 } else {
                     messageBox.className = "message error";
