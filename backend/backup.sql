@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XovjuV9JzdnQQAITuGA9Z459RKHRM3Ljq0FPKePxgQ8w7zKMPVhvXuf8gPhiLGK
+\restrict LbPbXqOWuzghKXvCn4lJDRcVAg002OQI8A1Qt50WorOEj8sMvNiG6aU0xxfbtcq
 
 -- Dumped from database version 14.20 (Homebrew)
 -- Dumped by pg_dump version 14.20 (Homebrew)
@@ -682,7 +682,6 @@ COPY public.auth_permission (id, name, content_type_id, codename) FROM stdin;
 
 COPY public.authtoken_token (key, created, user_id) FROM stdin;
 a259f0ed3a812872de922d87adb07fc1754fc641	2026-01-01 11:43:44.165641+05:30	1
-c0658cb8735146af204c48fe169a47973b8cc8fb	2026-01-02 09:57:03.827313+05:30	2
 \.
 
 
@@ -1615,9 +1614,7 @@ COPY public.catering_menu_items (id, menu_id, menu_item_id) FROM stdin;
 --
 
 COPY public.catering_user (id, password, last_login, is_superuser, username, first_name, last_name, is_staff, is_active, date_joined, email, phone_number, profile_image, user_type) FROM stdin;
-2	pbkdf2_sha256$1200000$CIjhupItV6sbjzXocTe9tI$RxPbPJ3mAzd68qfliJ8beSreWYLFW8k4sFt0HnOAnPM=	2026-01-17 19:39:02.685271+05:30	f	preetpatel			f	t	2026-01-02 09:56:17.832731+05:30	preet131004m@gmail.com	9427788144	profile_images/default_user.png	customer
 1	pbkdf2_sha256$1200000$HTVERZSwCoGOacHuCYlzr6$Qln//CNx8VqsM+ZCEytEWJJrGYrGY22M7Hg939daa1A=	2026-01-17 19:47:57.497723+05:30	t	Preet			t	t	2026-01-01 11:40:14.554355+05:30	makadiyapreet1@gmail.com	8160238745	profile_images/er_wgqf_hI7KN5b.jpg	customer
-3	pbkdf2_sha256$1200000$H9s8mw5BBqJlSmhlWKOUEJ$ERH86N9O48Od0hpFn2uJOsiJxmp/CSQCkR7VhNvWx70=	\N	t	Devil			t	t	2026-01-18 01:12:17.486663+05:30	vreet.patel.1324@gmail.com	9999999999	profile_images/default_user.png	customer
 \.
 
 
@@ -1782,6 +1779,8 @@ COPY public.django_admin_log (id, action_time, object_id, object_repr, action_fl
 138	2026-01-11 11:36:11.944655+05:30	826	Chocolate Brownie	3		9	1
 139	2026-01-11 11:36:11.944673+05:30	825	Candy	3		9	1
 140	2026-01-17 19:38:49.809498+05:30	2	preetpatel (customer)	2	[{"changed": {"fields": ["password"]}}]	10	1
+141	2026-01-18 01:29:49.066799+05:30	3	Devil (customer)	3		10	1
+142	2026-01-18 01:29:49.066855+05:30	2	preetpatel (customer)	3		10	1
 \.
 
 
@@ -1974,7 +1973,7 @@ SELECT pg_catalog.setval('public.catering_user_user_permissions_id_seq', 1, fals
 -- Name: django_admin_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.django_admin_log_id_seq', 140, true);
+SELECT pg_catalog.setval('public.django_admin_log_id_seq', 142, true);
 
 
 --
@@ -2548,5 +2547,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XovjuV9JzdnQQAITuGA9Z459RKHRM3Ljq0FPKePxgQ8w7zKMPVhvXuf8gPhiLGK
+\unrestrict LbPbXqOWuzghKXvCn4lJDRcVAg002OQI8A1Qt50WorOEj8sMvNiG6aU0xxfbtcq
 

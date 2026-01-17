@@ -87,3 +87,5 @@ Restore Database
 Update Railway DB 
 psql "postgresql://postgres:QnXUYPWujhjokpkBxqlqtINiBiKEMvyz@gondola.proxy.rlwy.net:10415/railway" < backup.sql
 
+Drop All Tables in Railway DB
+- psql "postgresql://postgres:QnXUYPWujhjokpkBxqlqtINiBiKEMvyz@gondola.proxy.rlwy.net:10415/railway" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO PUBLIC;"
