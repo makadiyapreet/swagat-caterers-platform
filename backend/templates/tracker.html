@@ -296,7 +296,7 @@
         }
 
         async function fetchMembers() {
-            const res = await fetch(`/api/menu/members/?t=${new Date().getTime()}`, { headers: { 'Authorization': `Token ${token}` }});
+            const res = await fetch(`/api/menu/members/?t=${new Date().getTime()}`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')}});
             members = await res.json();
             
             // Sort Alphabetically
@@ -573,7 +573,7 @@
 
             try {
                 const res = await fetch(`/api/menu/logs/?start_date=${from}&end_date=${to}`, {
-                    headers: { 'Authorization': `Token ${token}` }
+                    headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')}
                 });
                 if (!res.ok) throw new Error("API Error.");
                 const allLogs = await res.json();
@@ -767,7 +767,7 @@
             const id = document.getElementById('wipe-select').value;
             if(!id) return alert("Select a worker!");
             if(confirm("Confirm Wipe?")) {
-                await fetch(`/api/menu/members/${id}/`, { method: 'DELETE', headers: { 'Authorization': `Token ${token}` } });
+                await fetch(`/api/menu/members/${id}/`, { method: 'DELETE', headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
                 alert("Data Wiped.");
                 document.getElementById('wipeModal').style.display = 'none';
                 fetchMembers();
