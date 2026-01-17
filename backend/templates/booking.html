@@ -132,61 +132,70 @@
 
         async function loadEventData(id) {
             try {
-                const res = await fetch('api/menu/events/${id}/', { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/events/${id}/`, { 
+                    headers: { 'Authorization': `Token ${token}` } 
+                });
+                
+                if (!res.ok) throw new Error("Event not found");
                 const data = await res.json();
                 
-                document.getElementById('title').value = data.title;
-                document.getElementById('date').value = data.date;
-                document.getElementById('venue').value = data.venue;
-                document.getElementById('event_type').value = data.event_type;
-                document.getElementById('guests').value = data.guests;
-                document.getElementById('contact_number').value = data.contact_number || "";
-                document.getElementById('status').value = data.status;
-                document.getElementById('description').value = data.description;
-            } catch(e) { console.error(e); alert("Error loading event."); }
+                // These IDs now match your HTML exactly
+                document.getElementById('title').value = data.title || ""; 
+                document.getElementById('date').value = data.date || ""; 
+                document.getElementById('venue').value = data.venue || "";
+                document.getElementById('event_type').value = data.event_type || "Wedding";
+                document.getElementById('guests').value = data.guests || ""; 
+                document.getElementById('contact_number').value = data.contact_number || ""; 
+                
+                // Status and Description also match your HTML
+                if (document.getElementById('status')) {
+                    document.getElementById('status').value = data.status || "pending";
+                }
+                if (document.getElementById('description')) {
+                    document.getElementById('description').value = data.description || "";
+                }
+
+            } catch(e) { 
+                console.error("Debug Info:", e);
+                alert("Error loading event details."); 
+            }
         }
 
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Logic: Admins can set status, Users are forced to 'pending'
-            const statusValue = isAdmin ? document.getElementById('status').value : 'pending';
-
+            // Payload keys match your CateringEvent model in models.py
             const payload = {
                 title: document.getElementById('title').value,
                 date: document.getElementById('date').value,
                 venue: document.getElementById('venue').value,
                 event_type: document.getElementById('event_type').value,
-                guests: document.getElementById('guests').value,
+                guests: parseInt(document.getElementById('guests').value),
                 contact_number: document.getElementById('contact_number').value,
-                status: statusValue,
+                status: isAdmin ? document.getElementById('status').value : 'pending',
                 description: document.getElementById('description').value
             };
 
-            const url = eventId 
-                ? `http://127.0.0.1:8000/api/menu/events/${eventId}/` // Edit
-                : `http://127.0.0.1:8000/api/menu/events/`; // Create
-            
+            const url = eventId ? `/api/menu/events/${eventId}/` : `/api/menu/events/`;
             const method = eventId ? 'PATCH' : 'POST';
 
             try {
                 const res = await fetch(url, {
                     method: method,
-                    headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Authorization': `Token ${token}`, 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    if (isAdmin) {
-                        alert(eventId ? "Booking Updated Successfully!" : "Booking Created Successfully!");
-                    } else {
-                        alert("Request Sent Successfully! We will contact you shortly.");
-                    }
+                    alert("Booking Saved Successfully!");
                     window.location.href = "/dashboard/";
                 } else {
-                    alert("Error saving booking. Please check details.");
+                    alert("Error saving booking. Check the console for details.");
                 }
-            } catch(e) { console.error(e); alert("Network Error"); }
+            } catch(e) { console.error(e); }
         });
 
         init();

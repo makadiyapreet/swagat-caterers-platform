@@ -22,8 +22,8 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
-DEBUG = os.getenv("DEBUG") == "True"
+DEBUG = True
+#DEBUG = os.getenv("DEBUG") == "True"
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.environ.get(
@@ -182,3 +182,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://swagat-caterers-platform-production.up.railway.app",
+    # "https://swagatcaterers.in", # If you have a custom domain
+]

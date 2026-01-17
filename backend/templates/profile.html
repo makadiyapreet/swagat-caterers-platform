@@ -204,7 +204,7 @@ if (!TOKEN) window.location.href = "{% url 'login' %}";
 
 async function loadProfile() {
     try {
-        const res = await fetch("http://127.0.0.1:8000/auth/users/me/", {
+        const res = await fetch("/auth/users/me/", {
             headers: { Authorization: `Token ${TOKEN}` }
         });
         const data = await res.json();
@@ -244,7 +244,7 @@ document.getElementById("profile-form").addEventListener("submit", async e => {
     if (file) formData.append("profile_image", file);
 
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/menu/update-profile/", {
+        const res = await fetch("/api/menu/update-profile/", {
             method: "PATCH",
             headers: { Authorization: `Token ${TOKEN}` },
             body: formData

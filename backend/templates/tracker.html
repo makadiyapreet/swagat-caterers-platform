@@ -266,7 +266,7 @@
 
         async function init() {
             try {
-                const uRes = await fetch('http://127.0.0.1:8000/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
                 const user = await uRes.json();
                 currentUser = user.username;
                 isSuperUser = user.is_superuser || user.is_staff;
@@ -280,7 +280,7 @@
         }
 
         async function fetchMembers() {
-            const res = await fetch(`http://127.0.0.1:8000/api/menu/members/?t=${new Date().getTime()}`, { headers: { 'Authorization': `Token ${token}` }});
+            const res = await fetch(`/api/menu/members/?t=${new Date().getTime()}`, { headers: { 'Authorization': `Token ${token}` }});
             members = await res.json();
             
             // Sort Alphabetically
@@ -482,7 +482,7 @@
 
                 if(staff > 0 || advance > 0 || settle > 0) {
                     const newBal = bal + total - advance - settle;
-                    updates.push(fetch(`http://127.0.0.1:8000/api/menu/members/${id}/`, {
+                    updates.push(fetch(`/api/menu/members/${id}/`, {
                         method: 'PATCH',
                         headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -523,7 +523,7 @@
             rows.forEach(row => {
                 const id = row.getAttribute('data-id');
                 const rate = row.querySelector('.rate-edit-input').value;
-                updates.push(fetch(`http://127.0.0.1:8000/api/menu/members/${id}/`, {
+                updates.push(fetch(`/api/menu/members/${id}/`, {
                     method: 'PATCH',
                     headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ default_rate: rate })
@@ -556,7 +556,7 @@
             const selectedNames = Array.from(checkboxes).map(cb => cb.value);
 
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/menu/logs/?start_date=${from}&end_date=${to}`, {
+                const res = await fetch(`/api/menu/logs/?start_date=${from}&end_date=${to}`, {
                     headers: { 'Authorization': `Token ${token}` }
                 });
                 if (!res.ok) throw new Error("API Error.");
@@ -751,7 +751,7 @@
             const id = document.getElementById('wipe-select').value;
             if(!id) return alert("Select a worker!");
             if(confirm("Confirm Wipe?")) {
-                await fetch(`http://127.0.0.1:8000/api/menu/members/${id}/`, { method: 'DELETE', headers: { 'Authorization': `Token ${token}` } });
+                await fetch(`/api/menu/members/${id}/`, { method: 'DELETE', headers: { 'Authorization': `Token ${token}` } });
                 alert("Data Wiped.");
                 document.getElementById('wipeModal').style.display = 'none';
                 fetchMembers();
@@ -763,7 +763,7 @@
             const id = document.getElementById('m-id').value;
             const data = { name: document.getElementById('m-name').value, phone: document.getElementById('m-phone').value, default_rate: document.getElementById('m-rate').value, advance_amount: document.getElementById('m-advance').value };
             const method = id ? 'PATCH' : 'POST';
-            const url = id ? `http://127.0.0.1:8000/api/menu/members/${id}/` : 'http://127.0.0.1:8000/api/menu/members/';
+            const url = id ? `/api/menu/members/${id}/` : '/api/menu/members/';
             await fetch(url, { method: method, headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             document.getElementById('memberModal').style.display = 'none';
             fetchMembers();

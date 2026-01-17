@@ -27,7 +27,7 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
+
     path('', frontend_home, name='frontend_home'),
 
     # 1. The Menu API (This now looks inside catering/urls.py)
@@ -54,6 +54,8 @@ urlpatterns = [
     path("direct-menu/", views.direct_menu, name="direct_menu"),
     path("create-menu/", views.create_menu, name="create_menu"),
     path("print-bill/", views.print_bill, name="print_bill"),
+
+    path('dashboard/booking/', views.booking, name='booking'),
 
 
     path('api/', include('catering.urls'))

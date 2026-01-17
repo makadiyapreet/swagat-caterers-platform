@@ -5,7 +5,7 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, unique=True)
-    profile_image = models.ImageField(upload_to='profile_images/', default='profile_images/default.png', blank=True)
+    profile_image = models.ImageField(upload_to='profile_images/', default='profile_images/default_user.png', blank=True)
     
     ROLE_CHOICES = (
         ('customer', 'Customer'),
@@ -74,7 +74,6 @@ class MemberLog(models.Model):
     def __str__(self):
         return f"{self.member.name} - {self.date}"
 
-# 6. CATERING EVENT MODEL
 # 6. CATERING EVENT MODEL
 class CateringEvent(models.Model):
     STATUS_CHOICES = [

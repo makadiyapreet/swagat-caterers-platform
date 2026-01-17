@@ -16,9 +16,6 @@ from django.core.mail import send_mail
 import json
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-
-
-
 # --- IMPORTS ---
 from .models import Category, Menu_item, CateringEvent, Member, MemberLog , Menu, Booking
 from .serializers import (
@@ -264,7 +261,15 @@ def tracker(request):
 
 @login_required
 def booking(request):
-    return render(request, "booking.html")
+    event_id = request.GET.get('event_id')
+    date_param = request.GET.get('date')
+    
+    # Passing them into the dictionary context "accesses" them for Pylance
+    # and makes them available to your HTML template
+    return render(request, "booking.html", {
+        "event_id": event_id,
+        "date_param": date_param
+    })
 
 @login_required
 def direct_menu(request):

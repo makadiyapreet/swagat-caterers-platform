@@ -68,7 +68,7 @@
         
         // 1. Load Categories & Items
         async function loadData() {
-            const res = await fetch('http://127.0.0.1:8000/api/menu/');
+            const res = await fetch('/api/menu/');
             const categories = await res.json();
             
             const catSelect = document.getElementById('category');
@@ -102,7 +102,7 @@
             formData.append('descp', document.getElementById('desc').value);
             formData.append('image', document.getElementById('image').files[0]);
 
-            const res = await fetch('http://127.0.0.1:8000/api/menu/items/', {
+            const res = await fetch('/api/menu/items/', {
                 method: 'POST',
                 headers: { 'Authorization': `Token ${token}` },
                 body: formData
@@ -121,7 +121,7 @@
         async function deleteItem(id) {
             if(!confirm("Are you sure?")) return;
             
-            const res = await fetch(`http://127.0.0.1:8000/api/menu/items/${id}/`, {
+            const res = await fetch(`/api/menu/items/${id}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Token ${token}` }
             });

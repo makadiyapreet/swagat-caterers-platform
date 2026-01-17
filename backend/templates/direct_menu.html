@@ -202,7 +202,7 @@
         async function init() {
             try {
                 // 1. Verify Admin Status First
-                const userRes = await fetch('http://127.0.0.1:8000/auth/users/me/', { 
+                const userRes = await fetch('/auth/users/me/', { 
                     headers: { 'Authorization': `Token ${token}` } 
                 });
                 
@@ -227,8 +227,8 @@
 
                 // 2. Load Data if Admin
                 const [catRes, itemRes] = await Promise.all([
-                    fetch('http://127.0.0.1:8000/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
-                    fetch('http://127.0.0.1:8000/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } })
+                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
+                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } })
                 ]);
                 categories = await catRes.json();
                 allItems = await itemRes.json();
@@ -252,7 +252,7 @@
             document.getElementById('btn-save-db').style.display = 'flex'; 
             
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` } });
                 currentEventData = await res.json();
                 
                 document.getElementById('linked-name').innerText = currentEventData.title;
@@ -272,7 +272,7 @@
 
         async function loadExistingMenu(mid) {
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/menu/menus/${mid}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/menus/${mid}/`, { headers: { 'Authorization': `Token ${token}` } });
                 const menu = await res.json();
                 
                 menu.items.forEach(id => {
@@ -571,8 +571,8 @@
             };
 
             const url = menuId 
-                ? `http://127.0.0.1:8000/api/menu/menus/${menuId}/` 
-                : `http://127.0.0.1:8000/api/menu/menus/`;
+                ? `/api/menu/menus/${menuId}/` 
+                : `/api/menu/menus/`;
             
             const method = menuId ? 'PUT' : 'POST';
 

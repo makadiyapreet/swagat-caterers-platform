@@ -236,7 +236,7 @@
 
             try {
                 // Fetch Main Event
-                const res = await fetch(`http://127.0.0.1:8000/api/menu/events/${mainEventId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/events/${mainEventId}/`, { headers: { 'Authorization': `Token ${token}` } });
                 const mainEvent = await res.json();
                 
                 document.getElementById('client-name').innerText = mainEvent.title;
@@ -252,7 +252,7 @@
                 addEventRowsToTable(mainEvent);
 
                 // Fetch All Events
-                const allRes = await fetch(`http://127.0.0.1:8000/api/menu/events/`, { headers: { 'Authorization': `Token ${token}` } });
+                const allRes = await fetch(`/api/menu/events/`, { headers: { 'Authorization': `Token ${token}` } });
                 allEventsList = await allRes.json();
                 populateEventDropdown(mainEvent.title);
 
@@ -274,7 +274,7 @@
         async function addSelectedEvent() {
             const id = document.getElementById('other-events-select').value;
             if(!id) return;
-            const res = await fetch(`http://127.0.0.1:8000/api/menu/events/${id}/`, { headers: { 'Authorization': `Token ${token}` } });
+            const res = await fetch(`/api/menu/events/${id}/`, { headers: { 'Authorization': `Token ${token}` } });
             const ev = await res.json();
             
             const tbody = document.getElementById('bill-body');

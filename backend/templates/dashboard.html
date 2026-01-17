@@ -191,7 +191,7 @@
     <script>
         const CREATE_MENU_URL = "{% url 'create_menu' %}";
         const PRINT_BILL_URL = "{% url 'print_bill' %}";
-        const BOOKING_URL = "{% url 'booking' %}";
+        const BOOKING_URL = "/dashboard/booking/";
         const token = localStorage.getItem('authToken');
         if (!token) window.location.href = "{% url 'login' %}";
 
@@ -213,20 +213,23 @@
 
         async function init() {
             try {
-                const uRes = await fetch('http://127.0.0.1:8000/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` }});
                 const user = await uRes.json();
                 isSuperUser = user.is_staff || user.is_superuser;
                 document.getElementById('welcome-msg').innerText = `Welcome, ${user.username}`;
                 if(user.profile_image) document.getElementById('nav-img').src = user.profile_image;
 
-                const eRes = await fetch('http://127.0.0.1:8000/api/menu/events/', { headers: { 'Authorization': `Token ${token}` }});
+                const cRes = await fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } });
+                const iRes = await fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } });
+                const eRes = await fetch('/api/menu/events/', { headers: { 'Authorization': `Token ${token}` }});
                 allEvents = await eRes.json();
-                
-                const cRes = await fetch('http://127.0.0.1:8000/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } });
                 categories = await cRes.json();
-                const iRes = await fetch('http://127.0.0.1:8000/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } });
                 allItems = await iRes.json();
-
+                if (!isSuperUser) {
+                    // Hide the Add Booking and Create Menu buttons for simple users
+                    document.querySelector('.btn-booking').style.display = 'none';
+                    document.querySelector('.btn-quick-menu').style.display = 'none';
+                }
                 renderCalendar(currentDate);
                 renderUpcoming();
             } catch(e) { console.error(e); }
@@ -282,30 +285,57 @@
             const modalContent = document.getElementById('event-details-content');
             const adminActions = document.getElementById('admin-menu-actions');
             const listContainer = document.getElementById('multi-event-list');
+            
+            // Clear and hide everything first
             listContainer.style.display = 'none';
             modalContent.style.display = 'none';
             adminActions.style.display = 'none';
 
             let eventToOpen = null;
+
             if (eventId) {
+                // Came from "Upcoming Events" list
                 eventToOpen = allEvents.find(e => e.id == eventId);
             } else if (dateStr) {
+                // Came from Calendar click
                 const eventsOnDay = allEvents.filter(e => e.date === dateStr);
-                if (eventsOnDay.length === 0) { renderNoEvent(dateStr); return; }
-                else if (eventsOnDay.length === 1) { eventToOpen = eventsOnDay[0]; }
-                else { renderEventList(eventsOnDay); return; }
+                
+                if (eventsOnDay.length === 0) {
+                    // CASE 1: No data exists for this day
+                    renderNoEvent(dateStr); 
+                    return; 
+                } else if (eventsOnDay.length === 1) {
+                    // CASE 2: Exactly one event found
+                    eventToOpen = eventsOnDay[0]; 
+                } else {
+                    // CASE 3: Multiple events found (e.g., 2 weddings on same day)
+                    renderEventList(eventsOnDay); 
+                    return; 
+                }
             }
-            if (eventToOpen) { renderEventDetails(eventToOpen); }
+
+            if (eventToOpen) { 
+                renderEventDetails(eventToOpen); 
+            }
         }
 
         function renderNoEvent(dateStr) {
             const modalContent = document.getElementById('event-details-content');
-            document.getElementById('modal-title').innerText = "No Event";
+            document.getElementById('modal-title').innerText = "Date Info";
             modalContent.style.display = 'block';
-            modalContent.innerHTML = `<p style="color:#666; text-align:center; padding:20px;">No events on ${formatDateDisplay(dateStr)}.</p>`;
+
+            let html = `<div style="text-align:center; padding:20px;"><p>No events on ${formatDateDisplay(dateStr)}.</p></div>`;
+
             if (isSuperUser) {
-                modalContent.innerHTML += `<div style="text-align:center;"><button onclick="window.location.href='booking.html?date=${dateStr}'" style="padding:10px 20px; background:#2c3e50; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">+ Add Booking</button></div>`;
+                html += `
+                    <div style="text-align:center;">
+                        <button onclick="window.location.href='/booking/?date=${dateStr}'" 
+                                style="padding:10px 20px; background:#2c3e50; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">
+                            + Add Booking
+                        </button>
+                    </div>`;
             }
+            modalContent.innerHTML = html;
             document.getElementById('eventModal').style.display = 'flex';
         }
 
@@ -394,7 +424,7 @@
 
                         <div class="action-row">
                             <button class="btn-modal"
-                                onclick="window.location.href=\`${BOOKING_URL}?event_id=${event.id}\`"
+                                onclick="window.location.href='${BOOKING_URL}?event_id=${event.id}'"
                                 style="background:#f0f0f0; color:#333; border:1px solid #ccc;">
                                 ✏️ Edit Details
                             </button>
@@ -412,9 +442,21 @@
         async function deleteEvent(id) {
             if (!confirm("⚠️ Are you sure you want to PERMANENTLY DELETE this booking?")) return;
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/menu/events/${id}/`, { method: 'DELETE', headers: { 'Authorization': `Token ${token}` } });
-                if (res.ok) { alert("✅ Booking deleted successfully."); location.reload(); } else { alert("Failed to delete booking."); }
-            } catch (e) { alert("Network Error"); }
+                // Ensure this line looks exactly like this:
+                const res = await fetch(`/api/menu/events/${id}/`, { 
+                    method: 'DELETE', 
+                    headers: { 'Authorization': `Token ${token}` } 
+                });
+                
+                if (res.ok) { 
+                    alert("✅ Booking deleted successfully."); 
+                    location.reload(); 
+                } else { 
+                    alert("Failed to delete booking."); 
+                }
+            } catch (e) { 
+                alert("Network Error: Could not connect to server."); 
+            }
         }
 
         function changeMonth(s) { currentDate.setMonth(currentDate.getMonth()+s); renderCalendar(currentDate); }
@@ -422,7 +464,7 @@
         // --- UPDATED PDF GENERATOR FOR DASHBOARD ---
         async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
             try {
-                const res = await fetch(`http://127.0.0.1:8000/api/menu/menus/${menuId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const res = await fetch(`/api/menu/menus/${menuId}/`, { headers: { 'Authorization': `Token ${token}` } });
                 if(!res.ok) throw new Error("Could not fetch menu items");
                 const menu = await res.json();
                 

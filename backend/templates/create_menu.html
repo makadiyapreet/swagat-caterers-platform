@@ -345,7 +345,7 @@
         // --- INIT ---
         async function init() {
             try {
-                const uRes = await fetch('http://127.0.0.1:8000/auth/users/me/', { headers: { 'Authorization': `Token ${token}` } });
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` } });
                 if (!uRes.ok) throw new Error("Auth Failed");
                 const user = await uRes.json();
                 isAdmin = user.is_staff || user.is_superuser;
@@ -354,13 +354,13 @@
                 if (!isAdmin) { priceInput.value = "**"; priceInput.disabled = true; priceInput.type = "password"; } 
                 else { priceInput.disabled = false; priceInput.type = "number"; }
 
-                const cRes = await fetch('http://127.0.0.1:8000/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } });
+                const cRes = await fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } });
                 categories = await cRes.json();
 
-                const iRes = await fetch('http://127.0.0.1:8000/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } });
+                const iRes = await fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } });
                 allItems = await iRes.json();
 
-                const eRes = await fetch(`http://127.0.0.1:8000/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` } });
+                const eRes = await fetch(`/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` } });
                 eventData = await eRes.json();
                 
                 document.getElementById('ev-name').value = eventData.title || "";
@@ -442,7 +442,7 @@
                 if(itemData.gujarati_name) formData.append('gujarati_name', itemData.gujarati_name);
                 formData.append('category', itemData.category);
                 formData.append('is_available', 'true');
-                const res = await fetch('http://127.0.0.1:8000/api/menu/menu-items/', { method: 'POST', headers: { 'Authorization': `Token ${token}` }, body: formData });
+                const res = await fetch('/api/menu/menu-items/', { method: 'POST', headers: { 'Authorization': `Token ${token}` }, body: formData });
                 if(res.ok) {
                     const newItem = await res.json();
                     allItems.push(newItem);
@@ -572,8 +572,8 @@
             if(selectedIds.size === 0 && customItems.length === 0) return alert("Select at least one item.");
             const payload = { event: eventId, title: title, price_per_plate: price || 0, items: Array.from(selectedIds), custom_items_text: customItems, note: note };
             try {
-                let url = 'http://127.0.0.1:8000/api/menu/menus/'; let method = 'POST';
-                if (currentMenuId) { url = `http://127.0.0.1:8000/api/menu/menus/${currentMenuId}/`; method = 'PATCH'; }
+                let url = '/api/menu/menus/'; let method = 'POST';
+                if (currentMenuId) { url = `/api/menu/menus/${currentMenuId}/`; method = 'PATCH'; }
                 const res = await fetch(url, { method: method, headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if(res.ok) {
                     alert(currentMenuId ? "✅ Menu Updated!" : "✅ Menu Created!");

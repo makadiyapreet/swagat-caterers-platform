@@ -613,7 +613,7 @@
         async function sendToBackend(data, silentMode = false) {
             try {
                 // Make sure this points to your Django port (likely 8000)
-                const response = await fetch("http://127.0.0.1:8000/send-email/", { 
+                const response = await fetch("/send-email/", { 
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

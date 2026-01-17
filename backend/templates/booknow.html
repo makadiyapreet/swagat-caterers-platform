@@ -103,8 +103,8 @@
                 const data = Object.fromEntries(formData.entries());
 
                 // Send to Django
-                // NOTE: Replace 'http://127.0.0.1:8000' with your live URL when deployed
-                fetch('http://127.0.0.1:8000/api/book-event/', {
+                // NOTE: Replace '' with your live URL when deployed
+                fetch('/api/book-event/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
