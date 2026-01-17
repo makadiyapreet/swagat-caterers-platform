@@ -191,6 +191,10 @@ CSRF_TRUSTED_ORIGINS = [
     # "https://swagatcaterers.in", # If you have a custom domain
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    'https://swagat-caterers-platform-production.up.railway.app'
+]
+
 if not DEBUG:
     # Tell Django it's behind a secure proxy (Railway)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
