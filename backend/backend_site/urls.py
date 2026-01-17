@@ -29,7 +29,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     path('', frontend_home, name='frontend_home'),
-
+    path('api/manual-login/', views.manual_session_login, name='manual_login'),
     # 1. The Menu API (This now looks inside catering/urls.py)
     path('api/menu/', include('catering.urls')),
     path('', include('catering.urls')),

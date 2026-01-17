@@ -25,6 +25,7 @@ from .serializers import (
     MemberSerializer, 
     MemberLogSerializer
 )
+from django.contrib.auth import login
 
 User = get_user_model()
 signer = Signer()
@@ -213,7 +214,25 @@ def send_enquiry_email(request):
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
-# --- 8. FRONTEND HOME VIEW ---
+# --- 8. MANUAL SESSION LOGIN FOR DJOSER ---
+@api_view(['POST'])
+def manual_session_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    
+    if user is not None:
+        if user.is_active:
+            # THIS IS THE KEY: It creates the session cookie for @login_required
+            login(request, user) 
+            return Response({'status': 'success', 'message': 'Session started'})
+        return Response({'status': 'error', 'message': 'Account inactive'}, status=403)
+    
+    return Response({'status': 'error', 'message': 'Invalid credentials'}, status=401)
+
+
+# --- 9. FRONTEND HOME VIEW ---
 def frontend_home(request):
     return render(request, "index.html")
 
