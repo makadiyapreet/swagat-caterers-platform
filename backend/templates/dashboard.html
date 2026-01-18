@@ -591,9 +591,12 @@
         async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
             try {
                 // --- ADDED THIS LINE TO FIX THE ERROR ---
-                const token = localStorage.getItem('access_token'); // Or 'auth_token' depending on your login storage key
+                const token = localStorage.getItem('token') || 
+                            localStorage.getItem('auth_token') || 
+                            localStorage.getItem('access_token'); // Or 'auth_token' depending on your login storage key
 
                 if (!token) {
+                    console.error("No token found in localStorage");
                     alert("Authentication session expired. Please log in again.");
                     return;
                 }
