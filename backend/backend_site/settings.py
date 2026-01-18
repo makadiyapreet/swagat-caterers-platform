@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'djoser',
     'corsheaders',
-    'catering',
+    'catering.apps.CateringConfig',
     'cloudinary_storage',
     'cloudinary',
 ]

@@ -168,7 +168,7 @@
         messageBox.innerText = "Creating your account...";
         messageBox.className = "message";
 
-        try {
+       try {
             const response = await fetch('/auth/users/', {
                 method: 'POST',
                 headers: { 
@@ -179,13 +179,14 @@
                     username: username, 
                     email: email, 
                     password: password,
-                    re_password: confirmPass,  // <--- ADD THIS LINE
+                    re_password: confirmPass, 
                     phone_number: phone 
                 })
             });
 
             const textBody = await response.text();
 
+            // 1. HANDLE ERRORS
             if (!response.ok) {
                 console.error("Server Error Detail:", textBody);
                 messageBox.className = "message error";
@@ -198,39 +199,15 @@
                     }
                     messageBox.innerText = errorMessages.join('\n');
                 } catch (e) {
-                    // If the backend crashed (500), it's usually the SMTP settings
-                    messageBox.innerText = "Server Error (500). This usually happens if the email server is not responding. Please contact admin.";
+                    // If the backend crashed (500), it implies an SMTP/Server error
+                    messageBox.innerText = "Server Error (500). Please contact admin.";
                 }
                 return;
             }
 
-            // --- CHANGED SUCCESS PATH ---
-            // 1. Hide the form to prevent multiple submissions
-            signupForm.style.display = "none";
-            
-            // 2. Change title/instruction if they exist in your HTML
-            const heading = document.querySelector('h2');
-            if(heading) heading.innerText = "Check Your Email";
-            
-            const subtext = document.querySelector('p');
-            if(subtext) subtext.innerText = "Almost there!";
-
-            // 3. Show detailed success message
-            messageBox.className = "message success";
-            messageBox.style.padding = "20px";
-            messageBox.style.background = "#e8f5e9";
-            messageBox.style.borderRadius = "8px";
-            messageBox.innerHTML = `
-                <div style="font-size: 16px; line-height: 1.5;">
-                    <b>Registration Successful!</b><br>
-                    An activation link has been sent to:<br>
-                    <span style="color: #D4AF37; font-weight: bold;">${email}</span><br><br>
-                    Please click the link in your email to activate your account. 
-                    If you don't see it, check your <b>Spam folder</b>.
-                </div>
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
-                <a href="{% url 'login' %}" style="text-decoration: none; color: #666; font-weight: bold;">Return to Login</a>
-            `;
+            // 2. HANDLE SUCCESS -> REDIRECT
+            // This replaces all that code changing the innerHTML
+            window.location.href = "/registration-pending/";
 
         } catch (error) {
             console.error("Connection Error:", error);
