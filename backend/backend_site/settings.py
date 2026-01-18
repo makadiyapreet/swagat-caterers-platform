@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'catering.apps.CateringConfig',
     'cloudinary_storage',
     'cloudinary',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -154,7 +155,8 @@ REST_FRAMEWORK = {
 }
 
 # --- EMAIL SETTINGS (SMTP) ---
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
 # EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
@@ -229,3 +231,6 @@ CLOUDINARY_STORAGE = {
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
+ANYMAIL = {
+    "SENDINBLUE_API_KEY": os.environ.get('SENDINBLUE_API_KEY'),
+    }
