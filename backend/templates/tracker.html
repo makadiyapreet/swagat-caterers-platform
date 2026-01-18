@@ -378,7 +378,7 @@
 
             // --- ADVANCE INPUT (Admin Only) ---
             // Managers cannot give advances
-            let advInput = isAdmin 
+            let advInput = (isAdmin || isManager) 
                 ? `<input type="number" class="table-input advance-input inp-adv" placeholder="+ Add" oninput="calcRow(${m.id})">`
                 : `<input type="text" class="table-input" placeholder="🔒" disabled style="background:#eee;">`;
 
@@ -514,7 +514,7 @@
 
     function calcRow(id) {
         // If Manager, they can input Staff count, but we don't update totals/net on screen (Privacy)
-        if (!isAdmin) return; 
+        if (!isAdmin && !isManager) return;
 
         const row = document.querySelector(`tr[data-id="${id}"]`);
         const staff = parseInt(row.querySelector('.inp-staff').value) || 0;
@@ -601,8 +601,12 @@
             // Clear inputs
             document.querySelectorAll('.inp-staff').forEach(i => i.value = '');
             // Only clear financial inputs if they exist (Admin)
+            if(isAdmin || isManager) {
+                document.querySelectorAll('.inp-adv').forEach(i => i.value = '');
+            }
+            // Clear Settle ONLY for Admin
             if(isAdmin) {
-                document.querySelectorAll('.inp-adv, .inp-settle').forEach(i => i.value = '');
+                document.querySelectorAll('.inp-settle').forEach(i => i.value = '');
             }
         } catch (error) {
             console.error("Save Error:", error);

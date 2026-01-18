@@ -30,7 +30,7 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         # C. Generate Approval Link for Admin
         token = signer.sign(user.pk)
         # NOTE: Change 127.0.0.1 to your live domain when you deploy
-        activation_link = f"http://127.0.0.1:8000/api/menu/activate/{token}/"
+        activation_link = f"/api/menu/activate/{token}/"
 
         # D. Email YOU (The Admin)
         print(f"Sending Admin Approval Email for {user.username}...")

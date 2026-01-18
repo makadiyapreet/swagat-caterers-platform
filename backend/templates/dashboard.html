@@ -267,20 +267,23 @@
     </div>
 
     <script>
+    // --- CONFIGURATION & GLOBALS ---
     const CREATE_MENU_URL = "{% url 'create_menu' %}";
     const PRINT_BILL_URL = "{% url 'print_bill' %}";
     const BOOKING_URL = "/dashboard/booking/";
 
     let currentDate = new Date();
-    let allEvents = [];
     
-    // logic variables
-    let userType = ""; 
-    let canManage = false; // True for Admin & Manager
-
+    // Data Containers
+    let allEvents = [];
     let allItems = [];
     let categories = [];
 
+    // Role Flags
+    let isAdmin = false;   // Can edit, delete, see prices
+    let isManager = false; // Can view only (no prices, no edit)
+
+    // --- HELPER: COOKIE FETCH ---
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -296,7 +299,7 @@
         return cookieValue;
     }
 
-    // --- HELPER: DATE FORMATTER (DD-MM-YYYY) ---
+    // --- HELPER: DATE FORMATTER ---
     function formatDateDisplay(yyyy_mm_dd) {
         if (!yyyy_mm_dd) return "-";
         try {
@@ -306,6 +309,7 @@
         return yyyy_mm_dd;
     }
 
+    // --- MAIN INIT FUNCTION ---
     async function init() {
         const token = localStorage.getItem('authToken'); 
 
@@ -315,6 +319,7 @@
         }
 
         try {
+            // 1. GET USER DETAILS
             const uRes = await fetch('/auth/users/me/', { 
                 headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} 
             });
@@ -327,19 +332,19 @@
             }
 
             const user = await uRes.json();
-
-            // --- NEW ROLE LOGIC START ---
-            // 1. Determine Role
-            userType = user.user_type || 'customer'; // Default to customer if missing
             
-            // 2. Check Permissions (Admin OR Manager gets access)
-            const isAdmin = userType === 'admin' || user.is_superuser;
-            const isManager = userType === 'manager' || user.is_staff;
+            // --- ROLE LOGIC START ---
+            // Normalize to lowercase to handle "Admin", "admin", "Manager", "manager"
+            const rawType = (user.user_type || '').toLowerCase();
             
-            canManage = isAdmin || isManager; 
+            // ADMIN: user_type is 'admin' OR they are django staff
+            isAdmin = (rawType === 'admin' || user.is_staff === true);
+            
+            // MANAGER: user_type is 'manager'
+            isManager = (rawType === 'manager');
 
-            // 3. HANDLE CUSTOMER - COMING SOON SCREEN
-            if (!canManage) {
+            // CUSTOMER CHECK: If not Admin AND not Manager -> Block Access
+            if (!isAdmin && !isManager) {
                 document.body.innerHTML = `
                     <div style="display:flex; height:100vh; justify-content:center; align-items:center; flex-direction:column; background-color:#f9f9f9; font-family:sans-serif;">
                         <h1 style="color:#D4AF37; font-size:3rem; margin-bottom:10px;">Coming Soon</h1>
@@ -353,18 +358,19 @@
                         </button>
                     </div>
                 `;
-                return; // STOP HERE - Do not load the rest of the dashboard
+                return; // STOP EXECUTION
             }
-            // --- NEW ROLE LOGIC END ---
+            // --- ROLE LOGIC END ---
 
-            
-            // Update UI for Admin/Manager
+            // 2. UPDATE UI (Welcome Msg & Image)
+            const roleDisplay = isAdmin ? "ADMIN" : "MANAGER";
             const welcomeEl = document.getElementById('welcome-msg');
-            if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username} (${userType.toUpperCase()})`;
+            if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username} (${roleDisplay})`;
             
             const navImg = document.getElementById('nav-img');
             if(user.profile_image && navImg) navImg.src = user.profile_image;
 
+            // 3. FETCH DATA
             const headers = { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')};
             const [cRes, iRes, eRes] = await Promise.all([
                 fetch('/api/menu/categories/', { headers }),
@@ -376,9 +382,12 @@
             categories = await cRes.json();
             allItems = await iRes.json();
 
-            // Admin buttons are visible because of 'canManage', 
-            // but if you have elements that ONLY Admin (not manager) should see, add logic here.
-            
+            // 4. HIDE SIDEBAR BUTTONS FOR MANAGERS
+            if (!isAdmin) {
+                document.querySelector('.btn-booking')?.style.setProperty('display', 'none');
+                document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'none');
+            }
+
             renderCalendar(currentDate);
             renderUpcoming();
 
@@ -387,7 +396,7 @@
         }
     }
 
-    // --- CALENDAR ---
+    // --- CALENDAR RENDER ---
     function renderCalendar(date) {
         const year = date.getFullYear(), month = date.getMonth();
         const first = new Date(year, month, 1).getDay(), days = new Date(year, month + 1, 0).getDate();
@@ -433,12 +442,13 @@
         });
     }
 
+    // --- HANDLE CLICKS ---
     function handleDateClick(dateStr, eventId) {
         const modalContent = document.getElementById('event-details-content');
         const adminActions = document.getElementById('admin-menu-actions');
         const listContainer = document.getElementById('multi-event-list');
         
-        // Clear and hide everything first
+        // Reset Modal
         listContainer.style.display = 'none';
         modalContent.style.display = 'none';
         adminActions.style.display = 'none';
@@ -449,6 +459,7 @@
             eventToOpen = allEvents.find(e => e.id == eventId);
         } else if (dateStr) {
             const eventsOnDay = allEvents.filter(e => e.date === dateStr);
+            
             if (eventsOnDay.length === 0) {
                 renderNoEvent(dateStr); 
                 return; 
@@ -465,6 +476,7 @@
         }
     }
 
+    // --- RENDER NO EVENT (Date Info) ---
     function renderNoEvent(dateStr) {
         const modalContent = document.getElementById('event-details-content');
         document.getElementById('modal-title').innerText = "Date Info";
@@ -472,8 +484,8 @@
 
         let html = `<div style="text-align:center; padding:20px;"><p>No events on ${formatDateDisplay(dateStr)}.</p></div>`;
 
-        // Only Admin or Manager can Add Booking
-        if (canManage) {
+        // Only Admin can add bookings
+        if (isAdmin) {
             html += `
                 <div style="text-align:center;">
                     <button onclick="window.location.href='/booking/?date=${dateStr}'" 
@@ -486,6 +498,7 @@
         document.getElementById('eventModal').style.display = 'flex';
     }
 
+    // --- RENDER LIST (Multiple Events) ---
     function renderEventList(events) {
         const listContainer = document.getElementById('multi-event-list');
         document.getElementById('modal-title').innerText = `Select Event (${events.length})`;
@@ -498,12 +511,14 @@
         document.getElementById('eventModal').style.display = 'flex';
     }
 
+    // --- RENDER DETAILS (Main Modal) ---
     function renderEventDetails(event) {
         const modalContent = document.getElementById('event-details-content');
         const adminActions = document.getElementById('admin-menu-actions');
         modalContent.style.display = 'block';
         document.getElementById('modal-title').innerText = event.title;
 
+        // Process Contact Info
         let contactInfo = event.contact_number || "N/A";
         let alternateInfo = ""; 
         if (event.description && event.description.includes("Contact:")) {
@@ -514,18 +529,19 @@
         }
         let noteInfo = event.description ? event.description : "No notes.";
 
+        // Process Menu List
         let menuListHtml = '<p style="color:#999; font-style:italic; font-size:13px; margin:0;">No menus created yet.</p>';
         if (event.menus && event.menus.length > 0) {
             menuListHtml = `<table style="width:100%; font-size:13px; border-collapse:collapse; margin-top:5px;"><tr style="background:#f9f9f9; text-align:left; color:#666;"><th style="padding:6px; border-bottom:1px solid #eee;">Menu</th><th style="padding:6px; border-bottom:1px solid #eee; text-align:right;">Actions</th></tr>`;
             
             event.menus.forEach(m => {
-                // Show price to Admin/Manager only
-                let priceDisplay = canManage ? `<br><span style='font-size:11px; color:green;'>₹${m.price_per_plate}</span>` : "";
+                // VISIBILITY: Only Admin sees price
+                let priceDisplay = isAdmin ? `<br><span style='font-size:11px; color:green;'>₹${m.price_per_plate}</span>` : "";
                 
                 let actionsHtml = "";
                 
-                // Admin & Manager Controls
-                if (canManage) {
+                if (isAdmin) {
+                    // ADMIN: Download & Edit
                     let editBtn = `
                     <button class="btn-dl btn-edit-menu"
                         onclick="window.location.href=
@@ -539,10 +555,10 @@
                         ${editBtn}
                     `;
                 } else {
-                    // This block likely won't be reached as Customers get "Coming Soon", 
-                    // but kept for safety.
+                    // MANAGER: View Only (No Edit, No Download)
                     actionsHtml = `
                         <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'en', '${event.title.replace(/'/g, "\\'")}', '${event.date}', '${event.guests}', '${event.venue || 'N/A'}', '${event.contact_number || ''}', true)">👁 View ENG</button>
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'gu', '${event.title.replace(/'/g, "\\'")}', '${event.date}', '${event.guests}', '${event.venue || 'N/A'}', '${event.contact_number || ''}', true)">👁 View GUJ</button>
                     `;
                 }
 
@@ -553,7 +569,8 @@
 
         modalContent.innerHTML = `<div class="event-details-grid"><div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${formatDateDisplay(event.date)}</span></div><div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${event.venue || 'N/A'}</span></div><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div><div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div><div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px;">${contactInfo}</span>${alternateInfo}</div><div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div><div class="detail-item detail-note"><span class="detail-label">Notes</span><span class="detail-value">${noteInfo}</span></div></div>`;
 
-        if (canManage) {
+        // VISIBILITY: Only Admin sees actions (Edit/Delete Booking)
+        if (isAdmin) {
             adminActions.style.display = 'flex';
             adminActions.innerHTML = `
                     <div class="action-row">
@@ -584,10 +601,14 @@
                         </button>
                     </div>
                     `;            
+        } else {
+            // Manager does not see the action buttons
+            adminActions.style.display = 'none';
         }
         document.getElementById('eventModal').style.display = 'flex';
     }
 
+    // --- DELETE EVENT (Admin Only) ---
     async function deleteEvent(id) {
         if (!confirm("⚠️ Are you sure you want to PERMANENTLY DELETE this booking?")) return;
         try {
@@ -610,13 +631,11 @@
 
     function changeMonth(s) { currentDate.setMonth(currentDate.getMonth()+s); renderCalendar(currentDate); }
 
-    // --- UPDATED PDF GENERATOR FOR DASHBOARD ---
+    // --- PDF GENERATOR ---
     async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
         try {
             const token = localStorage.getItem('authToken'); 
-
             if (!token) {
-                console.error("No token found in localStorage");
                 alert("Authentication session expired. Please log in again.");
                 return;
             }
@@ -674,26 +693,20 @@
             // --- 1. COVER PAGE ---
             if (coverBase64) {
                 doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
-                
-                const formattedDate = formatDateDisplay(eventDate);
-                const combinedText = `${eventTitle || ""} - ${formattedDate}`;
-                
+                const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
                 doc.setTextColor(212, 175, 55); 
                 doc.setFont("times", "bold"); 
                 doc.setFontSize(20); 
                 doc.text(combinedText, 105, 200, { align: 'center' }); 
-
                 if(lang === 'gu') doc.setFont('Gujarati'); else doc.setFont("helvetica", "normal");
                 doc.addPage();
             }
 
-            // --- HELPER: DRAW LAYOUT ---
+            // --- LAYOUT & GRID ---
             function drawLayoutAndGrid() {
                 if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
-                
                 const startY = 43; 
                 const rowHeight = 6; 
-                
                 doc.setDrawColor(212, 175, 55); 
                 doc.setLineWidth(0.5);
                 doc.line(15, startY, 195, startY);
@@ -705,28 +718,23 @@
                 const row1Y = startY + 5;
                 doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
                 doc.setTextColor(0, 0, 0);      doc.text(eventTitle || "-", 35, row1Y);
-                
                 doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
                 doc.setTextColor(0, 0, 0);      doc.text(String(eventGuests || "-"), 105, row1Y);
-
                 doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
                 
-                // --- RATE CHECK: Can Manage only ---
-                let priceDisplay = canManage ? (menu.price_per_plate || "0") : "**";
+                // VISIBILITY: HIDE RATE FROM MANAGER/CUSTOMER PDF
+                let priceDisplay = isAdmin ? (menu.price_per_plate || "0") : "**";
                 doc.setTextColor(0, 0, 0);      doc.text(String(priceDisplay), 165, row1Y);
 
-                // Row 2
+                // Row 2 & 3
                 const row2Y = row1Y + rowHeight;
                 doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
                 doc.setTextColor(0, 0, 0);      doc.text(formatDateDisplay(eventDate), 35, row2Y);
-                
                 doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
                 doc.setTextColor(0, 0, 0);      doc.text(eventContact || "-", 112, row2Y);
-
                 doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
                 doc.setTextColor(0, 0, 0);      doc.text(menu.title || "-", 165, row2Y);
 
-                // Row 3
                 const row3Y = row2Y + rowHeight;
                 doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
                 doc.setTextColor(0, 0, 0);      doc.text(eventVenue || "-", 35, row3Y);
@@ -742,34 +750,22 @@
             function drawHeader(text, x, y) {
                 doc.setFillColor(198, 153, 79); 
                 doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
-                doc.setTextColor(0,0,0); 
-                doc.setFontSize(11);
+                doc.setTextColor(0,0,0); doc.setFontSize(11);
                 if(lang !== 'gu') doc.setFont("helvetica", "bold");
                 doc.text(text, x + 5, y - 1);
                 if(lang !== 'gu') doc.setFont("helvetica", "normal");
             }
 
-            // --- CONTENT GENERATION ---
+            // --- FILL CONTENT ---
             let startContentY = drawLayoutAndGrid();
-            let xLeft = 15;
-            let xRight = 110;
-            let currentX = xLeft;
-            let currentY = startContentY;
-            let maxY = 275; 
-            let itemLineHeight = 6;
-            let headerHeight = 10;
+            let xLeft = 15; let xRight = 110;
+            let currentX = xLeft; let currentY = startContentY;
+            let maxY = 275; let itemLineHeight = 6; let headerHeight = 10;
 
             function checkPageBreak(heightNeeded) {
                 if (currentY + heightNeeded > maxY) {
-                    if (currentX === xLeft) { 
-                        currentX = xRight; 
-                        currentY = startContentY; 
-                    } else { 
-                        doc.addPage();
-                        let newStartY = drawLayoutAndGrid(); 
-                        currentX = xLeft; 
-                        currentY = newStartY; 
-                    }
+                    if (currentX === xLeft) { currentX = xRight; currentY = startContentY; } 
+                    else { doc.addPage(); let newStartY = drawLayoutAndGrid(); currentX = xLeft; currentY = newStartY; }
                 }
             }
 
@@ -778,7 +774,6 @@
             for (let i = 0; i < categories.length; i++) {
                 const cat = categories[i];
                 const itemsInCat = menuItems.filter(item => item.category == cat.id);
-
                 if (itemsInCat.length === 0) continue;
 
                 const blockHeight = headerHeight + (itemsInCat.length * itemLineHeight) + 5;
@@ -797,68 +792,51 @@
                 currentY += 5;
             }
 
-            // 4. FOOTER NOTE
+            // --- NOTE & BACK COVER ---
             const noteText = menu.note; 
             if (noteText) {
                 const noteHeader = lang === 'gu' ? 'વિશેષ નોંધ' : 'SPECIAL NOTE';
                 const noteLines = doc.splitTextToSize(noteText, 170); 
-                
-                const headerH = 8;
-                const padding = 6;
+                const headerH = 8; const padding = 6;
                 const textBlockH = (noteLines.length * 6);
                 const boxHeight = headerH + textBlockH + padding;
-                
-                const pageHeight = 297; 
-                const bottomMargin = 15; 
+                const pageHeight = 297; const bottomMargin = 15; 
                 let footerY = pageHeight - bottomMargin - boxHeight;
 
-                if (currentY > footerY) {
-                    doc.addPage();
-                    drawLayoutAndGrid(); 
-                    footerY = pageHeight - bottomMargin - boxHeight;
-                }
+                if (currentY > footerY) { doc.addPage(); drawLayoutAndGrid(); footerY = pageHeight - bottomMargin - boxHeight; }
 
                 doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79); doc.setLineWidth(0.5);
                 doc.roundedRect(15, footerY, 180, boxHeight, 3, 3, 'FD');
                 doc.setFillColor(198, 153, 79); 
                 doc.roundedRect(15, footerY, 180, headerH, 2, 2, 'F');
                 doc.rect(15, footerY + headerH - 2, 180, 2, 'F'); 
-
                 doc.setTextColor(255,255,255); doc.setFontSize(11);
                 if(lang !== 'gu') doc.setFont("helvetica", "bold");
                 doc.text(noteHeader, 105, footerY + 5.5, { align: 'center' }); 
-
                 doc.setTextColor(0,0,0); doc.setFontSize(10);
                 if(lang !== 'gu') doc.setFont("helvetica", "normal");
                 doc.text(noteLines, 20, footerY + headerH + 6); 
             }
 
-            // --- 2. BACK COVER ---
-            if (backBase64) {
-                doc.addPage();
-                doc.addImage(backBase64, 'PNG', 0, 0, 210, 297);
-            }
+            if (backBase64) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
 
-            // --- SAVE OR PREVIEW ---
-            if (isPreview) {
-                window.open(doc.output('bloburl'), '_blank');
-            } else {
+            if (isPreview) { window.open(doc.output('bloburl'), '_blank'); } 
+            else {
                 const safeTitle = eventTitle.replace(/[^a-zA-Z0-9 ]/g, "").trim();
                 const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5); 
                 doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
             }
-            
         } catch(e) { console.error(e); alert("Error generating PDF"); }
     }
 
     init();
 </script>
+
 <script>
     function logoutUser() {
         localStorage.clear();
         window.location.href = "{% url 'login' %}";
     }
 </script>
-
 </body>
 </html>
