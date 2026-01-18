@@ -735,7 +735,7 @@
         }
 
         // --- 1. COVER PAGE ---
-        if (coverBase64) {
+        if (coverBase64 && !isPreview) {
             doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
             const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
             
@@ -874,7 +874,7 @@
             doc.text(noteLines, 20, footerY + headerH + 6); 
         }
 
-        if (backBase64) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
+        if (backBase64 && !isPreview) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
 
         if (isPreview) { window.open(doc.output('bloburl'), '_blank'); } 
         else {
