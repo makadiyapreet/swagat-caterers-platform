@@ -61,10 +61,16 @@ def check_active_status(sender, instance, **kwargs):
             if not old_user.is_active and instance.is_active:
                 print(f"User {instance.username} approved. Sending welcome email...")
                 
+                # --- FIX START: DEFINE DOMAIN HERE ---
+                # Replace with your actual Railway URL when deploying
+                domain = "https://swagat-caterers.railway.app" 
+                # --- FIX END ---
+
                 # 1. Define the Subject
                 subject = '🎉 Welcome to Swagat Caterers! Your Account is Approved'
                 
-                # 2. Define the HTML Message (The beautiful version)
+                # 2. Define the HTML Message
+                # Now {domain} works because we defined it above!
                 html_message = f"""
                 <html>
                 <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
@@ -100,16 +106,16 @@ def check_active_status(sender, instance, **kwargs):
                 </html>
                 """
                 
-                # 3. Define Plain Text Fallback (For email clients that block HTML)
+                # 3. Define Plain Text Fallback
                 plain_message = strip_tags(html_message)
                 
                 # 4. Send the Email
                 send_mail(
                     subject=subject,
-                    message=plain_message, # Fallback text
+                    message=plain_message, 
                     from_email=settings.EMAIL_HOST_USER,
                     recipient_list=[instance.email],
-                    html_message=html_message, # This makes it look good!
+                    html_message=html_message,
                     fail_silently=False,
                 )
         except User.DoesNotExist:

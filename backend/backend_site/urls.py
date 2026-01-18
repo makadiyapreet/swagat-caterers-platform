@@ -23,8 +23,7 @@ from catering.views import frontend_home
 from catering import views
 from django.contrib.auth import views as auth_views
 from django.views.static import serve
-from .views import activate_user # You'll need to create this
-
+from catering.views import activate_user # <-- USE THIS
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -36,6 +35,7 @@ urlpatterns = [
     # 2. The Authentication APIs (Login/Signup)
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
+    path('auth/', include('djoser.urls.jwt')),
 
     path('menu/', views.menu, name='menu'),
     path('about/', views.about, name='about'),
@@ -62,7 +62,7 @@ urlpatterns = [
 ]
 urlpatterns += [
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    path('activate/<str:uid>/<str:token>/', activate_user, name='activate_user'),
+    path('api/menu/activate/<str:token>/', activate_user, name='activate_user'),
     ]
 # This allows images to load
 if settings.DEBUG:

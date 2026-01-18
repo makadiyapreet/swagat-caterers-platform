@@ -7,7 +7,6 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
-from django.core.mail import EmailMessage
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import *
@@ -33,9 +32,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import permissions
-import requests
+from django.http import HttpResponse
+from django.contrib.auth import get_user_model
+from django.core.signing import Signer, BadSignature
 
-
+domin = "https://swagat-caterers-platform-production.up.railway.app"
 User = get_user_model()
 signer = Signer()
 
@@ -251,16 +252,26 @@ def manual_session_login(request):
     return Response({'message': 'Invalid credentials'}, status=401)
 
 # --- 9. ACTIVATION VIEW FOR FRONTEND ---   
-def activate_user(request, uid, token):
-    # This view tells your backend to verify the token
-    payload = {'uid': uid, 'token': token}
-    url = "https://your-domain.com/auth/users/activation/"
-    response = requests.post(url, data=payload)
-
-    if response.status_code == 204:
-        return render(request, 'activation_success.html')
-    else:
-        return render(request, 'activation_failed.html')
+def activate_user(request, token):
+    try:
+        # 1. Unsign the token
+        user_id = signer.unsign(token, max_age=86400)
+        
+        # 2. Get the user directly from DB
+        user = User.objects.get(pk=user_id)
+        
+        # 3. Activate
+        if not user.is_active:
+            user.is_active = True
+            user.save() # This triggers the signal to send the Welcome Email
+            return HttpResponse(f"<h1 style='color:green'>Success! User {user.username} activated.</h1>")
+        else:
+            return HttpResponse(f"<h1 style='color:orange'>User {user.username} is already active.</h1>")
+            
+    except BadSignature:
+        return HttpResponse("Invalid or Expired Link", status=400)
+    except User.DoesNotExist:
+        return HttpResponse("User not found", status=404)
     
 # --- 10. FRONTEND HOME VIEW ---
 def frontend_home(request):
