@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.core.signing import Signer # Import this
 
 signer = Signer()
-domain = "https://your-website-name.railway.app" 
+domain = "https://swagat-caterers-platform-production.up.railway.app" 
 
 
 @receiver(post_save, sender=User)
@@ -24,7 +24,6 @@ def deactivate_new_user(sender, instance, created, **kwargs):
         token = signer.sign(instance.pk)
         
         # NOTE: When you deploy, change 127.0.0.1 to your real website domain
-        domain = "https://your-website-name.railway.app" 
         activation_link = f"{domain}/api/menu/activate/{token}/"
         
         # 2. Email You with the Link
