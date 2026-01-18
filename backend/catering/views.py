@@ -268,30 +268,8 @@ def manual_session_login(request):
         return Response({'message': 'Account inactive'}, status=403)
     
     return Response({'message': 'Invalid credentials'}, status=401)
-
-# --- 9. ACTIVATION VIEW FOR FRONTEND ---   
-def activate_user(request, token):
-    try:
-        # 1. Unsign the token
-        user_id = signer.unsign(token, max_age=86400)
-        
-        # 2. Get the user directly from DB
-        user = User.objects.get(pk=user_id)
-        
-        # 3. Activate
-        if not user.is_active:
-            user.is_active = True
-            user.save() # This triggers the signal to send the Welcome Email
-            return HttpResponse(f"<h1 style='color:green'>Success! User {user.username} activated.</h1>")
-        else:
-            return HttpResponse(f"<h1 style='color:orange'>User {user.username} is already active.</h1>")
-            
-    except BadSignature:
-        return HttpResponse("Invalid or Expired Link", status=400)
-    except User.DoesNotExist:
-        return HttpResponse("User not found", status=404)
     
-# --- 10. FRONTEND HOME VIEW ---
+# --- 9. FRONTEND HOME VIEW ---
 def frontend_home(request):
     return render(request, "index.html")
 
