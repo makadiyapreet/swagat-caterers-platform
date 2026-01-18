@@ -43,24 +43,26 @@ signer = Signer()
 @csrf_exempt
 def activate_user(request, token):
     try:
-        # 1. Decode the token (e.g., "15:7F1fZ...") back to a User ID (e.g., "15")
+        # 1. Decode the secure token to get the User ID
         user_id = signer.unsign(token)
+        
+        # 2. Get the user
         user = get_object_or_404(User, pk=user_id)
         
-        # 2. Handle the Approve Button Click
+        # 3. Handle the 'Approve' Button Click (POST request)
         if request.method == 'POST':
             selected_role = request.POST.get('role')
             user.user_type = selected_role
             user.is_active = True
             
-            # Grant staff status to managers/admins so they can access dashboard
+            # Auto-promote Managers/Admins to staff so they can log in
             if selected_role in ['manager', 'admin']:
                 user.is_staff = True
                 
-            user.save()
+            user.save() 
             return HttpResponse(f"<h1 style='color:green; text-align:center;'>Success! User {user.username} is active.</h1>")
 
-        # 3. Show the Approval Page (GET Request)
+        # 4. Show the Approval Page (GET request)
         return HttpResponse(f"""
             <html>
             <body style="font-family:sans-serif; text-align:center; padding-top:50px;">
@@ -68,14 +70,14 @@ def activate_user(request, token):
                 <p>Email: {user.email}</p>
                 <form method="POST">
                     <label>Assign Role:</label>
-                    <select name="role" style="padding:10px; margin:10px;">
+                    <select name="role" style="padding:10px; margin:10px; font-size:16px;">
                         <option value="customer">Customer</option>
                         <option value="manager">Manager</option>
                         <option value="admin">Admin</option>
                     </select>
                     <br><br>
-                    <button type="submit" style="padding:10px 20px; background:#D4AF37; color:white; border:none; cursor:pointer;">
-                        Approve Now
+                    <button type="submit" style="padding:10px 20px; background:#D4AF37; color:white; border:none; cursor:pointer; font-size:16px;">
+                        Approve User
                     </button>
                 </form>
             </body>
@@ -83,9 +85,10 @@ def activate_user(request, token):
         """)
             
     except BadSignature:
-        return HttpResponse("<h1 style='color:red;'>Invalid or Expired Link</h1>", status=400)
+        return HttpResponse("<h1 style='color:red; text-align:center;'>Invalid or Expired Link</h1>", status=400)
     except Exception as e:
-        return HttpResponse(f"<h1 style='color:red;'>Server Error: {str(e)}</h1>", status=500)
+        # This will catch any other errors and print them clearly
+        return HttpResponse(f"<h1 style='color:red; text-align:center;'>Server Error: {str(e)}</h1>", status=500)
 
 # --- 2. MENU API ---
 @api_view(['GET'])

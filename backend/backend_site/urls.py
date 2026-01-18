@@ -30,7 +30,7 @@ urlpatterns = [
 
     path('', frontend_home, name='frontend_home'),
     path('api/manual-login/', views.manual_session_login, name='manual_login'),
-    # path('api/menu/activate/<str:token>/', activate_user, name='activate_user'),
+    path('api/menu/activate/<str:token>/', activate_user, name='activate_user'),
     path('api/menu/', include('catering.urls')),
     path('', include('catering.urls')),
     # 2. The Authentication APIs (Login/Signup)
@@ -59,8 +59,7 @@ urlpatterns = [
     path('dashboard/booking/', views.booking, name='booking'),
 
 
-    path('api/', include('catering.urls')),
-    path('activate/<str:token>/', views.activate_user, name='activate_user'),
+    path('api/', include('catering.urls'))
 ]
 urlpatterns += [
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
