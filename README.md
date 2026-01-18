@@ -1227,9 +1227,9 @@ If you found this project impressive or learned something from it:
 
 ---
 
-![Visitors](https://visitor-badge.laobi.icu/badge?page_id=makadiyapreet.swagat-caterers)
-![GitHub last commit](https://img.shields.io/github/last-commit/makadiyapreet/swagat-caterers)
-![GitHub code size](https://img.shields.io/github/languages/code-size/makadiyapreet/swagat-caterers)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=makadiyapreet.swagat-caterers-platform)
+![GitHub last commit](https://img.shields.io/github/last-commit/makadiyapreet/swagat-caterers-platform)
+![GitHub code size](https://img.shields.io/github/languages/code-size/makadiyapreet/swagat-caterers-platform)
 
 ---
 
