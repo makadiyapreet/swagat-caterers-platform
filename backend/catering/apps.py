@@ -5,4 +5,5 @@ class CateringConfig(AppConfig):
     name = 'catering'
 
     def ready(self):
-        import catering.signals # This loads the signals we just wrote
+        # This turns on the signals. Without this, NO emails will send.
+        import catering.signals
