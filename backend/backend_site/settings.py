@@ -162,7 +162,7 @@ EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = 'swagatcaterersofficial@gmail.com'
 EMAIL_HOST_USER = 'makadiyapreet1@gmail.com'
 # EMAIL_HOST_PASSWORD = 'cqib xpwa cxwo mtri'  # App Password
-EMAIL_HOST_PASSWORD = 'xsmtpsib-eeddbe0dd850f9fde6a8d4dd8edc95dbae7b0d83d3be8d7aa353099bf7dc5bba-ACJjCisaMyZMgtPR'
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = 'swagatcaterersofficial@gmail.com'
 EMAIL_TIMEOUT = 10
 

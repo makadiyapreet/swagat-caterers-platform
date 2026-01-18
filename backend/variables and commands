@@ -44,7 +44,7 @@ https://console.cloudinary.com/
 
 
 EMAIL_HOST_PASSWORD
-xsmtpsib-eeddbe0dd850f9fde6a8d4dd8edc95dbae7b0d83d3be8d7aa353099bf7dc5bba-ACJjCisaMyZMgtPR
+(api password for brevo)
 
 EMAIL_HOST_USER
 makadiyapreet1@gmail.com
