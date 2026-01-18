@@ -217,8 +217,11 @@
     </div>
 
     <script>
+        // --- 1. SETUP & AUTH ---
         const token = localStorage.getItem('authToken');
         const mainEventId = new URLSearchParams(window.location.search).get('event_id');
+        
+        // If token or event ID is missing, redirect back to dashboard
         if (!token || !mainEventId) window.location.href = "{% url 'dashboard' %}";
 
         let allEventsList = []; 
@@ -240,18 +243,28 @@
 
         // FORMAT: DD-MM-YYYY
         function formatDate(input) {
-        const d = (input instanceof Date) ? input : new Date(input);
-        return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+            const d = (input instanceof Date) ? input : new Date(input);
+            return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
         }
 
         async function init() {
             const today = new Date();
-            document.getElementById('bill-date').innerText = formatDate(today);
-            document.getElementById('inv-num').innerText = `INV-${mainEventId}-${Date.now().toString().slice(-4)}`;
+            const billDateEl = document.getElementById('bill-date');
+            const invNumEl = document.getElementById('inv-num');
+            
+            if(billDateEl) billDateEl.innerText = formatDate(today);
+            if(invNumEl) invNumEl.innerText = `INV-${mainEventId}-${Date.now().toString().slice(-4)}`;
 
             try {
-                // Fetch Main Event
-                const res = await fetch(`/api/menu/events/${mainEventId}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
+                // Fetch Main Event - FIXED HEADERS
+                const res = await fetch(`/api/menu/events/${mainEventId}/`, { 
+                    headers: { 
+                        'Authorization': `Token ${token}`, 
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    } 
+                });
+
+                if (!res.ok) throw new Error("Could not fetch main event");
                 const mainEvent = await res.json();
                 
                 document.getElementById('client-name').innerText = mainEvent.title;
@@ -266,16 +279,25 @@
 
                 addEventRowsToTable(mainEvent);
 
-                // Fetch All Events
-                const allRes = await fetch(`/api/menu/events/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
+                // Fetch All Events - FIXED HEADERS
+                const allRes = await fetch(`/api/menu/events/`, { 
+                    headers: { 
+                        'Authorization': `Token ${token}`, 
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    } 
+                });
                 allEventsList = await allRes.json();
                 populateEventDropdown(mainEvent.title);
 
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("Init Error:", e);
+                if(e.message === "Unauthorized") window.location.href = "{% url 'login' %}";
+            }
         }
 
         function populateEventDropdown(clientName) {
             const sel = document.getElementById('other-events-select');
+            if(!sel) return;
             sel.innerHTML = '<option value="">-- Select Event to Merge --</option>';
             allEventsList.forEach(ev => {
                 if (ev.id != mainEventId) { 
@@ -289,16 +311,25 @@
         async function addSelectedEvent() {
             const id = document.getElementById('other-events-select').value;
             if(!id) return;
-            const res = await fetch(`/api/menu/events/${id}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
-            const ev = await res.json();
-            
-            const tbody = document.getElementById('bill-body');
-            const sep = document.createElement('tr');
-            sep.innerHTML = `<td colspan="5" style="background:#fff8e1; font-weight:bold; font-size:12px; color:#b59020; padding:10px 15px; border-bottom:1px solid #e0c055;">
-                MERGED EVENT: ${ev.title} (${formatDate(ev.date)})
-            </td>`;
-            tbody.appendChild(sep);
-            addEventRowsToTable(ev);
+
+            try {
+                // Fetch Merged Event - FIXED HEADERS
+                const res = await fetch(`/api/menu/events/${id}/`, { 
+                    headers: { 
+                        'Authorization': `Token ${token}`, 
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    } 
+                });
+                const ev = await res.json();
+                
+                const tbody = document.getElementById('bill-body');
+                const sep = document.createElement('tr');
+                sep.innerHTML = `<td colspan="5" style="background:#fff8e1; font-weight:bold; font-size:12px; color:#b59020; padding:10px 15px; border-bottom:1px solid #e0c055;">
+                    MERGED EVENT: ${ev.title} (${formatDate(ev.date)})
+                </td>`;
+                tbody.appendChild(sep);
+                addEventRowsToTable(ev);
+            } catch(e) { console.error("Merge Error:", e); }
         }
 
         function addEventRowsToTable(eventObj) {
@@ -342,7 +373,8 @@
         function total() {
             let sum = 0;
             document.querySelectorAll('.row-total').forEach(e => sum += parseFloat(e.innerText));
-            document.getElementById('grand-total').innerText = sum.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            const grandTotalEl = document.getElementById('grand-total');
+            if(grandTotalEl) grandTotalEl.innerText = sum.toLocaleString('en-IN', {minimumFractionDigits: 2});
         }
 
         function getBase64Image(img) {
@@ -360,7 +392,8 @@
 
             const addWatermark = (pdfDoc) => {
                 pdfDoc.saveGraphicsState();
-                pdfDoc.setTextColor(240, 240, 240); 
+                pdfDoc.setGState(new pdfDoc.GState({opacity: 0.1})); // Reduced opacity for professional look
+                pdfDoc.setTextColor(200, 200, 200); 
                 pdfDoc.setFontSize(18); 
                 pdfDoc.setFont("helvetica", "bold italic");
                 const watermarkText = "SWAGAT CATERERS";
@@ -377,11 +410,12 @@
 
             addWatermark(doc);
 
+            // Header Background
             doc.setFillColor(212, 175, 55); 
             doc.rect(0, 0, 210, 40, 'F');
 
             const logoImg = document.getElementById("invoice-logo");
-            if (logoImg.complete && logoImg.naturalHeight !== 0) {
+            if (logoImg && logoImg.complete && logoImg.naturalHeight !== 0) {
                 try {
                     const imgData = getBase64Image(logoImg);
                     doc.addImage(imgData, 'PNG', 15, 5, 30, 30);
@@ -434,11 +468,14 @@
                 if(tr.innerText.includes("MERGED EVENT")) {
                     rows.push([{content: tr.innerText.trim(), colSpan: 4, styles: {fillColor: [255, 248, 225], fontStyle: 'bold', textColor: [181, 144, 32]}}]);
                 } else {
-                    const desc = tr.querySelector('.inp-desc').value;
-                    const price = tr.querySelector('.p-inp').value;
-                    const qty = tr.querySelector('.q-inp').value;
-                    const tot = tr.querySelector('.row-total').innerText;
-                    rows.push([desc, price, qty, tot]);
+                    const descInp = tr.querySelector('.inp-desc');
+                    const priceInp = tr.querySelector('.p-inp');
+                    const qtyInp = tr.querySelector('.q-inp');
+                    const totSpan = tr.querySelector('.row-total');
+                    
+                    if(descInp && priceInp && qtyInp && totSpan) {
+                        rows.push([descInp.value, priceInp.value, qtyInp.value, totSpan.innerText]);
+                    }
                 }
             });
 

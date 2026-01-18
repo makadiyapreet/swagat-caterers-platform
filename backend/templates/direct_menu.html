@@ -185,6 +185,7 @@
 
     <script>
         // --- 1. SETUP & AUTH ---
+        // FIX: Ensuring we use 'authToken' to match your storage key
         const token = localStorage.getItem('authToken');
         if (!token) window.location.href = "{% url 'login' %}";
 
@@ -218,10 +219,18 @@
             try {
                 // 1. Verify Admin Status First
                 const userRes = await fetch('/auth/users/me/', { 
-                    headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} 
+                    headers: { 
+                        'Authorization': `Token ${token}`, // FIX: Ensure 'Token ' prefix is present
+                        'X-CSRFToken': getCookie('csrftoken')
+                    } 
                 });
                 
-                if (!userRes.ok) throw new Error("Auth failed");
+                if (!userRes.ok) {
+                    // If auth fails, token might be expired
+                    localStorage.removeItem('authToken');
+                    window.location.href = "{% url 'login' %}";
+                    return;
+                }
                 
                 const user = await userRes.json();
                 
@@ -237,13 +246,13 @@
                     }).then(() => {
                         window.location.href = '{% url "dashboard" %}';
                     });
-                    return; // Stop execution
+                    return; 
                 }
 
                 // 2. Load Data if Admin
                 const [catRes, itemRes] = await Promise.all([
-                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} }),
-                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} })
+                    fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
+                    fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } })
                 ]);
                 categories = await catRes.json();
                 allItems = await itemRes.json();
@@ -263,11 +272,15 @@
 
         // --- 2. MODES ---
         async function setupLinkedMode() {
-            document.getElementById('linked-inputs').style.display = 'flex';
-            document.getElementById('btn-save-db').style.display = 'flex'; 
+            const linkedDiv = document.getElementById('linked-inputs');
+            const saveBtn = document.getElementById('btn-save-db');
+            if(linkedDiv) linkedDiv.style.display = 'flex';
+            if(saveBtn) saveBtn.style.display = 'flex'; 
             
             try {
-                const res = await fetch(`/api/menu/events/${eventId}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} });
+                const res = await fetch(`/api/menu/events/${eventId}/`, { 
+                    headers: { 'Authorization': `Token ${token}` } 
+                });
                 currentEventData = await res.json();
                 
                 document.getElementById('linked-name').innerText = currentEventData.title;
@@ -287,7 +300,9 @@
 
         async function loadExistingMenu(mid) {
             try {
-                const res = await fetch(`/api/menu/menus/${mid}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')} });
+                const res = await fetch(`/api/menu/menus/${mid}/`, { 
+                    headers: { 'Authorization': `Token ${token}` } 
+                });
                 const menu = await res.json();
                 
                 menu.items.forEach(id => {
@@ -296,10 +311,8 @@
                 
                 if(menu.note) document.getElementById('menu-note').value = menu.note;
                 
-                // Re-render to show checks
                 renderAccordion();
                 
-                // Open relevant categories
                 categories.forEach(cat => {
                     const hasSel = menu.items.some(iId => allItems.find(x => x.id === iId)?.category === cat.id);
                     if(hasSel) toggleCategory(cat.id, true);
@@ -313,21 +326,18 @@
             viewLang = lang;
             document.getElementById('lang-en').className = `lang-opt ${lang === 'en' ? 'active' : ''}`;
             document.getElementById('lang-gu').className = `lang-opt font-guj ${lang === 'gu' ? 'active' : ''}`;
-            renderAccordion(); // Re-render text
+            renderAccordion(); 
         }
 
         function renderAccordion() {
             const container = document.getElementById('menu-accordion');
-            // Store currently open categories to restore state
             const openCats = Array.from(document.querySelectorAll('.cat-body.open')).map(el => el.id);
-            
             container.innerHTML = '';
 
             categories.forEach(cat => {
                 const catItems = allItems.filter(i => i.category === cat.id);
                 if (catItems.length === 0) return;
 
-                // Determine Display Names
                 const catName = (viewLang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
 
                 let itemsHtml = '';
@@ -344,7 +354,6 @@
                     `;
                 });
 
-                // Restore open state
                 const isOpen = openCats.includes(`cat-body-${cat.id}`);
                 const openClass = isOpen ? 'open' : '';
                 const activeClass = isOpen ? 'active' : '';
@@ -367,6 +376,7 @@
 
         function toggleCategory(id, forceOpen = false) {
             const body = document.getElementById(`cat-body-${id}`);
+            if(!body) return;
             const header = body.previousElementSibling;
             if (forceOpen) {
                 body.classList.add('open');
@@ -398,7 +408,6 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Gather Data
             let clientName, eventDate, guests, venue, phone;
             
             if (eventId) {
@@ -418,7 +427,6 @@
 
             const note = document.getElementById('menu-note').value;
 
-            // Load Assets
             async function loadImage(url) {
                 try {
                     const r = await fetch(url);
@@ -427,14 +435,12 @@
             }
 
             try {
-                // Load Fonts & Images
                 const promises = [
                     loadImage('{% static "images/background.png" %}'),
                     loadImage('{% static "images/cover.png" %}'),
                     loadImage('{% static "images/last.png" %}')
                 ];
                 
-                // Add Font loading if Gujarati
                 if (lang === 'gu') {
                     promises.push(
                         fetch('{% static "Gujarati.ttf" %}').then(r => r.blob()).then(blob => new Promise(resolve => {
@@ -459,7 +465,6 @@
                     doc.setFont("helvetica", "normal");
                 }
 
-                // 1. Cover
                 if(cover) {
                     doc.addImage(cover, 'PNG', 0, 0, 210, 297);
                     doc.setTextColor(212, 175, 55); 
@@ -470,34 +475,25 @@
                     doc.addPage();
                 }
 
-                // Header Helper
                 function drawHeader() {
                     if(bg) doc.addImage(bg, 'PNG', 0, 0, 210, 297);
                     doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
                     doc.line(15, 43, 195, 43);
-                    
                     doc.setFontSize(10); 
                     if(lang !== 'gu') doc.setFont("helvetica", "bold");
-                    
-                    // Info Grid
                     const y = 48;
                     doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "નામ :" : "Name :", 20, y);
                     doc.setTextColor(0,0,0); doc.text(clientName || "-", 35, y);
-                    
                     doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "વ્યક્તિ :" : "Guests :", 90, y);
                     doc.setTextColor(0,0,0); doc.text(String(guests || "-"), 105, y);
-
                     doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "તારીખ :" : "Date :", 20, y+6);
                     doc.setTextColor(0,0,0); doc.text(formatDate(eventDate), 35, y+6);
-
                     doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "સ્થળ :" : "Venue :", 90, y+6);
                     doc.setTextColor(0,0,0); doc.text(venue || "-", 105, y+6);
-
                     if(phone) {
                         doc.setTextColor(212, 175, 55); doc.text("Phone :", 150, y);
                         doc.setTextColor(0,0,0); doc.text(phone, 165, y);
                     }
-
                     doc.line(15, y+10, 195, y+10);
                     return y+20;
                 }
@@ -506,25 +502,18 @@
                 let currentX = 15;
                 const midX = 110;
 
-                // Render Categories
                 categories.forEach(cat => {
-                    // Filter Items
                     const catItems = allItems.filter(i => i.category === cat.id && selectedItems.has(i.id));
-                    // Get custom text (might be empty)
-                    const customText = document.getElementById(`custom-${cat.id}`).value;
-                    
+                    const customText = document.getElementById(`custom-${cat.id}`) ? document.getElementById(`custom-${cat.id}`).value : "";
                     if(catItems.length === 0 && !customText.trim()) return;
 
-                    // Get Correct Names
                     const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
 
-                    // Check page break
                     if(currentY > 260) {
                         if(currentX === 15) { currentX = midX; currentY = 68; }
                         else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
                     }
 
-                    // Category Header
                     doc.setFillColor(198, 153, 79); 
                     doc.roundedRect(currentX, currentY-6, 80, 8, 3, 3, 'F');
                     doc.setTextColor(0,0,0); doc.setFontSize(11);
@@ -532,17 +521,14 @@
                     doc.text(catName, currentX+5, currentY-1);
                     currentY += 8;
 
-                    // Items
                     if(lang !== 'gu') doc.setFont("helvetica", "normal");
                     doc.setFontSize(10);
-                    
                     catItems.forEach(item => {
                         const iName = (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
                         doc.text(iName, currentX+5, currentY);
                         currentY += 6;
                     });
 
-                    // Custom Text
                     if(customText) {
                         const lines = doc.splitTextToSize(customText, 80);
                         doc.setTextColor(50,50,50);
@@ -552,7 +538,6 @@
                     currentY += 4; 
                 });
 
-                // Footer Note
                 if(note) {
                     if(currentY > 240) { doc.addPage(); currentY = drawHeader(); }
                     doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79);
@@ -561,7 +546,6 @@
                     doc.text((lang==='gu'?"નોંધ: ":"NOTE: ") + note, 20, 258, { maxWidth: 170 });
                 }
 
-                // 3. Back Cover
                 if(back) { doc.addPage(); doc.addImage(back, 'PNG', 0, 0, 210, 297); }
 
                 const safeName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -585,10 +569,7 @@
                 is_selected: true
             };
 
-            const url = menuId 
-                ? `/api/menu/menus/${menuId}/` 
-                : `/api/menu/menus/`;
-            
+            const url = menuId ? `/api/menu/menus/${menuId}/` : `/api/menu/menus/`;
             const method = menuId ? 'PUT' : 'POST';
 
             try {
@@ -604,7 +585,7 @@
 
                 if(res.ok) {
                     Swal.fire("Saved", "Menu saved successfully!", "success")
-                        .then(() => window.location.href = "dashboard.html");
+                        .then(() => window.location.href = "{% url 'dashboard' %}");
                 } else {
                     throw new Error("Save failed");
                 }

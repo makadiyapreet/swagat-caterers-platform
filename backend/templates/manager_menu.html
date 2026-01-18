@@ -83,29 +83,43 @@
 
         // 1. Load Categories & Items
         async function loadData() {
-            const res = await fetch('/api/menu/');
-            const categories = await res.json();
-            
-            const catSelect = document.getElementById('category');
-            const listContainer = document.getElementById('items-container');
-            
-            catSelect.innerHTML = '';
-            listContainer.innerHTML = '';
-
-            categories.forEach(cat => {
-                // Populate Dropdown
-                catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
-                
-                // Populate List
-                cat.items.forEach(item => {
-                    listContainer.innerHTML += `
-                        <div class="menu-item">
-                            <span><b>${item.Name}</b> (${cat.name})</span>
-                            <button class="btn-delete" onclick="deleteItem(${item.id})">Delete</button>
-                        </div>
-                    `;
+            try {
+                // FIXED: Added Authorization header to the GET request
+                const res = await fetch('/api/menu/', {
+                    headers: { 
+                        'Authorization': `Token ${token}`,
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    }
                 });
-            });
+                
+                if (!res.ok) throw new Error("Unauthorized");
+                
+                const categories = await res.json();
+                const catSelect = document.getElementById('category');
+                const listContainer = document.getElementById('items-container');
+                
+                catSelect.innerHTML = '';
+                listContainer.innerHTML = '';
+
+                categories.forEach(cat => {
+                    // Populate Dropdown
+                    catSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+                    
+                    // Populate List
+                    if (cat.items && cat.items.length > 0) {
+                        cat.items.forEach(item => {
+                            listContainer.innerHTML += `
+                                <div class="menu-item">
+                                    <span><b>${item.Name}</b> (${cat.name})</span>
+                                    <button class="btn-delete" onclick="deleteItem(${item.id})">Delete</button>
+                                </div>
+                            `;
+                        });
+                    }
+                });
+            } catch (err) {
+                console.error("Load failed:", err);
+            }
         }
 
         // 2. Add New Item
@@ -115,11 +129,19 @@
             formData.append('category', document.getElementById('category').value);
             formData.append('Name', document.getElementById('name').value);
             formData.append('descp', document.getElementById('desc').value);
-            formData.append('image', document.getElementById('image').files[0]);
+            
+            const imageFile = document.getElementById('image').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
 
+            // FIXED: Ensured 'Token ' prefix is used
             const res = await fetch('/api/menu/items/', {
                 method: 'POST',
-                headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') },
+                headers: { 
+                    'Authorization': `Token ${token}`,
+                    'X-CSRFToken': getCookie('csrftoken') 
+                },
                 body: formData
             });
 
@@ -136,16 +158,28 @@
         async function deleteItem(id) {
             if(!confirm("Are you sure?")) return;
             
+            // FIXED: Ensured 'Token ' prefix is used
             const res = await fetch(`/api/menu/items/${id}/`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') }
+                headers: { 
+                    'Authorization': `Token ${token}`,
+                    'X-CSRFToken': getCookie('csrftoken') 
+                }
             });
             
-            if (res.ok) loadData();
-            else alert("Failed to delete.");
+            if (res.ok) {
+                loadData();
+            } else {
+                alert("Failed to delete.");
+            }
         }
 
-        loadData();
+        // Initial load
+        if (token) {
+            loadData();
+        } else {
+            window.location.href = "{% url 'login' %}";
+        }
     </script>
 </body>
 </html>

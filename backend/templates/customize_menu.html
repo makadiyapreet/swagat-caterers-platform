@@ -405,361 +405,313 @@
     <script src="{% static 'js/menu_data_gu.js' %}"></script>
 
     <script>
-        // 1. GLOBAL VARIABLES
-        let currentLang = 'en'; 
-        let activeMenuData = []; 
+    // 1. GLOBAL VARIABLES & STATE
+    let currentLang = 'en'; 
+    let activeMenuData = []; 
 
-        // 2. INITIALIZATION
-        window.addEventListener('load', function() {
-            activeMenuData = (typeof menuData_EN !== 'undefined') ? menuData_EN : [];
-            setTimeout(generateMenu, 500);
-            
-            const notesInput = document.getElementById('specialNotes');
-            if(notesInput){
-                notesInput.addEventListener('input', function(e) {
-                    const text = e.target.value.trim();
-                    document.getElementById('summaryNotes').innerText = text ? text : "None";
-                });
+    // Helper to get CSRF token for Django requests
+    function getDjangoCSRFToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
             }
+        }
+        return cookieValue;
+    }
+
+    // 2. INITIALIZATION
+    window.addEventListener('load', function() {
+        // Initialize with English data if available
+        activeMenuData = (typeof menuData_EN !== 'undefined') ? menuData_EN : [];
+        setTimeout(generateMenu, 500);
+        
+        const notesInput = document.getElementById('specialNotes');
+        if(notesInput){
+            notesInput.addEventListener('input', function(e) {
+                const text = e.target.value.trim();
+                const summaryNotes = document.getElementById('summaryNotes');
+                if(summaryNotes) summaryNotes.innerText = text ? text : "None";
+            });
+        }
+    });
+
+    // 3. CORE FUNCTIONS
+    function setLanguage(lang) {
+        currentLang = lang;
+        if(lang === 'gu' && typeof menuData_GU !== 'undefined') {
+            activeMenuData = menuData_GU;
+        } else if (typeof menuData_EN !== 'undefined') {
+            activeMenuData = menuData_EN;
+        }
+        generateMenu();
+        updateSummary();
+    }
+
+    function generateMenu() {
+        const container = document.getElementById('menuAccordion');
+        if (!container) return;
+        
+        if (activeMenuData.length === 0) {
+            container.innerHTML = '<div class="text-danger p-4 text-center">Error: Menu Data not found.</div>';
+            return;
+        }
+
+        // Store current selections before re-rendering
+        const checkedIndices = Array.from(document.querySelectorAll('.dish-item:checked')).map(i => i.value);
+        const customInputValues = {};
+        document.querySelectorAll('.custom-dish-input').forEach(input => {
+            if (input.value.trim() !== "") customInputValues[input.dataset.catindex] = input.value;
         });
 
-        // 3. CORE FUNCTIONS
-        function setLanguage(lang) {
-            currentLang = lang;
-            if(lang === 'gu' && typeof menuData_GU !== 'undefined') {
-                activeMenuData = menuData_GU;
-            } else if (typeof menuData_EN !== 'undefined') {
-                activeMenuData = menuData_EN;
-            }
-            generateMenu();
-            updateSummary();
-        }
-
-        function generateMenu() {
-            const container = document.getElementById('menuAccordion');
-            if (activeMenuData.length === 0) {
-                container.innerHTML = '<div class="text-danger p-4 text-center">Error: Menu Data not found.</div>';
-                return;
-            }
-
-            const checkedIndices = [];
-            document.querySelectorAll('.dish-item:checked').forEach(input => {
-                checkedIndices.push(input.value);
-            });
-
-            const customInputValues = {};
-            document.querySelectorAll('.custom-dish-input').forEach(input => {
-                const catIndex = input.dataset.catindex;
-                if (input.value.trim() !== "") {
-                    customInputValues[catIndex] = input.value;
-                }
-            });
-
-            let html = '';
-            activeMenuData.forEach((category, catIndex) => {
-                const headingId = `heading${catIndex}`;
-                const collapseId = `collapse${catIndex}`;
-                
-                let itemsHtml = '';
-                category.items.forEach((itemText, itemIndex) => {
-                    const indexValue = `${catIndex}_${itemIndex}`;
-                    const uniqueId = `dish_${indexValue}`;
-                    const isChecked = checkedIndices.includes(indexValue) ? 'checked' : '';
-
-                    itemsHtml += `
-                        <div class="col-md-6">
-                            <div class="form-check hover-gold p-2 rounded d-flex align-items-center">
-                                <input class="form-check-input dish-item" type="checkbox" 
-                                    value="${indexValue}" 
-                                    id="${uniqueId}" 
-                                    ${isChecked}>
-                                <label class="form-check-label w-100 cursor-pointer pt-1 ${currentLang === 'gu' ? 'font-gujarati' : ''}" for="${uniqueId}">
-                                    ${itemText}
-                                </label>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                const savedCustomValue = customInputValues[catIndex] || "";
-                const placeholder = (currentLang === 'gu') 
-                    ? "અન્ય વસ્તુઓ ઉમેરો (એક લીટીમાં એક)..." 
-                    : "Add other items here (One item per line)...";
+        let html = '';
+        activeMenuData.forEach((category, catIndex) => {
+            const headingId = `heading${catIndex}`;
+            const collapseId = `collapse${catIndex}`;
+            
+            let itemsHtml = '';
+            category.items.forEach((itemText, itemIndex) => {
+                const indexValue = `${catIndex}_${itemIndex}`;
+                const uniqueId = `dish_${indexValue}`;
+                const isChecked = checkedIndices.includes(indexValue) ? 'checked' : '';
 
                 itemsHtml += `
-                    <div class="col-12 custom-item-wrapper">
-                        <label class="small fw-bold text-muted mb-1"><i class="bi bi-plus-circle me-1"></i> Add Custom Items (Multiple):</label>
-                        <textarea 
-                            class="form-control custom-dish-input rounded bg-light" 
-                            rows="2"
-                            placeholder="${placeholder}" 
-                            data-catindex="${catIndex}" 
-                            id="custom_input_${catIndex}">${savedCustomValue}</textarea>
-                    </div>
-                `;
+                    <div class="col-md-6">
+                        <div class="form-check hover-gold p-2 rounded d-flex align-items-center">
+                            <input class="form-check-input dish-item" type="checkbox" 
+                                value="${indexValue}" id="${uniqueId}" ${isChecked}>
+                            <label class="form-check-label w-100 cursor-pointer pt-1 ${currentLang === 'gu' ? 'font-gujarati' : ''}" for="${uniqueId}">
+                                ${itemText}
+                            </label>
+                        </div>
+                    </div>`;
+            });
 
-                html += `
-                    <div class="accordion-item border-0 mb-3 shadow-sm rounded overflow-hidden">
-                        <h2 class="accordion-header" id="${headingId}">
-                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-                                <span class="me-3 fs-5">${category.icon}</span> 
-                                <span class="${currentLang === 'gu' ? 'font-gujarati' : ''}">${category.category}</span>
-                            </button>
-                        </h2>
-                        <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
-                            <div class="accordion-body bg-light">
-                                <div class="row g-2">${itemsHtml}</div>
-                            </div>
+            const savedValue = customInputValues[catIndex] || "";
+            const placeholder = (currentLang === 'gu') 
+                ? "અન્ય વસ્તુઓ ઉમેરો (એક લીટીમાં એક)..." 
+                : "Add other items here (One item per line)...";
+
+            itemsHtml += `
+                <div class="col-12 custom-item-wrapper mt-2">
+                    <label class="small fw-bold text-muted mb-1"><i class="bi bi-plus-circle me-1"></i> Custom Items:</label>
+                    <textarea class="form-control custom-dish-input rounded bg-light" rows="2"
+                        placeholder="${placeholder}" data-catindex="${catIndex}" id="custom_input_${catIndex}">${savedValue}</textarea>
+                </div>`;
+
+            html += `
+                <div class="accordion-item border-0 mb-3 shadow-sm rounded overflow-hidden">
+                    <h2 class="accordion-header" id="${headingId}">
+                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                            <span class="me-3 fs-5">${category.icon || '🍽️'}</span> 
+                            <span class="${currentLang === 'gu' ? 'font-gujarati' : ''}">${category.category}</span>
+                        </button>
+                    </h2>
+                    <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body bg-light">
+                            <div class="row g-2">${itemsHtml}</div>
                         </div>
                     </div>
-                `;
-            });
-            container.innerHTML = html;
+                </div>`;
+        });
+        
+        container.innerHTML = html;
 
-            document.querySelectorAll('.dish-item').forEach(item => {
-                item.addEventListener('change', updateSummary);
-            });
+        // Re-attach listeners
+        document.querySelectorAll('.dish-item').forEach(i => i.addEventListener('change', updateSummary));
+        document.querySelectorAll('.custom-dish-input').forEach(i => i.addEventListener('input', updateSummary));
+    }
 
-            document.querySelectorAll('.custom-dish-input').forEach(input => {
-                input.addEventListener('input', updateSummary);
-            });
-        }
-
-        function getOrganizedSelection() {
-            let organizedData = [];
-            let emailText = "";
-            activeMenuData.forEach((cat, catIndex) => {
-                const selectedItems = [];
-
-                const inputs = document.querySelectorAll(`.dish-item[value^="${catIndex}_"]:checked`);
-                inputs.forEach(input => {
-                    const parts = input.value.split('_'); 
-                    const itemIndex = parseInt(parts[1]);
-                    const itemName = cat.items[itemIndex]; 
-                    selectedItems.push(itemName);
-                });
-
-                const customInput = document.getElementById(`custom_input_${catIndex}`);
-                if (customInput && customInput.value.trim() !== "") {
-                    const lines = customInput.value.split(/\r?\n/);
-                    lines.forEach(line => {
-                        if(line.trim() !== "") {
-                            selectedItems.push(`(Custom) ${line.trim()}`);
-                        }
-                    });
-                }
-
-                if(selectedItems.length > 0) {
-                    organizedData.push({ category: cat.category, items: selectedItems });
-                    emailText += `\n[ ${cat.category} ]\n` + selectedItems.map(i => ` - ${i}`).join("\n") + "\n";
-                }
-            });
-            return { htmlData: organizedData, textData: emailText };
-        }
-
-        function updateSummary() {
-            const listContainer = document.getElementById('selectedList');
-            const selection = getOrganizedSelection();
-            listContainer.innerHTML = ''; 
-
-            if (selection.htmlData.length === 0) {
-                listContainer.innerHTML = '<li class="list-group-item text-muted small fst-italic border-0 ps-0">No dishes selected yet...</li>';
-                return;
-            }
-
-            selection.htmlData.forEach(group => {
-                const catHeader = document.createElement('li');
-                catHeader.className = `list-group-item bg-light fw-bold small text-gold py-1 ${currentLang === 'gu' ? 'font-gujarati' : ''}`;
-                catHeader.innerText = group.category;
-                listContainer.appendChild(catHeader);
-
-                group.items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = `list-group-item border-0 ps-3 py-1 small ${currentLang === 'gu' ? 'font-gujarati' : ''}`;
-                    
-                    if(item.startsWith("(Custom)")) {
-                        li.innerHTML = `<i class="bi bi-pencil-fill text-warning me-2"></i> ${item.replace('(Custom) ', '')}`;
-                        li.classList.add("text-primary"); 
-                    } else {
-                        li.innerHTML = `<i class="bi bi-check2 text-success me-2"></i> ${item}`;
-                    }
-                    
-                    listContainer.appendChild(li);
-                });
-            });
-        }
-
-        function validateInputs() {
-            const nameEl = document.getElementById('clientName');
-            const phoneEl = document.getElementById('clientPhone');
-            const nameError = document.getElementById('nameError');
-            const phoneError = document.getElementById('phoneError');
+    function getOrganizedSelection() {
+        let organizedData = [];
+        let emailText = "";
+        
+        activeMenuData.forEach((cat, catIndex) => {
+            const selectedItems = [];
             
-            let valid = true;
-            nameError.innerText = ""; phoneError.innerText = "";
+            // Get standard items
+            document.querySelectorAll(`.dish-item[value^="${catIndex}_"]:checked`).forEach(input => {
+                const itemIndex = parseInt(input.value.split('_')[1]);
+                selectedItems.push(cat.items[itemIndex]);
+            });
 
-            if (nameEl.value.trim().length < 2) { 
-                nameError.innerText = "Name is required."; 
-                valid = false; 
+            // Get custom items
+            const customInput = document.getElementById(`custom_input_${catIndex}`);
+            if (customInput && customInput.value.trim() !== "") {
+                customInput.value.split(/\r?\n/).forEach(line => {
+                    if(line.trim() !== "") selectedItems.push(`(Custom) ${line.trim()}`);
+                });
             }
-            if (phoneEl.value.trim().length < 10) { 
-                phoneError.innerText = "Valid Phone Number required."; 
-                valid = false; 
+
+            if(selectedItems.length > 0) {
+                organizedData.push({ category: cat.category, items: selectedItems });
+                emailText += `\n[ ${cat.category} ]\n` + selectedItems.map(i => ` - ${i}`).join("\n") + "\n";
             }
-            return valid;
+        });
+        return { htmlData: organizedData, textData: emailText };
+    }
+
+    function updateSummary() {
+        const listContainer = document.getElementById('selectedList');
+        if (!listContainer) return;
+
+        const selection = getOrganizedSelection();
+        listContainer.innerHTML = ''; 
+
+        if (selection.htmlData.length === 0) {
+            listContainer.innerHTML = '<li class="list-group-item text-muted small fst-italic border-0 ps-0">No dishes selected yet...</li>';
+            return;
         }
 
-        // 4. BACKEND COMMUNICATION
-        async function sendToBackend(data, silentMode = false) {
-            try {
-                // Make sure this points to your Django port (likely 8000)
-                const response = await fetch("/send-email/", { 
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(data)
-                });
+        selection.htmlData.forEach(group => {
+            const catHeader = document.createElement('li');
+            catHeader.className = `list-group-item bg-light fw-bold small text-gold py-1 ${currentLang === 'gu' ? 'font-gujarati' : ''}`;
+            catHeader.innerText = group.category;
+            listContainer.appendChild(catHeader);
 
-                const result = await response.json();
+            group.items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = `list-group-item border-0 ps-3 py-1 small ${currentLang === 'gu' ? 'font-gujarati' : ''}`;
                 
-                if (result.status === 'success') {
-                    console.log("Email sent via Django!");
-                    
-                    if (!silentMode) {
-                        // ATTRACTIVE SUCCESS POPUP
-                        Swal.fire({
-                            title: 'Enquiry Sent!',
-                            text: 'Thank you! We have received your menu selection. We will contact you shortly.',
-                            icon: 'success',
-                            confirmButtonText: 'Done',
-                            confirmButtonColor: '#d4af37', // Your Gold Color
-                            background: '#fff',
-                            backdrop: `
-                                rgba(0,0,123,0.1)
-                                left top
-                                no-repeat
-                            `
-                        }).then((result) => {
-                            // REFRESH PAGE AFTER CLICKING OK
-                            if (result.isConfirmed) {
-                                window.location.reload();
-                            }
-                        });
-                    }
+                if(item.startsWith("(Custom)")) {
+                    li.innerHTML = `<i class="bi bi-pencil-fill text-warning me-2"></i> ${item.replace('(Custom) ', '')}`;
+                    li.classList.add("text-primary"); 
                 } else {
-                    console.error("Django Error:", result.message);
-                    if (!silentMode) {
-                        // ATTRACTIVE ERROR POPUP
-                        Swal.fire({
-                            title: 'Oops!',
-                            text: 'Something went wrong. Please call us directly if this persists.',
-                            icon: 'error',
-                            confirmButtonColor: '#d4af37'
-                        });
-                    }
+                    li.innerHTML = `<i class="bi bi-check2 text-success me-2"></i> ${item}`;
                 }
-            } catch (error) {
-                console.error("Network Error:", error);
-                if (!silentMode) {
-                    // NETWORK ERROR POPUP
-                    Swal.fire({
-                        title: 'Connection Error',
-                        text: 'Please check your internet connection and try again.',
-                        icon: 'warning',
-                        confirmButtonColor: '#d4af37'
-                    });
-                }
-            }
-        }
-
-        // 5. BUTTON HANDLERS
-        async function handleDownloadAndCapture() {
-            if (!validateInputs()) return;
-
-            const selection = getOrganizedSelection();
-            if(selection.htmlData.length === 0) {
-                alert("Please select at least one dish!");
-                return;
-            }
-
-            const nameEl = document.getElementById('clientName');
-            const phoneEl = document.getElementById('clientPhone');
-            const notesEl = document.getElementById('specialNotes');
-
-            const messageBody = `PDF Downloaded!\nLanguage: ${currentLang.toUpperCase()}\nName: ${nameEl.value}\nPhone: ${phoneEl.value}\nNotes: ${notesEl.value}\n\nMENU:\n${selection.textData}`;
-
-            const emailData = {
-                name: nameEl.value,
-                phone: phoneEl.value,
-                message: messageBody,
-                subject: "New PDF Download - Swagat Caterers"
-            };
-
-            // Send Silently
-            sendToBackend(emailData, true);
-
-            // Update Print Layout
-            document.getElementById('p-name').innerText = nameEl.value;
-            document.getElementById('p-phone').innerText = phoneEl.value;
-            document.getElementById('p-date').innerText = new Date().toLocaleDateString('en-GB');
-
-            let finalHtml = "";
-            selection.htmlData.forEach(group => {
-                const fontClass = currentLang === 'gu' ? 'font-gujarati' : '';
-                finalHtml += `<div class="keep-together">
-                    <div class="print-category ${fontClass}">${group.category}</div>
-                    <ul class="print-list">`;
-                
-                group.items.forEach(item => { 
-                    const cleanItem = item.replace('(Custom) ', '');
-                    finalHtml += `<li class="${fontClass}">${cleanItem}</li>`; 
-                });
-                
-                finalHtml += `</ul></div>`;
+                listContainer.appendChild(li);
             });
-            document.getElementById('p-menu-list').innerHTML = finalHtml;
+        });
+    }
 
-            const noteWrapper = document.getElementById('p-notes-wrapper');
-            if(notesEl.value.trim() !== "") {
-                noteWrapper.style.display = "block";
-                document.getElementById('p-notes-text').innerText = notesEl.value;
-            } else {
-                noteWrapper.style.display = "none";
-            }
+    // 4. BACKEND COMMUNICATION
+    async function sendToBackend(data, silentMode = false) {
+        try {
+            const response = await fetch("/send-email/", { 
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getDjangoCSRFToken()
+                },
+                body: JSON.stringify(data)
+            });
 
-            const originalTitle = document.title;
-            document.title = `${nameEl.value}_Swagat_Menu`; 
+            const result = await response.json();
             
-            window.print();
-
-            setTimeout(() => { document.title = originalTitle; }, 1000);
-        }
-
-        function sendMenuEmail(skipValidation) {
-            if (!validateInputs()) return;
-            const selection = getOrganizedSelection();
-            if(selection.htmlData.length === 0) {
-                alert("Please select at least one dish!");
-                return;
+            if (result.status === 'success') {
+                if (!silentMode) {
+                    Swal.fire({
+                        title: 'Enquiry Sent!',
+                        text: 'Thank you! We have received your menu selection.',
+                        icon: 'success',
+                        confirmButtonColor: '#d4af37'
+                    }).then(() => window.location.reload());
+                }
+            } else {
+                throw new Error(result.message);
             }
-            const name = document.getElementById('clientName').value;
-            const phone = document.getElementById('clientPhone').value;
-            const notes = document.getElementById('specialNotes').value;
-
-            const messageBody = `Manual Enquiry (${currentLang.toUpperCase()})\nName: ${name}\nPhone: ${phone}\n\nMENU:\n${selection.textData}\n\nNotes: ${notes}`;
-
-            const emailData = {
-                name: name,
-                phone: phone,
-                message: messageBody,
-                subject: "New Website Enquiry - Swagat Caterers"
-            };
-
-            // Send with Alert
-            sendToBackend(emailData, false);
+        } catch (error) {
+            console.error("Communication Error:", error);
+            if (!silentMode) {
+                Swal.fire({
+                    title: 'Oops!',
+                    text: 'Connection error. Please try again or call us.',
+                    icon: 'error',
+                    confirmButtonColor: '#d4af37'
+                });
+            }
         }
-    </script>
+    }
+
+    // 5. BUTTON HANDLERS
+    function validateInputs() {
+        const name = document.getElementById('clientName');
+        const phone = document.getElementById('clientPhone');
+        let valid = true;
+
+        if (!name || name.value.trim().length < 2) {
+            document.getElementById('nameError').innerText = "Name required.";
+            valid = false;
+        } else { document.getElementById('nameError').innerText = ""; }
+
+        if (!phone || phone.value.trim().length < 10) {
+            document.getElementById('phoneError').innerText = "Valid Phone required.";
+            valid = false;
+        } else { document.getElementById('phoneError').innerText = ""; }
+
+        return valid;
+    }
+
+    async function handleDownloadAndCapture() {
+        if (!validateInputs()) return;
+
+        const selection = getOrganizedSelection();
+        if(selection.htmlData.length === 0) return alert("Select at least one dish!");
+
+        const name = document.getElementById('clientName').value;
+        const phone = document.getElementById('clientPhone').value;
+        const notes = document.getElementById('specialNotes').value;
+
+        // 1. Silent Email Notification
+        sendToBackend({
+            name: name,
+            phone: phone,
+            message: `PDF Generated (${currentLang.toUpperCase()})\nName: ${name}\nPhone: ${phone}\n\nMENU:\n${selection.textData}\nNotes: ${notes}`,
+            subject: "PDF Download - Swagat Caterers"
+        }, true);
+
+        // 2. Prepare Print View
+        document.getElementById('p-name').innerText = name;
+        document.getElementById('p-phone').innerText = phone;
+        document.getElementById('p-date').innerText = new Date().toLocaleDateString('en-GB');
+
+        let printHtml = "";
+        selection.htmlData.forEach(group => {
+            const fClass = currentLang === 'gu' ? 'font-gujarati' : '';
+            printHtml += `<div class="keep-together">
+                <div class="print-category ${fClass}">${group.category}</div>
+                <ul class="print-list">`;
+            group.items.forEach(item => {
+                printHtml += `<li class="${fClass}">${item.replace('(Custom) ', '')}</li>`;
+            });
+            printHtml += `</ul></div>`;
+        });
+        document.getElementById('p-menu-list').innerHTML = printHtml;
+
+        const pNotes = document.getElementById('p-notes-wrapper');
+        if (notes.trim()) {
+            pNotes.style.display = "block";
+            document.getElementById('p-notes-text').innerText = notes;
+        } else {
+            pNotes.style.display = "none";
+        }
+
+        // 3. Trigger Print
+        const oldTitle = document.title;
+        document.title = `${name.replace(/\s+/g, '_')}_Menu`;
+        window.print();
+        setTimeout(() => { document.title = oldTitle; }, 500);
+    }
+
+    async function sendMenuEmail() {
+        if (!validateInputs()) return;
+        const selection = getOrganizedSelection();
+        if(selection.htmlData.length === 0) return alert("Select at least one dish!");
+
+        sendToBackend({
+            name: document.getElementById('clientName').value,
+            phone: document.getElementById('clientPhone').value,
+            message: `Enquiry (${currentLang.toUpperCase()})\n\nMENU:\n${selection.textData}\nNotes: ${document.getElementById('specialNotes').value}`,
+            subject: "New Website Enquiry"
+        }, false);
+    }
+</script>
 </body>
 </html>
 

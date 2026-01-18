@@ -282,20 +282,35 @@
 
         async function init() {
             try {
-                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')}});
+                const uRes = await fetch('/auth/users/me/', { 
+                                headers: { 
+                                    'Authorization': `Token ${token}`, 
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                }
+                            });
+                
+                if (!uRes.ok) throw new Error("Unauthorized");
                 const user = await uRes.json();
                 currentUser = user.username;
                 isSuperUser = user.is_superuser || user.is_staff;
                 
                 if(isSuperUser) {
-                    document.getElementById('admin-buttons').style.display = 'contents'; // Use contents to keep flex layout
-                    document.getElementById('admin-chart-section').style.display = 'block';
+                    const adminBtns = document.getElementById('admin-buttons');
+                    const adminChart = document.getElementById('admin-chart-section');
+                    if(adminBtns) adminBtns.style.display = 'contents'; 
+                    if(adminChart) adminChart.style.display = 'block';
                 }
                 fetchMembers();
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error("Auth Error:", e);
+                // If the token is invalid, redirect to login
+                localStorage.removeItem('authToken');
+                window.location.href = "{% url 'login' %}"; 
+            }
         }
 
         async function fetchMembers() {
+            try { 
             const res = await fetch(`/api/menu/members/?t=${new Date().getTime()}`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')}});
             members = await res.json();
             
@@ -304,6 +319,7 @@
 
             renderMembers();
             if(isSuperUser) renderStaffChart();
+        } catch (e) { console.error("Fetch Members Error:", e); }
         }
 
         function renderMembers() {
@@ -479,40 +495,30 @@
             const date = document.getElementById('tracker-date').value;
             const place = document.getElementById('tracker-place').value;
             
-            // Basic validation
             if(!date || !place) return alert("Date and Place are Compulsory!");
 
             const rows = document.querySelectorAll('#member-table tr');
             const updates = [];
             let count = 0;
 
-            // We use the token from your global scope
-            const token = localStorage.getItem('authToken');
-
             for (const row of rows) {
                 const id = row.getAttribute('data-id');
-                
-                // --- SAFETY CHECKS: Find inputs first ---
                 const staffInput = row.querySelector('.inp-staff');
                 const advInput = row.querySelector('.inp-adv');
                 const settleInput = row.querySelector('.inp-settle');
 
-                // Skip this row if it doesn't have an ID or the necessary inputs
-                if (!id || !staffInput || !advInput || !settleInput) continue;
+                if (!id || !staffInput) continue;
 
-                // --- Now it is safe to read .value ---
                 const staff = parseInt(staffInput.value) || 0;
                 const advance = parseFloat(advInput.value) || 0;
                 const settle = parseFloat(settleInput.value) || 0;
                 
-                const memberData = members.find(m => m.id == id);
-                const rate = memberData ? parseFloat(memberData.default_rate || 500) : 0;
-                
-                const total = staff * rate;
-                const bal = parseFloat(row.dataset.balance) || 0;
-
-                // Only add to updates if there is actual data to save
+                // Only proceed if user entered data for this row
                 if(staff > 0 || advance > 0 || settle > 0) {
+                    const memberData = members.find(m => m.id == id);
+                    const rate = memberData ? parseFloat(memberData.default_rate || 500) : 500;
+                    const total = staff * rate;
+                    const bal = parseFloat(row.dataset.balance) || 0;
                     const newBal = bal + total - advance - settle;
                     
                     updates.push(fetch(`/api/menu/members/${id}/`, {
@@ -520,7 +526,7 @@
                         headers: { 
                             'Authorization': `Token ${token}`, 
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken') // Ensure getCookie helper is at top of script
+                            'X-CSRFToken': getCookie('csrftoken')
                         },
                         body: JSON.stringify({
                             advance_amount: newBal,
@@ -541,16 +547,16 @@
             if(count === 0) return alert("No entries to save.");
 
             try {
-                // Wait for all Railway API calls to finish
-                await Promise.all(updates);
-                alert("Saved Successfully!");
+                const responses = await Promise.all(updates);
+                // Check if any specific update failed
+                if (responses.some(r => !r.ok)) throw new Error("One or more updates failed.");
                 
-                // Refresh the table and clear inputs
-                fetchMembers();
+                alert("Saved Successfully!");
+                fetchMembers(); // Refresh table
                 document.querySelectorAll('.inp-staff, .inp-adv, .inp-settle').forEach(i => i.value = '');
             } catch (error) {
                 console.error("Save Error:", error);
-                alert("Something went wrong while saving. Check console for details.");
+                alert("Error saving data. Check Railway logs.");
             }
         }
 
