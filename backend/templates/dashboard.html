@@ -315,6 +315,12 @@
         return yyyy_mm_dd;
     }
 
+    // --- AUTH: LOGOUT ---
+    function logoutUser() {
+        localStorage.clear();
+        window.location.href = "{% url 'login' %}";
+    }
+
     // --- MAIN INIT FUNCTION ---
     async function init() {
         const token = localStorage.getItem('authToken'); 
@@ -340,7 +346,6 @@
             const user = await uRes.json();
             
             // --- ROLE LOGIC START ---
-            // Normalize to lowercase to handle "Admin", "admin", "Manager", "manager"
             const rawType = (user.user_type || '').toLowerCase();
             
             // ADMIN: user_type is 'admin' OR they are django staff
@@ -448,6 +453,8 @@
         });
     }
 
+    function changeMonth(s) { currentDate.setMonth(currentDate.getMonth()+s); renderCalendar(currentDate); }
+
     // --- HANDLE CLICKS ---
     function handleDateClick(dateStr, eventId) {
         const modalContent = document.getElementById('event-details-content');
@@ -543,28 +550,31 @@
             event.menus.forEach(m => {
                 // VISIBILITY: Only Admin sees price
                 let priceDisplay = isAdmin ? `<br><span style='font-size:11px; color:green;'>₹${m.price_per_plate}</span>` : "";
-                
                 let actionsHtml = "";
+                
+                // DATA CLEANUP FOR PDF FUNCTION
+                const safeTitle = event.title.replace(/'/g, "\\'");
+                const safeVenue = (event.venue || 'N/A').replace(/'/g, "\\'");
+                const safeContact = (event.contact_number || '').replace(/'/g, "\\'");
                 
                 if (isAdmin) {
                     // ADMIN: Download & Edit
                     let editBtn = `
                     <button class="btn-dl btn-edit-menu"
-                        onclick="window.location.href=
-                        \`${CREATE_MENU_URL}?event_id=${event.id}&menu_id=${m.id}\`"
+                        onclick="window.location.href=\`${CREATE_MENU_URL}?event_id=${event.id}&menu_id=${m.id}\`"
                         title="Edit Menu">
                         ✏️
                     </button>`;
                     actionsHtml = `
-                        <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'en', '${event.title.replace(/'/g, "\\'")}', '${event.date}', '${event.guests}', '${event.venue || 'N/A'}', '${event.contact_number || ''}', false)">⬇ ENG</button>
-                        <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'gu', '${event.title.replace(/'/g, "\\'")}', '${event.date}', '${event.guests}', '${event.venue || 'N/A'}', '${event.contact_number || ''}', false)">⬇ GUJ</button>
+                        <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ ENG</button>
+                        <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ GUJ</button>
                         ${editBtn}
                     `;
                 } else {
                     // MANAGER: View Only (No Edit, No Download)
                     actionsHtml = `
-                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'en', '${event.title.replace(/'/g, "\\'")}', '${event.date}', '${event.guests}', '${event.venue || 'N/A'}', '${event.contact_number || ''}', true)">👁 View ENG</button>
-                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'gu', '${event.title.replace(/'/g, "\\'")}', '${event.date}', '${event.guests}', '${event.venue || 'N/A'}', '${event.contact_number || ''}', true)">👁 View GUJ</button>
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 View ENG</button>
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 View GUJ</button>
                     `;
                 }
 
@@ -635,52 +645,25 @@
         }
     }
 
-    function changeMonth(s) { currentDate.setMonth(currentDate.getMonth()+s); renderCalendar(currentDate); }
-
     // --- PDF GENERATOR ---
-    // --- HELPER: CONVERT HIDDEN IMG TO BASE64 ---
-    function getImageFromDOM(elementId) {
-        return new Promise((resolve) => {
-            const img = document.getElementById(elementId);
-            if (!img) {
-                console.warn(`Image element #${elementId} not found in DOM.`);
-                resolve(null);
-                return;
-            }
-            if (!img.complete || img.naturalWidth === 0) {
-                console.warn(`Image #${elementId} is not fully loaded yet.`);
-                // Optional: You could add an 'onload' listener here if strictly needed,
-                // but usually the browser has loaded them by the time you click "Download".
-                resolve(null);
-                return;
-            }
-            try {
-                const canvas = document.createElement("canvas");
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL("image/png"));
-            } catch (e) {
-                console.warn(`Security/CORS error reading image #${elementId}:`, e);
-                resolve(null);
-            }
-        });
-    }
-
-    // =======================================================
-    //     FULL PDF GENERATOR (DOM IMAGE METHOD)
-    // =======================================================
     async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
+        
+        // 1. SET UI LOADING STATE
+        const btn = document.activeElement; 
+        let originalText = "";
+        if(btn && btn.tagName === 'BUTTON') {
+            originalText = btn.innerText;
+            btn.innerText = "⏳ Generating...";
+            btn.disabled = true;
+        }
+
         try {
-            // 1. AUTH CHECK
             const token = localStorage.getItem('authToken'); 
             if (!token) {
                 alert("Authentication session expired. Please log in again.");
                 return;
             }
 
-            // 2. FETCH DATA
             const res = await fetch(`/api/menu/menus/${menuId}/`, { 
                 headers: { 
                     'Authorization': `Token ${token}`, 
@@ -691,69 +674,61 @@
             if(!res.ok) throw new Error("Could not fetch menu items");
             const menu = await res.json();
             
-            // 3. INIT PDF
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
-            // 4. LOAD ASSETS (IMAGES FROM DOM + FONT FROM URL)
-            let bgBase64 = null, coverBase64 = null, lastBase64 = null;
-            
-            // Fetch images from the hidden HTML tags
-            [bgBase64, coverBase64, lastBase64] = await Promise.all([
-                getImageFromDOM('pdf-bg'),
-                getImageFromDOM('pdf-cover'),
-                getImageFromDOM('pdf-last')
-            ]);
-
-            // Fetch Font (Only if Gujarati is selected)
-            if (lang === 'gu') {
+            // --- LOAD ASSETS ---
+            let fontBase64 = null, bgBase64 = null, coverBase64 = null, backBase64 = null;
+            async function loadImage(url) {
                 try {
-                    const response = await fetch("{% static 'Gujarati.ttf' %}");
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        const reader = new FileReader();
-                        await new Promise(resolve => { 
-                            reader.onloadend = () => resolve(reader.result); 
-                            reader.readAsDataURL(blob); 
+                    const r = await fetch(url);
+                    if (r.ok) {
+                        const b = await r.blob();
+                        return new Promise(res => {
+                            const read = new FileReader();
+                            read.onloadend = () => res(read.result);
+                            read.readAsDataURL(b);
                         });
-                        const fontBase64 = reader.result.split(',')[1];
-                        doc.addFileToVFS('Gujarati.ttf', fontBase64);
-                        doc.addFont('Gujarati.ttf', 'Gujarati', 'normal');
-                        doc.setFont('Gujarati');
-                    } else { throw new Error("Font missing"); }
-                } catch (e) { 
-                    console.warn("Gujarati font failed to load. Falling back to English.");
-                    doc.setFont("helvetica", "normal");
-                }
-            } else { 
-                doc.setFont("helvetica", "normal"); 
+                    }
+                } catch (e) { console.warn("Fetch failed for: " + url); }
+                return null;
             }
 
-            // --- 5. COVER PAGE ---
+            try {
+                [bgBase64, coverBase64, backBase64] = await Promise.all([
+                    loadImage('{% static "images/background.png" %}'),
+                    loadImage('{% static "images/cover.png" %}'),
+                    loadImage('{% static "images/last.png" %}')
+                ]);
+
+                if (lang === 'gu') {
+                    const response = await fetch("{% static 'Gujarati.ttf' %}");
+                    if (!response.ok) throw new Error("Missing Gujarati.ttf");
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    await new Promise(resolve => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(blob); });
+                    fontBase64 = reader.result.split(',')[1];
+                    doc.addFileToVFS('Gujarati.ttf', fontBase64);
+                    doc.addFont('Gujarati.ttf', 'Gujarati', 'normal');
+                    doc.setFont('Gujarati');
+                } else { doc.setFont("helvetica", "normal"); }
+            } catch (e) { alert("Asset Loading Error: " + e.message); return; }
+
+            // --- 1. COVER PAGE ---
             if (coverBase64) {
-                try {
-                    doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
-                    
-                    const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
-                    doc.setTextColor(212, 175, 55); 
-                    doc.setFont("times", "bold"); 
-                    doc.setFontSize(20); 
-                    doc.text(combinedText, 105, 200, { align: 'center' }); 
-
-                    // Reset Font
-                    if(lang === 'gu' && doc.existsFileInVFS('Gujarati.ttf')) doc.setFont('Gujarati'); 
-                    else doc.setFont("helvetica", "normal");
-                    
-                    doc.addPage();
-                } catch(e) { console.error("Cover error", e); }
+                doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
+                const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
+                doc.setTextColor(212, 175, 55); 
+                doc.setFont("times", "bold"); 
+                doc.setFontSize(20); 
+                doc.text(combinedText, 105, 200, { align: 'center' }); 
+                if(lang === 'gu') doc.setFont('Gujarati'); else doc.setFont("helvetica", "normal");
+                doc.addPage();
             }
 
-            // --- LAYOUT & GRID FUNCTION ---
+            // --- LAYOUT & GRID ---
             function drawLayoutAndGrid() {
-                if(bgBase64) {
-                    try { doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297); } catch(e) {}
-                }
-
+                if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
                 const startY = 43; 
                 const rowHeight = 6; 
                 doc.setDrawColor(212, 175, 55); 
@@ -763,7 +738,7 @@
                 if(lang !== 'gu') doc.setFont("helvetica", "bold");
                 doc.setFontSize(10);
                 
-                // HEADER ROW
+                // Row 1
                 const row1Y = startY + 5;
                 doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
                 doc.setTextColor(0, 0, 0);      doc.text(eventTitle || "-", 35, row1Y);
@@ -771,10 +746,11 @@
                 doc.setTextColor(0, 0, 0);      doc.text(String(eventGuests || "-"), 105, row1Y);
                 doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
                 
-                // Privacy Check
+                // VISIBILITY: HIDE RATE FROM MANAGER/CUSTOMER PDF
                 let priceDisplay = isAdmin ? (menu.price_per_plate || "0") : "**";
                 doc.setTextColor(0, 0, 0);      doc.text(String(priceDisplay), 165, row1Y);
 
+                // Row 2 & 3
                 const row2Y = row1Y + rowHeight;
                 doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
                 doc.setTextColor(0, 0, 0);      doc.text(formatDateDisplay(eventDate), 35, row2Y);
@@ -866,11 +842,7 @@
                 doc.text(noteLines, 20, footerY + headerH + 6); 
             }
 
-            if (lastBase64) { 
-                try {
-                    doc.addPage(); doc.addImage(lastBase64, 'PNG', 0, 0, 210, 297); 
-                } catch(e) { console.error("Last page image error", e); }
-            }
+            if (backBase64) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
 
             if (isPreview) { window.open(doc.output('bloburl'), '_blank'); } 
             else {
@@ -878,7 +850,16 @@
                 const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5); 
                 doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
             }
-        } catch(e) { console.error(e); alert("Error generating PDF: " + e.message); }
+        } catch(e) { 
+            console.error(e); 
+            alert("Error generating PDF"); 
+        } finally {
+            // RESTORE BUTTON STATE
+            if(btn && btn.tagName === 'BUTTON') {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
     }
 
     init();
