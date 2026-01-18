@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LbPbXqOWuzghKXvCn4lJDRcVAg002OQI8A1Qt50WorOEj8sMvNiG6aU0xxfbtcq
+\restrict pc3mc2kwUTaTrrb6MoIG5NcU9Tw4rZ9PLFW83kC9Z8MmTIMy4CX9eM328uIGeDw
 
 -- Dumped from database version 14.20 (Homebrew)
 -- Dumped by pg_dump version 14.20 (Homebrew)
@@ -690,9 +690,6 @@ a259f0ed3a812872de922d87adb07fc1754fc641	2026-01-01 11:43:44.165641+05:30	1
 --
 
 COPY public.catering_booking (id, name, phone, event_date, event_type, guest_count, meal_time, package_type, venue, message, created_at) FROM stdin;
-1	Makadiya Preet Atulbhai	8160238745	2026-01-26	Wedding	1234	High Tea	Ultimate Bash	Palace	no	2026-01-03 15:13:36.533443+05:30
-2	Makadiya Preet Atulbhai	8160238745	2026-01-17	Ring Ceremony	123	Dinner	Ultimate Bash	Palace	no	2026-01-03 15:19:08.704217+05:30
-3	Makadiya Preet Atulbhai	9427788144	2026-01-22	Ring Ceremony	234	Lunch	Custom			2026-01-03 16:05:37.473285+05:30
 \.
 
 
@@ -735,8 +732,6 @@ COPY public.catering_category (id, name, image, gujarati_name, "order") FROM std
 --
 
 COPY public.catering_cateringevent (id, title, date, guests, event_type, contact_number, description, status, venue, advance_amount, rate, staff_count) FROM stdin;
-6	Preet	2026-01-29	1234	Corporate	8160238745	no	confirmed	Palace	0.00	0.00	0
-8	Preet	2026-01-17	234	Wedding	8160238745		pending	Swagat Caterers	0.00	0.00	0
 \.
 
 
@@ -769,8 +764,6 @@ COPY public.catering_memberlog (id, date, place, staff_count, rate, total_amount
 --
 
 COPY public.catering_menu (id, title, created_at, event_id, price_per_plate, note) FROM stdin;
-5	Lunch	2026-01-12 21:00:35.182168+05:30	6	344.00	
-6	Lunch	2026-01-17 19:48:57.494394+05:30	8	1110.00	
 \.
 
 
@@ -1593,19 +1586,6 @@ COPY public.catering_menu_item (id, name, image, category_id, description, gujar
 --
 
 COPY public.catering_menu_items (id, menu_id, menu_item_id) FROM stdin;
-63	5	614
-64	5	14
-65	5	19
-66	5	20
-67	5	604
-68	6	228
-69	6	6
-70	6	7
-71	6	234
-72	6	13
-73	6	238
-74	6	239
-75	6	17
 \.
 
 
@@ -1614,7 +1594,7 @@ COPY public.catering_menu_items (id, menu_id, menu_item_id) FROM stdin;
 --
 
 COPY public.catering_user (id, password, last_login, is_superuser, username, first_name, last_name, is_staff, is_active, date_joined, email, phone_number, profile_image, user_type) FROM stdin;
-1	pbkdf2_sha256$1200000$HTVERZSwCoGOacHuCYlzr6$Qln//CNx8VqsM+ZCEytEWJJrGYrGY22M7Hg939daa1A=	2026-01-17 19:47:57.497723+05:30	t	Preet			t	t	2026-01-01 11:40:14.554355+05:30	makadiyapreet1@gmail.com	8160238745	profile_images/er_wgqf_hI7KN5b.jpg	customer
+1	pbkdf2_sha256$1200000$HTVERZSwCoGOacHuCYlzr6$Qln//CNx8VqsM+ZCEytEWJJrGYrGY22M7Hg939daa1A=	2026-01-18 17:38:54.524871+05:30	t	Preet			t	t	2026-01-01 11:40:14+05:30	makadiyapreet1@gmail.com	8160238745	profile_images/er_wgqf_hI7KN5b.jpg	admin
 \.
 
 
@@ -1781,6 +1761,25 @@ COPY public.django_admin_log (id, action_time, object_id, object_repr, action_fl
 140	2026-01-17 19:38:49.809498+05:30	2	preetpatel (customer)	2	[{"changed": {"fields": ["password"]}}]	10	1
 141	2026-01-18 01:29:49.066799+05:30	3	Devil (customer)	3		10	1
 142	2026-01-18 01:29:49.066855+05:30	2	preetpatel (customer)	3		10	1
+143	2026-01-18 16:53:34.191109+05:30	1	Preet (admin)	2	[{"changed": {"fields": ["User type"]}}]	10	1
+144	2026-01-18 16:55:01.757402+05:30	1	Preet (admin)	2	[]	10	1
+145	2026-01-18 16:57:37.567372+05:30	1	Preet (admin)	2	[]	10	1
+146	2026-01-18 16:58:19.544914+05:30	4	preetm (manager)	1	[{"added": {}}]	10	1
+147	2026-01-18 16:58:46.992508+05:30	4	preetm (manager)	2	[{"changed": {"fields": ["Active"]}}]	10	1
+148	2026-01-18 17:29:03.636704+05:30	5	pree (customer)	1	[{"added": {}}]	10	1
+149	2026-01-18 17:29:25.654229+05:30	5	pree (customer)	2	[]	10	1
+150	2026-01-18 17:29:56.495701+05:30	5	pree (customer)	2	[{"changed": {"fields": ["password"]}}]	10	1
+151	2026-01-18 17:30:07.491319+05:30	5	pree (customer)	2	[{"changed": {"fields": ["Active"]}}]	10	1
+152	2026-01-18 17:39:06.637153+05:30	3	Makadiya Preet Atulbhai - 2026-01-22	3		16	1
+153	2026-01-18 17:39:06.637227+05:30	2	Makadiya Preet Atulbhai - 2026-01-17	3		16	1
+154	2026-01-18 17:39:06.63725+05:30	1	Makadiya Preet Atulbhai - 2026-01-26	3		16	1
+155	2026-01-18 17:39:21.187322+05:30	8	Preet (2026-01-17)	3		11	1
+156	2026-01-18 17:39:21.187439+05:30	6	Preet (2026-01-29)	3		11	1
+157	2026-01-18 17:39:31.877145+05:30	24	Sanjay Patel - 2026-01-18	3		14	1
+158	2026-01-18 17:39:31.877225+05:30	23	Sanjay Patel - 2026-01-18	3		14	1
+159	2026-01-18 17:39:42.393544+05:30	5	Sanjay Patel	3		13	1
+160	2026-01-18 17:39:56.711823+05:30	5	pree (customer)	3		10	1
+161	2026-01-18 17:39:56.711923+05:30	4	preetm (manager)	3		10	1
 \.
 
 
@@ -1861,6 +1860,7 @@ COPY public.django_migrations (id, app, name, applied) FROM stdin;
 COPY public.django_session (session_key, session_data, expire_date) FROM stdin;
 wvrvid5k5dkpg9sdvm2ridq4g409xwhg	.eJxVjDsOwjAQBe_iGkX2Gn9CiURPQ22t12scQRwpTirE3QlSCmjnzbyXCLguJayN5zAkcRJKHH5ZRHpw_Q6EC89DvXc7at1lxOF5LVPl26ZWHPm8238XBVvZepmSN5KSI6OtcuB1dgYAFRqbYiYP0nttCeIRJWRgpiyjtq5PWqlei_cHcLc4cQ:1veyud:cMqv7X6M6L-BNytbo8_ojnWhauLwphlDIj77qBKdlQ0	2026-01-25 22:37:35.273972+05:30
 kluyrfxjjpcmfz502t9qvg1gx15l3waz	.eJxVjDsOwjAQBe_iGkX-xHFMiURPQ22td9fYghgpTirE3QlSCmjnzbyXCLAuOayN51BIHIUSh18WAe9cvwPCwnOpt25HrTtPUB6X_Kx83dQKE592--8iQ8tb7zgq6DVZowfdp9F6Z0kRJi8VGYrSGctoB-VQsicgp0djJHiFCTmyeH8AdvM5OA:1vh6yv:BxS-y152LaHWhCjkvsW_2FTcAVoOlvcAMJO9sp4C1Vs	2026-01-31 19:38:49.821287+05:30
+kfb34rss87zzkqia48jzutxg0hp204qh	.eJxVjDsOwjAQBe_iGkX-xHFMiURPQ22td9fYghgpTirE3QlSCmjnzbyXCLAuOayN51BIHIUSh18WAe9cvwPCwnOpt25HrTtPUB6X_Kx83dQKE592--8iQ8tb7zgq6DVZowfdp9F6Z0kRJi8VGYrSGctoB-VQsicgp0djJHiFCTmyeH8AdvM5OA:1vhRaQ:__iPj-MJ8W-quYIMZroUBc0e5HwOqs24x_cC6h-I6Jk	2026-02-01 17:38:54.529978+05:30
 \.
 
 
@@ -1917,14 +1917,14 @@ SELECT pg_catalog.setval('public.catering_cateringevent_menu_items_id_seq', 2, t
 -- Name: catering_member_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_member_id_seq', 4, true);
+SELECT pg_catalog.setval('public.catering_member_id_seq', 5, true);
 
 
 --
 -- Name: catering_memberlog_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_memberlog_id_seq', 22, true);
+SELECT pg_catalog.setval('public.catering_memberlog_id_seq', 24, true);
 
 
 --
@@ -1959,7 +1959,7 @@ SELECT pg_catalog.setval('public.catering_user_groups_id_seq', 1, false);
 -- Name: catering_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.catering_user_id_seq', 3, true);
+SELECT pg_catalog.setval('public.catering_user_id_seq', 5, true);
 
 
 --
@@ -1973,7 +1973,7 @@ SELECT pg_catalog.setval('public.catering_user_user_permissions_id_seq', 1, fals
 -- Name: django_admin_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: makadiyapreet
 --
 
-SELECT pg_catalog.setval('public.django_admin_log_id_seq', 142, true);
+SELECT pg_catalog.setval('public.django_admin_log_id_seq', 161, true);
 
 
 --
@@ -2547,5 +2547,5 @@ ALTER TABLE ONLY public.django_admin_log
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LbPbXqOWuzghKXvCn4lJDRcVAg002OQI8A1Qt50WorOEj8sMvNiG6aU0xxfbtcq
+\unrestrict pc3mc2kwUTaTrrb6MoIG5NcU9Tw4rZ9PLFW83kC9Z8MmTIMy4CX9eM328uIGeDw
 

@@ -245,3 +245,5 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 ANYMAIL = {
     "SENDINBLUE_API_KEY": os.environ.get('SENDINBLUE_API_KEY'),
     }
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
