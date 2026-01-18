@@ -33,6 +33,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import permissions
+import requests
 
 
 User = get_user_model()
@@ -249,7 +250,19 @@ def manual_session_login(request):
     
     return Response({'message': 'Invalid credentials'}, status=401)
 
-# --- 9. FRONTEND HOME VIEW ---
+# --- 9. ACTIVATION VIEW FOR FRONTEND ---   
+def activate_user(request, uid, token):
+    # This view tells your backend to verify the token
+    payload = {'uid': uid, 'token': token}
+    url = "https://your-domain.com/auth/users/activation/"
+    response = requests.post(url, data=payload)
+
+    if response.status_code == 204:
+        return render(request, 'activation_success.html')
+    else:
+        return render(request, 'activation_failed.html')
+    
+# --- 10. FRONTEND HOME VIEW ---
 def frontend_home(request):
     return render(request, "index.html")
 

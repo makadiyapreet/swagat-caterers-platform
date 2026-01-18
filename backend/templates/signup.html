@@ -142,6 +142,7 @@
         const password = document.getElementById('password').value;
         const confirmPass = document.getElementById('confirm_password').value;
         const messageBox = document.getElementById('message');
+        const signupForm = document.getElementById('signup-form'); // Reference to hide form on success
 
         function getCookie(name) {
             let cookieValue = null;
@@ -164,7 +165,7 @@
             return;
         }
 
-        messageBox.innerText = "Processing...";
+        messageBox.innerText = "Creating your account...";
         messageBox.className = "message";
 
         try {
@@ -184,13 +185,11 @@
 
             const textBody = await response.text();
 
-            // --- CRITICAL FIX: CHECK IF RESPONSE IS OK BEFORE JSON ---
             if (!response.ok) {
                 console.error("Server Error Detail:", textBody);
                 messageBox.className = "message error";
 
                 try {
-                    // Try to parse as JSON (for 400 Bad Request)
                     const errorJson = JSON.parse(textBody);
                     let errorMessages = [];
                     for (const [field, messages] of Object.entries(errorJson)) {
@@ -198,14 +197,39 @@
                     }
                     messageBox.innerText = errorMessages.join('\n');
                 } catch (e) {
-                    // It's a 500 HTML error
-                    messageBox.innerText = "Server Crash (500): Check Railway Logs for Database Migrations.";
+                    // If the backend crashed (500), it's usually the SMTP settings
+                    messageBox.innerText = "Server Error (500). This usually happens if the email server is not responding. Please contact admin.";
                 }
                 return;
             }
 
-            // Success Path
-            window.location.href = "/registration-pending/";
+            // --- CHANGED SUCCESS PATH ---
+            // 1. Hide the form to prevent multiple submissions
+            signupForm.style.display = "none";
+            
+            // 2. Change title/instruction if they exist in your HTML
+            const heading = document.querySelector('h2');
+            if(heading) heading.innerText = "Check Your Email";
+            
+            const subtext = document.querySelector('p');
+            if(subtext) subtext.innerText = "Almost there!";
+
+            // 3. Show detailed success message
+            messageBox.className = "message success";
+            messageBox.style.padding = "20px";
+            messageBox.style.background = "#e8f5e9";
+            messageBox.style.borderRadius = "8px";
+            messageBox.innerHTML = `
+                <div style="font-size: 16px; line-height: 1.5;">
+                    <b>Registration Successful!</b><br>
+                    An activation link has been sent to:<br>
+                    <span style="color: #D4AF37; font-weight: bold;">${email}</span><br><br>
+                    Please click the link in your email to activate your account. 
+                    If you don't see it, check your <b>Spam folder</b>.
+                </div>
+                <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+                <a href="{% url 'login' %}" style="text-decoration: none; color: #666; font-weight: bold;">Return to Login</a>
+            `;
 
         } catch (error) {
             console.error("Connection Error:", error);

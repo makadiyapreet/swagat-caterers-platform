@@ -23,7 +23,7 @@ from catering.views import frontend_home
 from catering import views
 from django.contrib.auth import views as auth_views
 from django.views.static import serve
-
+from .views import activate_user # You'll need to create this
 
 
 urlpatterns = [
@@ -62,7 +62,8 @@ urlpatterns = [
 ]
 urlpatterns += [
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-]
+    path('activate/<str:uid>/<str:token>/', activate_user, name='activate_user'),
+    ]
 # This allows images to load
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

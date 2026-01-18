@@ -161,6 +161,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'swagatcaterersofficial@gmail.com'
 EMAIL_HOST_PASSWORD = 'cqib xpwa cxwo mtri'  # App Password
 DEFAULT_FROM_EMAIL = 'swagatcaterersofficial@gmail.com'
+EMAIL_TIMEOUT = 10
 
 # Custom User & Auth
 AUTH_USER_MODEL = 'catering.User'
