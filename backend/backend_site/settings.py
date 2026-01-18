@@ -172,12 +172,10 @@ AUTHENTICATION_BACKENDS = [
 
 # Djoser
 DJOSER = {
-    'SEND_ACTIVATION_EMAIL': True, # Set to True now that SMTP is ready
-    'ACTIVATION_URL': 'activate/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': False, # Turn this OFF
+    'USER_CREATE_PASSWORD_RETYPE': True,
     'SERIALIZERS': {
         'user_create': 'catering.serializers.UserCreateSerializer',
-        'user': 'catering.serializers.UserSerializer',
-        'current_user': 'catering.serializers.UserSerializer',
     },
 }
 

@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.core.signing import Signer # Import this
 
 signer = Signer()
+domain = "https://your-website-name.railway.app" 
 
 
 @receiver(post_save, sender=User)
@@ -23,7 +24,8 @@ def deactivate_new_user(sender, instance, created, **kwargs):
         token = signer.sign(instance.pk)
         
         # NOTE: When you deploy, change 127.0.0.1 to your real website domain
-        activation_link = f"http://127.0.0.1:8000/api/menu/activate/{token}/"
+        domain = "https://your-website-name.railway.app" 
+        activation_link = f"{domain}/api/menu/activate/{token}/"
         
         # 2. Email You with the Link
         send_mail(
@@ -78,9 +80,9 @@ def check_active_status(sender, instance, **kwargs):
                         <p>You can now access your dashboard and start exploring all the features by clicking the link below:</p>
                         
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="{{ site_url }}/login.html" 
-                               style="background-color: #D4AF37; color: white; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">
-                               Login to your Dashboard
+                            <a href="{domain}/login/" 
+                            style="background-color: #D4AF37; color: white; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">
+                            Login to your Dashboard
                             </a>
                         </div>
                         

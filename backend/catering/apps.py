@@ -5,4 +5,4 @@ class CateringConfig(AppConfig):
     name = 'catering'
 
     def ready(self):
-        import catering.signals  # This loads the signals we just wrote
+        import catering.signals # This loads the signals we just wrote
