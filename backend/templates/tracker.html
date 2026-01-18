@@ -252,6 +252,10 @@
         </div>
     </div>
 
+    <div style="display: none;">
+    <img id="report-logo" src="{% static 'images/logo/logo.png' %}" crossorigin="anonymous">
+    </div>
+
     <script>
     const token = localStorage.getItem('authToken');
     if (!token) window.location.href = "{% url 'login' %}";
@@ -513,24 +517,40 @@
     }
 
     function calcRow(id) {
-        // If Manager, they can input Staff count, but we don't update totals/net on screen (Privacy)
-        if (!isAdmin && !isManager) return;
-
         const row = document.querySelector(`tr[data-id="${id}"]`);
-        const staff = parseInt(row.querySelector('.inp-staff').value) || 0;
+        
+        // 1. Get Staff Count (Safe)
+        const staffInput = row.querySelector('.inp-staff');
+        const staff = staffInput ? (parseInt(staffInput.value) || 0) : 0;
+
+        // 2. Get Rate (From Memory, not DOM, so it works even if hidden)
         const memberData = members.find(m => m.id == id);
         const rate = memberData ? parseFloat(memberData.default_rate || 500) : 0;
-        const advance = parseFloat(row.querySelector('.inp-adv').value) || 0;
-        const settle = parseFloat(row.querySelector('.inp-settle').value) || 0;
+
+        // 3. Get Advance (Check if input exists first)
+        const advInput = row.querySelector('.inp-adv');
+        const advance = advInput ? (parseFloat(advInput.value) || 0) : 0;
+
+        // 4. Get Settle (Check if input exists first - Fixes Manager Crash)
+        const settleInput = row.querySelector('.inp-settle');
+        const settle = settleInput ? (parseFloat(settleInput.value) || 0) : 0;
+
         const bal = parseFloat(row.dataset.balance);
         
+        // Calculation
         const total = staff * rate;
-        document.getElementById(`total-${id}`).innerText = total;
-        
         const newNet = bal + total - advance - settle;
-        const netEl = document.getElementById(`net-${id}`);
-        netEl.innerText = newNet.toFixed(2);
-        netEl.style.color = newNet >= 0 ? '#c0392b' : '#27ae60';
+
+        // --- PRIVACY PROTECTION ---
+        // Only update the Total/Net text on screen if the user is Admin.
+        // Managers should NOT see these numbers change.
+        if (isAdmin) {
+            document.getElementById(`total-${id}`).innerText = total;
+            
+            const netEl = document.getElementById(`net-${id}`);
+            netEl.innerText = newNet.toFixed(2);
+            netEl.style.color = newNet >= 0 ? '#c0392b' : '#27ae60';
+        }
     }
 
     async function saveAllTrackers() {
@@ -547,22 +567,22 @@
             const id = row.getAttribute('data-id');
             const staffInput = row.querySelector('.inp-staff');
             
-            // Managers might not have these inputs in DOM, so we check safely
+            if (!id || !staffInput) continue;
+
+            // Safe Selection: Use 0 if the input field is missing (hidden for Managers)
             const advInput = row.querySelector('.inp-adv');
             const settleInput = row.querySelector('.inp-settle');
 
-            if (!id || !staffInput) continue;
-
             const staff = parseInt(staffInput.value) || 0;
-            // If input doesn't exist (Manager view), value is 0
             const advance = advInput ? (parseFloat(advInput.value) || 0) : 0;
             const settle = settleInput ? (parseFloat(settleInput.value) || 0) : 0;
             
-            // Only proceed if user entered data for this row
+            // Proceed if any data was entered
             if(staff > 0 || advance > 0 || settle > 0) {
                 const memberData = members.find(m => m.id == id);
-                // We use data from Memory, not DOM, so it works even if Rate is hidden from Manager
                 const rate = memberData ? parseFloat(memberData.default_rate || 500) : 500;
+                
+                // Recalculate Logic
                 const total = staff * rate;
                 const bal = parseFloat(row.dataset.balance) || 0;
                 const newBal = bal + total - advance - settle;
@@ -593,21 +613,17 @@
         if(count === 0) return alert("No entries to save.");
 
         try {
-            const responses = await Promise.all(updates);
-            if (responses.some(r => !r.ok)) throw new Error("One or more updates failed.");
-            
+            await Promise.all(updates);
             alert("Saved Successfully!");
-            fetchMembers(); // Refresh table
-            // Clear inputs
+            fetchMembers(); 
+            
+            // Clear Inputs safely
             document.querySelectorAll('.inp-staff').forEach(i => i.value = '');
-            // Only clear financial inputs if they exist (Admin)
-            if(isAdmin || isManager) {
-                document.querySelectorAll('.inp-adv').forEach(i => i.value = '');
-            }
-            // Clear Settle ONLY for Admin
-            if(isAdmin) {
-                document.querySelectorAll('.inp-settle').forEach(i => i.value = '');
-            }
+            document.querySelectorAll('.inp-adv').forEach(i => i.value = '');
+            // Only clear settle if it exists
+            const settleInputs = document.querySelectorAll('.inp-settle');
+            if(settleInputs) settleInputs.forEach(i => i.value = '');
+            
         } catch (error) {
             console.error("Save Error:", error);
             alert("Error saving data. Check connection.");
@@ -718,12 +734,24 @@
     async function downloadPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l'); 
-        const logoData = await getBase64ImageFromUrl('{% static "images/logo/logo.png" %}');
+        
+        // --- 1. GET LOGO FROM DOM (Prevents Crash) ---
+        let logoData = null;
+        const imgEl = document.getElementById('report-logo');
+        if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+            const c = document.createElement('canvas');
+            c.width = imgEl.naturalWidth;
+            c.height = imgEl.naturalHeight;
+            c.getContext('2d').drawImage(imgEl, 0, 0);
+            logoData = c.toDataURL('image/png');
+        }
+
         const uniqueMembers = [...new Set(reportData.map(r => r.member_name))];
 
         uniqueMembers.forEach((member, index) => {
             if (index > 0) doc.addPage();
 
+            // Watermark Logo
             if(logoData) {
                 const pageW = doc.internal.pageSize.getWidth();
                 const pageH = doc.internal.pageSize.getHeight();
@@ -733,6 +761,7 @@
                 doc.restoreGraphicsState();
             }
 
+            // Header
             doc.setFillColor(212, 175, 55); doc.rect(0, 0, 297, 35, 'F');
             doc.setTextColor(255,255,255); doc.setFont("times", "bold"); doc.setFontSize(24);
             doc.text("SWAGAT CATERERS", 14, 22);
@@ -740,6 +769,7 @@
             doc.setTextColor(0,0,0); doc.setFontSize(16); doc.setFont("helvetica", "bold");
             doc.text(`ACCOUNT STATEMENT: ${member}`, 14, 48);
 
+            // Table Data Calculation
             const memberLogs = reportData.filter(r => r.member_name === member);
             let totalWork = 0, totalAdv = 0, totalSettle = 0, totalNet = 0;
 
@@ -752,6 +782,7 @@
                 return [r.log_date, r.log_place, r.log_staff, r.log_rate, r.log_total, r.log_advance, r.log_settle, net.toFixed(2), r.log_entry_by];
             });
 
+            // Total Row
             body.push(['', 'TOTALS:', '', '', totalWork.toFixed(2), totalAdv.toFixed(2), totalSettle.toFixed(2), totalNet.toFixed(2), '']);
 
             doc.autoTable({ 
