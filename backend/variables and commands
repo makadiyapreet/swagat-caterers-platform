@@ -84,7 +84,10 @@ Restore Database
 - psql -U makadiyapreet -d catering_db < backup.sql
 
 Update Railway DB 
-psql "postgresql://postgres:QnXUYPWujhjokpkBxqlqtINiBiKEMvyz@gondola.proxy.rlwy.net:10415/railway" < backup.sql
+- psql "postgresql://postgres:QnXUYPWujhjokpkBxqlqtINiBiKEMvyz@gondola.proxy.rlwy.net:10415/railway" < backup.sql
 
 Drop All Tables in Railway DB
 - psql "postgresql://postgres:QnXUYPWujhjokpkBxqlqtINiBiKEMvyz@gondola.proxy.rlwy.net:10415/railway" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO PUBLIC;"
+
+TO collect static files on Railway
+- python manage.py collectstatic
