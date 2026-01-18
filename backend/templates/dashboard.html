@@ -590,7 +590,21 @@
         // --- UPDATED PDF GENERATOR FOR DASHBOARD ---
         async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
             try {
-                const res = await fetch(`/api/menu/menus/${menuId}/`, { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
+                // --- ADDED THIS LINE TO FIX THE ERROR ---
+                const token = localStorage.getItem('access_token'); // Or 'auth_token' depending on your login storage key
+
+                if (!token) {
+                    alert("Authentication session expired. Please log in again.");
+                    return;
+                }
+
+                const res = await fetch(`/api/menu/menus/${menuId}/`, { 
+                    headers: { 
+                        'Authorization': `Token ${token}`, 
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    } 
+                });
+                
                 if(!res.ok) throw new Error("Could not fetch menu items");
                 const menu = await res.json();
                 
@@ -804,10 +818,8 @@
 
                 // --- SAVE OR PREVIEW ---
                 if (isPreview) {
-                    // Open in new tab for preview
                     window.open(doc.output('bloburl'), '_blank');
                 } else {
-                    // Download
                     const safeTitle = eventTitle.replace(/[^a-zA-Z0-9 ]/g, "").trim();
                     const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5); 
                     doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);

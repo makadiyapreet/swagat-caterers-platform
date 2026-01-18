@@ -180,7 +180,6 @@ DJOSER = {
     },
 }
 
-SITE_URL = "https://swagatcaterers.in"
 
 # Media Files
 MEDIA_URL = '/media/'
