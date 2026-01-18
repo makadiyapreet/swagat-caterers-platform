@@ -137,7 +137,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # FIX: Look in the sibling 'static' folder for static assets too
 STATICFILES_DIRS = [
-    BASE_DIR / 'templates',
+    BASE_DIR / 'static',
 ]
 
 # Default primary key field type
