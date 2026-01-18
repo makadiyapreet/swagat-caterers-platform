@@ -40,37 +40,52 @@ domin = "https://swagat-caterers-platform-production.up.railway.app"
 User = get_user_model()
 signer = Signer()
 
-# --- 1. ACTIVATION & APPROVAL VIEW ---
 @csrf_exempt
 def activate_user(request, token):
     try:
+        # 1. Decode the token (e.g., "15:7F1fZ...") back to a User ID (e.g., "15")
         user_id = signer.unsign(token)
         user = get_object_or_404(User, pk=user_id)
         
+        # 2. Handle the Approve Button Click
         if request.method == 'POST':
-            if not user.is_active:
-                selected_role = request.POST.get('role')
-                user.user_type = selected_role
-                user.is_active = True
-                if selected_role in ['manager', 'admin']:
-                    user.is_staff = True
-                user.save() 
-                return HttpResponse(f"<h1 style='color:green; text-align:center;'>Success! User {user.username} is active.</h1>")
-            else:
-                return HttpResponse(f"<h1 style='text-align:center;'>User {user.username} is already active.</h1>")
+            selected_role = request.POST.get('role')
+            user.user_type = selected_role
+            user.is_active = True
+            
+            # Grant staff status to managers/admins so they can access dashboard
+            if selected_role in ['manager', 'admin']:
+                user.is_staff = True
+                
+            user.save()
+            return HttpResponse(f"<h1 style='color:green; text-align:center;'>Success! User {user.username} is active.</h1>")
 
+        # 3. Show the Approval Page (GET Request)
         return HttpResponse(f"""
-            <html><body style="font-family:sans-serif; text-align:center; padding-top:50px;">
+            <html>
+            <body style="font-family:sans-serif; text-align:center; padding-top:50px;">
                 <h2>Approve User: {user.username}</h2>
+                <p>Email: {user.email}</p>
                 <form method="POST">
-                    <select name="role" style="padding:10px;"><option value="customer">Customer</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
-                    <button type="submit" style="padding:10px; background:#D4AF37; color:white; border:none; cursor:pointer;">Approve</button>
+                    <label>Assign Role:</label>
+                    <select name="role" style="padding:10px; margin:10px;">
+                        <option value="customer">Customer</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <br><br>
+                    <button type="submit" style="padding:10px 20px; background:#D4AF37; color:white; border:none; cursor:pointer;">
+                        Approve Now
+                    </button>
                 </form>
-            </body></html>
+            </body>
+            </html>
         """)
             
     except BadSignature:
-        return HttpResponse("<h1 style='color:red;'>Invalid Link</h1>", status=400)
+        return HttpResponse("<h1 style='color:red;'>Invalid or Expired Link</h1>", status=400)
+    except Exception as e:
+        return HttpResponse(f"<h1 style='color:red;'>Server Error: {str(e)}</h1>", status=500)
 
 # --- 2. MENU API ---
 @api_view(['GET'])
