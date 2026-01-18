@@ -641,220 +641,258 @@
 
     // --- PDF GENERATOR ---
     async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
+    
+    // 1. SET UI LOADING STATE
+    const btn = document.activeElement; 
+    let originalText = "";
+    if(btn && btn.tagName === 'BUTTON') {
+        originalText = btn.innerText;
+        btn.innerText = "⏳ Generating...";
+        btn.disabled = true;
+    }
+
+    try {
+        const token = localStorage.getItem('authToken'); 
+        if (!token) {
+            alert("Authentication session expired. Please log in again.");
+            return;
+        }
+
+        const res = await fetch(`/api/menu/menus/${menuId}/`, { 
+            headers: { 
+                'Authorization': `Token ${token}`, 
+                'X-CSRFToken': getCookie('csrftoken') 
+            } 
+        });
         
-        // 1. SET UI LOADING STATE
-        const btn = document.activeElement; 
-        let originalText = "";
-        if(btn && btn.tagName === 'BUTTON') {
-            originalText = btn.innerText;
-            btn.innerText = "⏳ Generating...";
-            btn.disabled = true;
+        if(!res.ok) throw new Error("Could not fetch menu items");
+        const menu = await res.json();
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // --- LOAD ASSETS ---
+        let fontBase64 = null, bgBase64 = null, coverBase64 = null, backBase64 = null;
+        
+        // Helper to safely load images without crashing
+        async function loadImage(url) {
+            try {
+                const r = await fetch(url);
+                if (r.ok) {
+                    const b = await r.blob();
+                    return new Promise(res => {
+                        const read = new FileReader();
+                        read.onloadend = () => res(read.result);
+                        read.readAsDataURL(b);
+                    });
+                }
+            } catch (e) { console.warn("Fetch failed for: " + url); }
+            return null;
         }
 
         try {
-            const token = localStorage.getItem('authToken'); 
-            if (!token) {
-                alert("Authentication session expired. Please log in again.");
-                return;
-            }
+            // Load images in parallel
+            [bgBase64, coverBase64, backBase64] = await Promise.all([
+                loadImage('{% static "images/background.png" %}'),
+                loadImage('{% static "images/cover.png" %}'),
+                loadImage('{% static "images/last.png" %}')
+            ]);
 
-            const res = await fetch(`/api/menu/menus/${menuId}/`, { 
-                headers: { 
-                    'Authorization': `Token ${token}`, 
-                    'X-CSRFToken': getCookie('csrftoken') 
-                } 
-            });
-            
-            if(!res.ok) throw new Error("Could not fetch menu items");
-            const menu = await res.json();
-            
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // --- LOAD ASSETS ---
-            let fontBase64 = null, bgBase64 = null, coverBase64 = null, backBase64 = null;
-            async function loadImage(url) {
-                try {
-                    const r = await fetch(url);
-                    if (r.ok) {
-                        const b = await r.blob();
-                        return new Promise(res => {
-                            const read = new FileReader();
-                            read.onloadend = () => res(read.result);
-                            read.readAsDataURL(b);
-                        });
-                    }
-                } catch (e) { console.warn("Fetch failed for: " + url); }
-                return null;
-            }
-
-            try {
-                [bgBase64, coverBase64, backBase64] = await Promise.all([
-                    loadImage('{% static "images/background.png" %}'),
-                    loadImage('{% static "images/cover.png" %}'),
-                    loadImage('{% static "images/last.png" %}')
-                ]);
-
-                if (lang === 'gu') {
-                    const response = await fetch("{% static 'Gujarati.ttf' %}");
-                    if (!response.ok) throw new Error("Missing Gujarati.ttf");
-                    const blob = await response.blob();
-                    const reader = new FileReader();
-                    await new Promise(resolve => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(blob); });
-                    fontBase64 = reader.result.split(',')[1];
-                    doc.addFileToVFS('Gujarati.ttf', fontBase64);
-                    doc.addFont('Gujarati.ttf', 'Gujarati', 'normal');
-                    doc.setFont('Gujarati');
-                } else { doc.setFont("helvetica", "normal"); }
-            } catch (e) { alert("Asset Loading Error: " + e.message); return; }
-
-            // --- 1. COVER PAGE ---
-            if (coverBase64) {
-                doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
-                const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
-                doc.setTextColor(212, 175, 55); 
-                doc.setFont("times", "bold"); 
-                doc.setFontSize(20); 
-                doc.text(combinedText, 105, 200, { align: 'center' }); 
-                if(lang === 'gu') doc.setFont('Gujarati'); else doc.setFont("helvetica", "normal");
-                doc.addPage();
-            }
-
-            // --- LAYOUT & GRID ---
-            function drawLayoutAndGrid() {
-                if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
-                const startY = 43; 
-                const rowHeight = 6; 
-                doc.setDrawColor(212, 175, 55); 
-                doc.setLineWidth(0.5);
-                doc.line(15, startY, 195, startY);
-
-                if(lang !== 'gu') doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
+            // --- CRITICAL FIX: FONT LOADING LOGIC ---
+            if (lang === 'gu') {
+                const response = await fetch("{% static 'Gujarati.ttf' %}");
+                if (!response.ok) throw new Error("Missing Gujarati.ttf");
+                const blob = await response.blob();
+                const reader = new FileReader();
+                await new Promise(resolve => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(blob); });
                 
-                // Row 1
-                const row1Y = startY + 5;
-                doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
-                doc.setTextColor(0, 0, 0);      doc.text(eventTitle || "-", 35, row1Y);
-                doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
-                doc.setTextColor(0, 0, 0);      doc.text(String(eventGuests || "-"), 105, row1Y);
-                doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
+                fontBase64 = reader.result.split(',')[1];
+                doc.addFileToVFS('Gujarati.ttf', fontBase64);
                 
-                // VISIBILITY: HIDE RATE FROM MANAGER/CUSTOMER PDF
-                let priceDisplay = isAdmin ? (menu.price_per_plate || "0") : "**";
-                doc.setTextColor(0, 0, 0);      doc.text(String(priceDisplay), 165, row1Y);
-
-                // Row 2 & 3
-                const row2Y = row1Y + rowHeight;
-                doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
-                doc.setTextColor(0, 0, 0);      doc.text(formatDateDisplay(eventDate), 35, row2Y);
-                doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
-                doc.setTextColor(0, 0, 0);      doc.text(eventContact || "-", 112, row2Y);
-                doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
-                doc.setTextColor(0, 0, 0);      doc.text(menu.title || "-", 165, row2Y);
-
-                const row3Y = row2Y + rowHeight;
-                doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
-                doc.setTextColor(0, 0, 0);      doc.text(eventVenue || "-", 35, row3Y);
-
-                const endY = row3Y + 3; 
-                doc.setDrawColor(212, 175, 55); 
-                doc.line(15, endY, 195, endY);
-
-                if(lang !== 'gu') doc.setFont("helvetica", "normal"); 
-                return endY + 12; 
+                // FIX: Register as 'normal' to prevent lookup errors
+                doc.addFont('Gujarati.ttf', 'Gujarati', 'normal'); 
+                doc.setFont('Gujarati', 'normal'); 
+            } else { 
+                // OPTIMIZATION: Use built-in font for speed if not Gujarati
+                doc.setFont("helvetica", "normal"); 
             }
+        } catch (e) { 
+            console.error("Asset Error:", e);
+            alert("Asset Loading Error: " + e.message); 
+            return; 
+        }
 
-            function drawHeader(text, x, y) {
-                doc.setFillColor(198, 153, 79); 
-                doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
-                doc.setTextColor(0,0,0); doc.setFontSize(11);
-                if(lang !== 'gu') doc.setFont("helvetica", "bold");
-                doc.text(text, x + 5, y - 1);
-                if(lang !== 'gu') doc.setFont("helvetica", "normal");
-            }
-
-            // --- FILL CONTENT ---
-            let startContentY = drawLayoutAndGrid();
-            let xLeft = 15; let xRight = 110;
-            let currentX = xLeft; let currentY = startContentY;
-            let maxY = 275; let itemLineHeight = 6; let headerHeight = 10;
-
-            function checkPageBreak(heightNeeded) {
-                if (currentY + heightNeeded > maxY) {
-                    if (currentX === xLeft) { currentX = xRight; currentY = startContentY; } 
-                    else { doc.addPage(); let newStartY = drawLayoutAndGrid(); currentX = xLeft; currentY = newStartY; }
-                }
-            }
-
-            const menuItems = allItems.filter(i => menu.items.includes(i.id));
-
-            for (let i = 0; i < categories.length; i++) {
-                const cat = categories[i];
-                const itemsInCat = menuItems.filter(item => item.category == cat.id);
-                if (itemsInCat.length === 0) continue;
-
-                const blockHeight = headerHeight + (itemsInCat.length * itemLineHeight) + 5;
-                checkPageBreak(blockHeight);
-
-                let catName = (lang==='gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
-                drawHeader(catName, currentX, currentY);
-                currentY += headerHeight;
-
-                doc.setTextColor(0,0,0); doc.setFontSize(10);
-                itemsInCat.forEach(item => {
-                    let itemName = (lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name;
-                    doc.text(itemName, currentX + 5, currentY);
-                    currentY += itemLineHeight;
-                });
-                currentY += 5;
-            }
-
-            // --- NOTE & BACK COVER ---
-            const noteText = menu.note; 
-            if (noteText) {
-                const noteHeader = lang === 'gu' ? 'વિશેષ નોંધ' : 'SPECIAL NOTE';
-                const noteLines = doc.splitTextToSize(noteText, 170); 
-                const headerH = 8; const padding = 6;
-                const textBlockH = (noteLines.length * 6);
-                const boxHeight = headerH + textBlockH + padding;
-                const pageHeight = 297; const bottomMargin = 15; 
-                let footerY = pageHeight - bottomMargin - boxHeight;
-
-                if (currentY > footerY) { doc.addPage(); drawLayoutAndGrid(); footerY = pageHeight - bottomMargin - boxHeight; }
-
-                doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79); doc.setLineWidth(0.5);
-                doc.roundedRect(15, footerY, 180, boxHeight, 3, 3, 'FD');
-                doc.setFillColor(198, 153, 79); 
-                doc.roundedRect(15, footerY, 180, headerH, 2, 2, 'F');
-                doc.rect(15, footerY + headerH - 2, 180, 2, 'F'); 
-                doc.setTextColor(255,255,255); doc.setFontSize(11);
-                if(lang !== 'gu') doc.setFont("helvetica", "bold");
-                doc.text(noteHeader, 105, footerY + 5.5, { align: 'center' }); 
-                doc.setTextColor(0,0,0); doc.setFontSize(10);
-                if(lang !== 'gu') doc.setFont("helvetica", "normal");
-                doc.text(noteLines, 20, footerY + headerH + 6); 
-            }
-
-            if (backBase64) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
-
-            if (isPreview) { window.open(doc.output('bloburl'), '_blank'); } 
-            else {
-                const safeTitle = eventTitle.replace(/[^a-zA-Z0-9 ]/g, "").trim();
-                const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5); 
-                doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
-            }
-        } catch(e) { 
-            console.error(e); 
-            alert("Error generating PDF"); 
-        } finally {
-            // RESTORE BUTTON STATE
-            if(btn && btn.tagName === 'BUTTON') {
-                btn.innerText = originalText;
-                btn.disabled = false;
+        // --- HELPER: HANDLE FONT STYLES SAFELY ---
+        // This function prevents the "lookup failed" error by avoiding bold in Gujarati
+        function setFontStyle(type) {
+            if (lang === 'gu') {
+                doc.setFont('Gujarati', 'normal'); // Always normal for Custom Font
+            } else {
+                if (type === 'bold') doc.setFont("helvetica", "bold");
+                else if (type === 'title') doc.setFont("times", "bold");
+                else doc.setFont("helvetica", "normal");
             }
         }
+
+        // --- 1. COVER PAGE ---
+        if (coverBase64) {
+            doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
+            const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
+            
+            doc.setTextColor(212, 175, 55); 
+            setFontStyle('title'); // Safe Font Set
+            doc.setFontSize(20); 
+            doc.text(combinedText, 105, 200, { align: 'center' }); 
+            
+            doc.addPage();
+        }
+
+        // --- LAYOUT & GRID ---
+        function drawLayoutAndGrid() {
+            if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
+            
+            // Reset font for new page
+            setFontStyle('normal');
+
+            const startY = 43; 
+            const rowHeight = 6; 
+            doc.setDrawColor(212, 175, 55); 
+            doc.setLineWidth(0.5);
+            doc.line(15, startY, 195, startY);
+
+            setFontStyle('bold'); // Bold for headers (if English)
+            doc.setFontSize(10);
+            
+            // Row 1
+            const row1Y = startY + 5;
+            doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
+            doc.setTextColor(0, 0, 0);      doc.text(eventTitle || "-", 35, row1Y);
+            doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
+            doc.setTextColor(0, 0, 0);      doc.text(String(eventGuests || "-"), 105, row1Y);
+            doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
+            
+            // Check if isAdmin exists safely
+            let isUserAdmin = (typeof isAdmin !== 'undefined') ? isAdmin : false;
+            let priceDisplay = isUserAdmin ? (menu.price_per_plate || "0") : "**";
+            doc.setTextColor(0, 0, 0);      doc.text(String(priceDisplay), 165, row1Y);
+
+            // Row 2 & 3
+            const row2Y = row1Y + rowHeight;
+            doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
+            doc.setTextColor(0, 0, 0);      doc.text(formatDateDisplay(eventDate), 35, row2Y);
+            doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
+            doc.setTextColor(0, 0, 0);      doc.text(eventContact || "-", 112, row2Y);
+            doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
+            doc.setTextColor(0, 0, 0);      doc.text(menu.title || "-", 165, row2Y);
+
+            const row3Y = row2Y + rowHeight;
+            doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
+            doc.setTextColor(0, 0, 0);      doc.text(eventVenue || "-", 35, row3Y);
+
+            const endY = row3Y + 3; 
+            doc.setDrawColor(212, 175, 55); 
+            doc.line(15, endY, 195, endY);
+
+            setFontStyle('normal'); // Reset to normal
+            return endY + 12; 
+        }
+
+        function drawHeader(text, x, y) {
+            doc.setFillColor(198, 153, 79); 
+            doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
+            doc.setTextColor(0,0,0); doc.setFontSize(11);
+            
+            setFontStyle('bold'); // Safe Bold
+            doc.text(text, x + 5, y - 1);
+            setFontStyle('normal'); // Reset
+        }
+
+        // --- FILL CONTENT ---
+        let startContentY = drawLayoutAndGrid();
+        let xLeft = 15; let xRight = 110;
+        let currentX = xLeft; let currentY = startContentY;
+        let maxY = 275; let itemLineHeight = 6; let headerHeight = 10;
+
+        function checkPageBreak(heightNeeded) {
+            if (currentY + heightNeeded > maxY) {
+                if (currentX === xLeft) { currentX = xRight; currentY = startContentY; } 
+                else { doc.addPage(); let newStartY = drawLayoutAndGrid(); currentX = xLeft; currentY = newStartY; }
+            }
+        }
+
+        // Assuming allItems and categories are global variables available in script
+        const menuItems = allItems.filter(i => menu.items.includes(i.id));
+
+        for (let i = 0; i < categories.length; i++) {
+            const cat = categories[i];
+            const itemsInCat = menuItems.filter(item => item.category == cat.id);
+            if (itemsInCat.length === 0) continue;
+
+            const blockHeight = headerHeight + (itemsInCat.length * itemLineHeight) + 5;
+            checkPageBreak(blockHeight);
+
+            let catName = (lang==='gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+            drawHeader(catName, currentX, currentY);
+            currentY += headerHeight;
+
+            doc.setTextColor(0,0,0); doc.setFontSize(10);
+            setFontStyle('normal'); // Ensure normal font for items
+
+            itemsInCat.forEach(item => {
+                let itemName = (lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name;
+                doc.text(itemName, currentX + 5, currentY);
+                currentY += itemLineHeight;
+            });
+            currentY += 5;
+        }
+
+        // --- NOTE & BACK COVER ---
+        const noteText = menu.note; 
+        if (noteText) {
+            const noteHeader = lang === 'gu' ? 'વિશેષ નોંધ' : 'SPECIAL NOTE';
+            const noteLines = doc.splitTextToSize(noteText, 170); 
+            const headerH = 8; const padding = 6;
+            const textBlockH = (noteLines.length * 6);
+            const boxHeight = headerH + textBlockH + padding;
+            const pageHeight = 297; const bottomMargin = 15; 
+            let footerY = pageHeight - bottomMargin - boxHeight;
+
+            if (currentY > footerY) { doc.addPage(); drawLayoutAndGrid(); footerY = pageHeight - bottomMargin - boxHeight; }
+
+            doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79); doc.setLineWidth(0.5);
+            doc.roundedRect(15, footerY, 180, boxHeight, 3, 3, 'FD');
+            doc.setFillColor(198, 153, 79); 
+            doc.roundedRect(15, footerY, 180, headerH, 2, 2, 'F');
+            doc.rect(15, footerY + headerH - 2, 180, 2, 'F'); 
+            
+            doc.setTextColor(255,255,255); doc.setFontSize(11);
+            setFontStyle('bold');
+            doc.text(noteHeader, 105, footerY + 5.5, { align: 'center' }); 
+            
+            doc.setTextColor(0,0,0); doc.setFontSize(10);
+            setFontStyle('normal');
+            doc.text(noteLines, 20, footerY + headerH + 6); 
+        }
+
+        if (backBase64) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
+
+        if (isPreview) { window.open(doc.output('bloburl'), '_blank'); } 
+        else {
+            const safeTitle = eventTitle.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5); 
+            doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
+        }
+    } catch(e) { 
+        console.error(e); 
+        alert("Error generating PDF: " + e.message); 
+    } finally {
+        // RESTORE BUTTON STATE
+        if(btn && btn.tagName === 'BUTTON') {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     }
+}
 
     init();
 </script>
