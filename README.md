@@ -7,6 +7,13 @@
 ![Backend](https://img.shields.io/badge/Backend-Complete-success?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
 
+
+![Lines of Code](https://img.shields.io/badge/Lines_of_Code-824,708-brightgreen?style=for-the-badge)
+![API Endpoints](https://img.shields.io/badge/API_Endpoints-1,343-blue?style=for-the-badge)
+![Development Time](https://img.shields.io/badge/Dev_Time-46_Days-orange?style=for-the-badge)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white)
+
 **A Complete Digital Transformation of Traditional Catering Business**
 
 [🌐 Live Website](https://swagatcaterers.in?ref=github) • [📧 Contact](#contact) • [🚀 Features](#features) • [💼 Author](#author)
@@ -1230,11 +1237,6 @@ If you found this project impressive or learned something from it:
 ![Visitors](https://visitor-badge.laobi.icu/badge?page_id=makadiyapreet.swagat-caterers-platform)
 ![GitHub last commit](https://img.shields.io/github/last-commit/makadiyapreet/swagat-caterers-platform)
 ![GitHub code size](https://img.shields.io/github/languages/code-size/makadiyapreet/swagat-caterers-platform)
-![Lines of Code](https://img.shields.io/badge/Lines_of_Code-824,708-brightgreen?style=for-the-badge)
-![API Endpoints](https://img.shields.io/badge/API_Endpoints-1,343-blue?style=for-the-badge)
-![Development Time](https://img.shields.io/badge/Dev_Time-46_Days-orange?style=for-the-badge)
-![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white)
 ---
 
 Made with ❤️ by [Preet Makadiya](https://github.com/makadiyapreet)
