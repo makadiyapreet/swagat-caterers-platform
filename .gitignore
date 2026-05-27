@@ -1,0 +1,49 @@
+# ========================
+# Security — NEVER commit these
+# ========================
+*.pem
+*.key
+*.env
+.env
+.env.*
+
+# Secrets / deployment notes
+backend/variables_and_commands
+
+# Database dumps
+*.sql
+backup.sql
+
+# ========================
+# Python
+# ========================
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ========================
+# Django
+# ========================
+db.sqlite3
+staticfiles/
+backend/staticfiles/
+
+# ========================
+# OS Files
+# ========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ========================
+# IDE
+# ========================
+.vscode/
+.idea/
+*.code-workspace

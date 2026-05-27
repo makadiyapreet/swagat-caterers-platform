@@ -9,7 +9,13 @@ staticfiles/
 
 # Environment variables
 .env
+.env.*
+
+# Secrets — NEVER commit
+variables_and_commands
+*.pem
+*.sql
 
 # OS
 .DS_Store
-
+Thumbs.db
