@@ -2,18 +2,16 @@
 
 <div align="center">
 
-<<<<<<< HEAD
+
 ![Project Status](https://img.shields.io/badge/Status-Live-success?style=for-the-badge)
 ![Django](https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django)
 ![DRF](https://img.shields.io/badge/DRF-3.16-red?style=for-the-badge)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python)
 ![Railway](https://img.shields.io/badge/Deployed-Railway-0B0D0E?style=for-the-badge&logo=railway)
-=======
 ![Project Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)
 ![Frontend](https://img.shields.io/badge/Frontend-Complete-blue?style=for-the-badge)
 ![Backend](https://img.shields.io/badge/Backend-Complete-success?style=for-the-badge)
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
 
 
@@ -59,7 +57,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 ## 📖 Table of Contents
 
 - [Overview](#-overview)
-<<<<<<< HEAD
+
 - [Key Features](#-key-features)
 - [Tech Stack](#️-tech-stack)
 - [Project Structure](#-project-structure)
@@ -72,12 +70,10 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 - [Deployment & Infrastructure](#-deployment--infrastructure)
 - [Environment Variables](#-environment-variables)
 - [Local Development Setup](#-local-development-setup)
-=======
 - [Vision & Impact](#-vision--impact)
 - [Key Features](#-features)
 - [Tech Stack](#️-tech-stack)
 - [System Architecture](#️-system-architecture)
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 - [Use Cases](#-use-cases)
 - [Project Statistics](#-project-statistics)
 - [Screenshots](#-screenshots)
@@ -89,7 +85,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 
 ## 🎯 Overview
 
-<<<<<<< HEAD
+
 **Swagat Caterers** is a production-grade, full-stack catering management platform built with **Django 6.0** and **Django REST Framework**. It digitizes every aspect of a catering business — from public-facing menu browsing and online booking to internal event management, staff tracking, financial analytics, and automated billing.
 
 The platform serves two distinct audiences:
@@ -135,7 +131,6 @@ The platform serves two distinct audiences:
 | **Bill Generator** | Generate printable bills with cost breakdowns |
 | **Profile Management** | Update profile image, email, and phone (stored on Cloudinary) |
 | **Direct Menu View** | Quick menu reference for event managers |
-=======
 **Swagat Caterers** is a comprehensive, enterprise-grade catering management platform that revolutionizes how catering businesses operate in the digital age. This full-stack application bridges the gap between traditional catering services and modern business automation, providing a complete solution from customer-facing booking to internal staff management.
 
 Built over **46 days** of intensive development, this platform represents a complete digital transformation journey - from a simple frontend website to a sophisticated business management system with real-time analytics, role-based access control, and automated workflows.
@@ -358,13 +353,12 @@ This project goes beyond being just a website - it's a complete business transfo
 - XSS protection
 - Secure password hashing
 - Role-based authorization on all endpoints
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ---
 
 ## 🛠️ Tech Stack
 
-<<<<<<< HEAD
+
 ### Backend
 | Technology | Version | Purpose |
 |-----------|---------|---------|
@@ -512,7 +506,6 @@ Swagat_caterers/
     │
     ├── staticfiles/                 # Collected static files (auto-generated)
     └── venv/                        # Python virtual environment (not tracked)
-=======
 ### Frontend Technologies
 
 ```
@@ -626,14 +619,13 @@ Chrome DevTools
 ├── Network analysis
 ├── Performance profiling
 └── Responsive design testing
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 ```
 
 ---
 
 ## 🏗️ System Architecture
 
-<<<<<<< HEAD
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                        CLIENT (Browser)                          │
@@ -682,7 +674,6 @@ Chrome DevTools
 ```
 
 ---
-=======
 ### Complete Architecture Overview
 
 ```
@@ -932,7 +923,6 @@ Analytics
 ├── date
 └── metadata (JSON)
 ```
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ## 🗃️ Database Schema & Models
 
@@ -1360,7 +1350,7 @@ The application will be available at `http://127.0.0.1:8000/`
 
 ## 💼 Use Cases
 
-<<<<<<< HEAD
+
 ### 🎊 Wedding Catering
 A couple planning a 500-guest wedding reception → Browse wedding packages, customize menu with family favorites, get instant quote, download bilingual PDF, book via form with email confirmation.
 
@@ -1403,7 +1393,6 @@ Family hosting a 50-guest birthday → Browse small-gathering packages, mix & ma
 | **Custom Views** | 20+ function-based views |
 | **Template Rendering** | 17 Django template views |
 | **Auth Backends** | 2 (custom Email/Phone/Username + ModelBackend) |
-=======
 ### 1. Wedding Catering Scenario
 **User**: Bride's family planning a 500-guest wedding reception
 
@@ -1501,7 +1490,6 @@ Family hosting a 50-guest birthday → Browse small-gathering packages, mix & ma
 - Consistent translations maintained
 
 ---
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ### 5. Real-Time Booking Management
 **User**: Manager handling multiple event inquiries
@@ -1824,7 +1812,7 @@ Production Variables
 
 I'm passionate about leveraging technology to transform traditional businesses and create real-world impact. This project represents my journey from frontend development to full-stack architecture, demonstrating my ability to build production-ready applications from scratch.
 
-<<<<<<< HEAD
+
 #### Expertise
 - 🤖 Artificial Intelligence & Machine Learning
 - 📊 Data Science & Analytics
@@ -1838,7 +1826,6 @@ I'm passionate about leveraging technology to transform traditional businesses a
 - 🔗 LinkedIn: [Preet Makadiya](https://linkedin.com/in/preet-makadiya-13102004-p)
 - 📧 Email: [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com?subject=Regarding%20Swagat%20Caterers%20Project)
 - 💬 WhatsApp: [+91 81602 38745](https://wa.me/918160238745?text=Hi%20Preet,%20I%20saw%20your%20Swagat%20Caterers%20project%20on%20GitHub!)
-=======
 #### Technical Expertise
 - 🤖 **Artificial Intelligence & Machine Learning**
 - 📊 **Data Science & Analytics**
@@ -1864,7 +1851,6 @@ I'm passionate about leveraging technology to transform traditional businesses a
 - 🔗 **LinkedIn**: [Preet Makadiya](https://linkedin.com/in/preet-makadiya-13102004-p)
 - 📧 **Email**: [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com?subject=Regarding%20Swagat%20Caterers%20Project)
 - 💬 **WhatsApp**: [+91 81602 38745](https://wa.me/918160238745?text=Hi%20Preet,%20I%20saw%20your%20Swagat%20Caterers%20project%20on%20GitHub!)
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ---
 
@@ -1881,16 +1867,14 @@ This code and all associated materials are the exclusive intellectual property o
 - **Forking** or cloning this repository for personal/commercial use
 - **Modifying** or creating derivative works
 - **Redistributing** or sharing the code
-<<<<<<< HEAD
+
 - **Using** any code, design, or logic in your own projects
 - **Reverse engineering** or extracting business logic
-=======
 - **Using** any code, design, architecture, or logic in your own projects
 - **Selling** or sublicensing any part of this project
 - **Reverse engineering** or extracting business logic
 - **Creating competing products** based on this system
 - **Educational use** without explicit written permission
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ### ✅ PERMITTED USES:
 - **Viewing** the code to understand project architecture
@@ -1899,7 +1883,7 @@ This code and all associated materials are the exclusive intellectual property o
 - **Sharing** the GitHub repository link (not the code itself)
 
 ### ⚖️ Legal Enforcement
-<<<<<<< HEAD
+
 Unauthorized use, reproduction, or distribution constitutes copyright infringement and will be pursued to the fullest extent of the law.
 
 ### 🤝 Collaboration Inquiries
@@ -1907,7 +1891,6 @@ For licensing, collaboration, or custom development:
 - 📧 Email: [makadiyapreeta1@gmail.com](mailto:makadiyapreeta1@gmail.com)
 - 💬 WhatsApp: [+91 81602 38745](https://wa.me/918160238745)
 
-=======
 
 Unauthorized use, reproduction, or distribution of this code constitutes:
 - **Copyright infringement** under applicable laws
@@ -1931,26 +1914,23 @@ Interested in using this technology or collaborating on similar projects?
 
 **Note:** This repository is public solely for portfolio demonstration and professional evaluation purposes. It does not grant any usage rights, licenses, or permissions for any form of reproduction, modification, or derivative works.
 
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 ---
 
 ## 🙏 Acknowledgments
 
-<<<<<<< HEAD
+
 - **Swagat Caterers Team** — For trust and collaboration
 - **Beta Testers** — Friends and family who provided valuable feedback
 - **Open Source Community** — Django, DRF, Bootstrap, and all amazing tools
 - **Railway** — For seamless deployment infrastructure
 - **Cloudinary** — For reliable media storage
 - **Brevo** — For transactional email delivery
-=======
 - **Swagat Caterers Team**: For trust, collaboration, and real-world requirements
 - **Beta Testers**: Friends and family who provided invaluable feedback during development
 - **Django Community**: For excellent documentation and framework support
 - **Stack Overflow**: For solving countless development challenges
 - **Railway**: For reliable deployment and hosting services
 - **Open Source Community**: For amazing tools and libraries that made this possible
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ---
 
@@ -1998,11 +1978,9 @@ If you found this project impressive or learned something from it:
 
 ### 🚀 Built with Passion, Deployed with Pride
 
-<<<<<<< HEAD
+
 **Swagat Caterers** — Where tradition meets technology
-=======
 **Swagat Caterers** - *Where Tradition Meets Technology*
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 ---
 
@@ -2019,15 +1997,13 @@ If you found this project impressive or learned something from it:
 
 Made with ❤️ by [Preet Makadiya](https://github.com/makadiyapreet)
 
-<<<<<<< HEAD
+
 © 2025–2026 Swagat Caterers. All rights reserved.
-=======
 **Full-Stack Developer | Computer Engineering Undergraduate**
 
 © 2025 Swagat Caterers & Preet Makadiya. All rights reserved.
 
 ---
->>>>>>> 0594ee3638aff1ceb6ee914a3d35495d63960eea
 
 📧 makadiyapreeta1@gmail.com | 💬 +91 81602 38745
 
