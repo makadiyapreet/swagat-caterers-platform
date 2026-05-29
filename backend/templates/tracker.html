@@ -104,14 +104,27 @@
         @media (max-width: 768px) {
             .controls-row { flex-direction: column; gap: 10px; }
             .btn-action { width: 100%; }
-            .dashboard-nav { padding: 15px 20px; flex-direction: column; gap: 10px; }
-            .nav-logo { height: 35px; }
+            .dashboard-nav { padding: 12px 15px; }
+            .nav-logo { height: 32px; }
+            .brand { font-size: 20px; }
             .container { padding: 10px; margin-top: 15px; }
             .card { padding: 15px; }
+            .card h3 { font-size: 22px; }
             .tracker-header { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
-            .modal-content { width: 95%; padding: 20px; }
+            .modal-content { width: 95%; padding: 20px; max-height: 90vh; overflow-y: auto; }
             .checkbox-list { grid-template-columns: 1fr 1fr; }
-            .table-responsive { width: 100%; overflow-x: scroll; border: 1px solid #eee; border-radius: 6px; }
+            .table-responsive { width: 100%; overflow-x: scroll; border: 1px solid #eee; border-radius: 6px; -webkit-overflow-scrolling: touch; }
+            .chart-container { height: 250px; }
+        }
+        @media (max-width: 480px) {
+            .brand { font-size: 17px; gap: 8px; }
+            .nav-logo { height: 28px; }
+            .back-btn { font-size: 13px; padding: 6px 12px; }
+            .card { padding: 12px; }
+            .card h3 { font-size: 18px; padding-bottom: 10px; }
+            .btn-action { padding: 12px; font-size: 13px; }
+            .modal-content { width: 96%; padding: 15px; }
+            .checkbox-list { grid-template-columns: 1fr; }
         }
     </style>
 </head>

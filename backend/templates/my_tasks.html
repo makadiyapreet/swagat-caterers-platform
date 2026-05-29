@@ -91,12 +91,26 @@
 
         .loading { text-align:center; padding:60px; color:#b8860b; font-size:1rem; }
 
-        @media (max-width:600px) {
+        @media (max-width:768px) {
             .container { padding:20px 14px; }
-            .page-header h1 { font-size:1.4rem; }
+            .tasks-nav { padding:12px 15px; }
+            .tasks-nav-brand img { height:30px; }
+            .page-header h1 { font-size:1.5rem; }
             .task-card { padding:16px 18px; }
             .task-card-top { flex-direction:column; }
+            .task-actions { flex-direction:column; }
+            .task-btn { width:100%; text-align:center; }
+            .tasks-nav-right a { padding:6px 12px; font-size:0.8rem; }
+        }
+        @media (max-width:480px) {
             .tasks-nav-brand span { display:none; }
+            .page-header h1 { font-size:1.3rem; }
+            .page-header p { font-size:0.8rem; }
+            .task-title { font-size:0.95rem; }
+            .task-desc { font-size:0.8rem; }
+            .task-meta { font-size:0.7rem; gap:6px; }
+            .stat-badge { font-size:0.7rem; padding:4px 10px; }
+            .toast { top:10px; right:10px; left:10px; font-size:0.8rem; text-align:center; }
         }
     </style>
 </head>

@@ -119,13 +119,32 @@
         /* Toast */
         .toast { position:fixed; top:20px; right:20px; padding:12px 22px; border-radius:10px; font-weight:600; z-index:9999; display:none; color:#fff; font-size:0.85rem; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
 
-        @media (max-width:600px) {
+        @media (max-width:768px) {
             .container { padding:20px 14px; }
+            .nav { padding:12px 15px; }
+            .nav-brand img { height:28px; }
             .page-header { flex-direction:column; }
-            .page-header h1 { font-size:1.3rem; }
+            .page-header h1 { font-size:1.4rem; }
             .log-card { padding:16px 18px; }
+            .log-card-top { flex-direction:column; }
+            .log-actions { width:100%; }
+            .btn-review { flex:1; text-align:center; }
+            .preview-content { width:95%; }
             .preview-detail { grid-template-columns:1fr; }
+            .stat-card { min-width:100px; padding:14px 10px; }
+            .stat-num { font-size:1.3rem; }
+            .filters { gap:5px; }
+            .filter-btn { padding:5px 12px; font-size:0.7rem; }
+        }
+        @media (max-width:480px) {
             .nav-brand span { display:none; }
+            .page-header h1 { font-size:1.2rem; }
+            .log-username { font-size:0.85rem; }
+            .log-action { font-size:0.82rem; }
+            .log-details { font-size:0.78rem; }
+            .stat-card { padding:10px 8px; }
+            .stat-num { font-size:1.1rem; }
+            .stat-label { font-size:0.6rem; }
         }
     </style>
 </head>

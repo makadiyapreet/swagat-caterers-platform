@@ -57,9 +57,18 @@
         }
         
         @media (max-width: 768px) {
-            .top-bar { flex-direction: column; gap: 10px; text-align: center; }
-            table { font-size: 0.78rem; }
+            .top-bar { flex-direction: column; gap: 10px; text-align: center; padding: 12px 15px; }
+            .top-bar h1 { font-size: 1.3rem; }
+            .container { padding: 0 12px; margin: 20px auto; }
+            .card { padding: 18px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table { font-size: 0.78rem; min-width: 500px; }
             td, th { padding: 8px 6px; }
+        }
+        @media (max-width: 480px) {
+            .top-bar h1 { font-size: 1.1rem; }
+            .card { padding: 12px; }
+            .card h2 { font-size: 1.1rem; }
+            .logout-all-btn { width: 100%; font-size: 0.8rem; padding: 10px; }
         }
     </style>
 </head>

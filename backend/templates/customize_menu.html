@@ -187,6 +187,26 @@
             
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
+
+        /* --- MOBILE RESPONSIVE --- */
+        @media (max-width: 768px) {
+            body { padding-top: 70px; }
+            .custom-navbar { min-height: 60px; }
+            .nav-logo { height: 38px; }
+            .nav-brand-text { font-size: 1rem; }
+            .language-selector { max-width: 100%; }
+            .lang-option { font-size: 0.95rem; padding: 10px 0; }
+            .lang-letter { width: 28px; height: 28px; font-size: 1.1rem; }
+            .card.sticky-top { position: relative !important; top: 0 !important; margin-top: 20px; }
+        }
+        @media (max-width: 480px) {
+            body { padding-top: 60px; }
+            .custom-navbar { min-height: 50px; padding-top: 3px; padding-bottom: 3px; }
+            .nav-logo { height: 32px; }
+            .nav-brand-text { font-size: 0.85rem; }
+            .display-4 { font-size: 1.6rem !important; }
+            .lang-option { font-size: 0.85rem; padding: 8px 0; }
+        }
     </style>
 </head>
 <body style="background-color: #ffffff !important;">

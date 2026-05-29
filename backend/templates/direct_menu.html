@@ -108,7 +108,33 @@
             .page-header { flex-direction: column; align-items: stretch; }
             .nav-logo { height: 35px; }
             .brand { font-size: 20px; }
-            .dashboard-nav { padding: 15px 20px; }
+            .dashboard-nav { padding: 12px 15px; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 0 10px; margin: 15px auto; }
+            .page-header { padding: 18px; }
+            .header-title h1 { font-size: 22px; }
+            .item-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+            .item-check { padding: 8px; }
+            .item-label { font-size: 13px; }
+            .summary-card { padding: 18px; }
+            .cat-header { padding: 12px 15px; font-size: 15px; }
+            .cat-body.open { padding: 15px; }
+            .btn-action { padding: 11px; font-size: 13px; }
+            .sel-chip { font-size: 11px; padding: 2px 8px; }
+        }
+        @media (max-width: 480px) {
+            .brand { font-size: 17px; gap: 8px; }
+            .nav-logo { height: 28px; }
+            .back-btn { font-size: 12px; padding: 6px 10px; }
+            .page-header { padding: 15px; }
+            .header-title h1 { font-size: 20px; }
+            .header-title p { font-size: 12px; }
+            .item-grid { grid-template-columns: 1fr; }
+            .input-group label { font-size: 11px; }
+            .input-group input { padding: 8px; font-size: 13px; }
+            .lang-switch { margin-bottom: 12px; }
+            .lang-opt { padding: 6px; font-size: 13px; }
         }
     </style>
 </head>

@@ -75,7 +75,18 @@
         .toast { position:fixed; top:20px; right:20px; padding:14px 24px; border-radius:12px; font-weight:700; z-index:9999; display:none; color:#fff; font-size:0.85rem; box-shadow:0 5px 20px rgba(0,0,0,0.15); }
 
         @media (max-width:850px) { .layout { grid-template-columns:1fr; } .form-card { position:relative; top:0; } }
-        @media (max-width:500px) { .form-row { grid-template-columns:1fr; } .container { padding:20px 14px; } }
+        @media (max-width:768px) {
+            .nav { padding:12px 15px; }
+            .nav-brand img { height:28px; }
+            .nav-brand span { font-size:0.95rem; }
+            .container { padding:20px 14px; }
+            .page-header h1 { font-size:1.4rem; }
+            .task-item { flex-direction:column; align-items:stretch; padding:14px 18px; }
+            .task-right { flex-direction:row; align-items:center; gap:8px; margin-top:8px; }
+            .tasks-filters { gap:4px; }
+            .filter-btn { padding:4px 10px; font-size:0.68rem; }
+        }
+        @media (max-width:500px) { .form-row { grid-template-columns:1fr; } .container { padding:15px 10px; } .nav-brand span { display:none; } }
     </style>
 </head>
 <body>
