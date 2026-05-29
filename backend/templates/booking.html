@@ -116,10 +116,11 @@
                 if(!uRes.ok) throw new Error("Auth failed");
                 const user = await uRes.json();
                 
-                isAdmin = user.is_staff || user.is_superuser;
+                isAdmin = user.is_staff || user.is_superuser || user.user_type === 'admin';
+                const isManager = user.user_type === 'manager';
 
                 // 2. Adjust UI based on Role
-                if (isAdmin) {
+                if (isAdmin || isManager) {
                     document.getElementById('status-group').classList.remove('hidden');
                     document.getElementById('page-title').innerText = eventId ? "Edit Booking" : "New Booking";
                     document.getElementById('btn-submit').innerText = eventId ? "Update Booking" : "Create Booking";
@@ -187,7 +188,7 @@
                 event_type: document.getElementById('event_type').value,
                 guests: parseInt(document.getElementById('guests').value),
                 contact_number: document.getElementById('contact_number').value,
-                status: isAdmin ? document.getElementById('status').value : 'pending',
+                status: (isAdmin || document.getElementById('status-group').classList.contains('hidden') === false) ? document.getElementById('status').value : 'pending',
                 description: document.getElementById('description').value
             };
 

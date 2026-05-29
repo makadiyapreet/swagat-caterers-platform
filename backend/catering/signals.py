@@ -169,29 +169,8 @@ def track_user_login(sender, request, user, **kwargs):
             country=country,
         )
 
-        # Send alert for new IP on admin/manager accounts
-        if is_new_ip and getattr(user, 'user_type', '') in ('admin', 'manager'):
-            try:
-                location_str = f"{city}, {country}" if city else ip
-                
-                send_mail(
-                    subject=f'🚨 New Login Location Detected — {user.username}',
-                    message=(
-                        f'Hello {user.username},\n\n'
-                        f'A login to your Swagat Caterers account was detected from a new location:\n\n'
-                        f'📍 Location: {location_str}\n'
-                        f'🌐 IP Address: {ip}\n'
-                        f'📱 Device: {user_agent[:100]}\n\n'
-                        f'If this was you, you can ignore this email.\n'
-                        f'If you did not log in, please change your password immediately.\n\n'
-                        f'— Swagat Caterers Security'
-                    ),
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=[user.email, settings.ADMIN_ALERT_EMAIL],
-                    fail_silently=True,
-                )
-            except Exception:
-                pass
+        # Login recorded — no email notification sent.
+        # Email notifications are only sent for task assignments.
 
     except Exception as e:
         print(f"❌ Login tracking error: {e}")
