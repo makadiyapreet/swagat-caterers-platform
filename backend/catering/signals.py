@@ -1,3 +1,4 @@
+import os
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
@@ -9,7 +10,7 @@ from django.utils.html import strip_tags
 User = get_user_model()
 signer = Signer()
 
-SITE_DOMAIN = "https://127.0.0.1:8000"
+SITE_DOMAIN = os.environ.get('SITE_URL', 'https://swagatcaterers.in')
 
 @receiver(post_save, sender=User)
 def deactivate_new_user(sender, instance, created, **kwargs):

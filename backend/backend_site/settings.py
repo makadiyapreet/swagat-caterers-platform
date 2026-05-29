@@ -35,7 +35,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get(
     'ALLOWED_HOSTS',
-    '127.0.0.1,localhost,swagat-caterers-platform-production.up.railway.app'
+    '127.0.0.1,localhost,swagatcaterers.in,www.swagatcaterers.in,swagat-caterers-platform-production.up.railway.app'
 ).split(',')
 
 # ========================
@@ -154,6 +154,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
+    'https://swagatcaterers.in',
+    'https://www.swagatcaterers.in',
     'https://swagat-caterers-platform-production.up.railway.app',
 ]
 
@@ -241,6 +243,8 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # ========================
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://swagatcaterers.in',
+    'https://www.swagatcaterers.in',
     'https://swagat-caterers-platform-production.up.railway.app',
 ]
 
