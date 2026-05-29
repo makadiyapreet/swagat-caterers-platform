@@ -260,7 +260,7 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = False  # Must be False so JavaScript can read csrftoken cookie
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
@@ -268,6 +268,7 @@ else:
     # Development: no HTTPS enforcement
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
+    CSRF_COOKIE_HTTPONLY = False  # Must be False so JavaScript can read csrftoken cookie
 
 # ========================
 # THIRD-PARTY API KEYS

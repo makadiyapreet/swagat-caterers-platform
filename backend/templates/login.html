@@ -172,14 +172,18 @@
 
             messageBox.innerText = "Verifying...";
             messageBox.className = "message";
-            function getCookie(name) {
+            // Get CSRF token from the hidden input (most reliable) or fall back to cookie
+            function getCSRFToken() {
+                const hiddenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (hiddenInput) return hiddenInput.value;
+                // Fallback: try cookie
                 let cookieValue = null;
                 if (document.cookie && document.cookie !== '') {
                     const cookies = document.cookie.split(';');
                     for (let i = 0; i < cookies.length; i++) {
                         const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        if (cookie.substring(0, 'csrftoken'.length + 1) === 'csrftoken=') {
+                            cookieValue = decodeURIComponent(cookie.substring('csrftoken='.length));
                             break;
                         }
                     }
@@ -188,11 +192,11 @@
             }
 
             try {
-                const response = await fetch('/api/manual-login/', {  // <--- Changed URL
+                const response = await fetch('/api/manual-login/', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken') // <--- Added for Session Security
+                        'X-CSRFToken': getCSRFToken()
                     },
                     body: JSON.stringify({ username: loginInput, password: password })
                 });

@@ -122,7 +122,8 @@
             <h2>Create Account</h2>
             <p>Join us to start your custom order</p>
             
-            <form id="signup-form">
+            <form id="signup-form" method="post">
+                {% csrf_token %}
                 <input type="text" id="username" class="swagat-input" placeholder="Username" required>
                 <input type="email" id="email" class="swagat-input" placeholder="Email Address" required>
                 <input type="tel" id="phone" class="swagat-input" placeholder="Phone Number (e.g. 9876543210)" required>
@@ -184,14 +185,18 @@
         const messageBox = document.getElementById('message');
         const signupForm = document.getElementById('signup-form'); // Reference to hide form on success
 
-        function getCookie(name) {
+        // Get CSRF token from the hidden input (most reliable) or fall back to cookie
+        function getCSRFToken() {
+            const hiddenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (hiddenInput) return hiddenInput.value;
+            // Fallback: try cookie
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
                 const cookies = document.cookie.split(';');
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    if (cookie.substring(0, 'csrftoken'.length + 1) === 'csrftoken=') {
+                        cookieValue = decodeURIComponent(cookie.substring('csrftoken='.length));
                         break;
                     }
                 }
@@ -213,7 +218,7 @@
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json', 
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify({ 
                     username: username, 
