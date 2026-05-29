@@ -5,7 +5,7 @@
 *.key
 *.env
 .env
-.env.*
+preet.pem
 
 # Secrets / deployment notes
 backend/variables_and_commands
@@ -13,6 +13,10 @@ backend/variables_and_commands
 # Database dumps
 *.sql
 backup.sql
+menu_items.sql
+
+# Debug scripts
+backend/check.py
 
 # ========================
 # Python
@@ -47,3 +51,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.code-workspace
+
+# ========================
+# Misc
+# ========================
+q
+node_modules/

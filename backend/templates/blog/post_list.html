@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog — Swagat Caterers</title>
+    <meta name="description" content="Read the latest articles about Gujarati cuisine, catering tips, and event planning from Swagat Caterers.">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        .blog-page { padding: 120px 0 60px; background: #0d0d0d; min-height: 100vh; }
+        .blog-header { text-align: center; margin-bottom: 50px; }
+        .blog-header h1 { font-family: 'Playfair Display', serif; color: #d4af37; font-size: 2.5rem; }
+        .blog-header p { color: #999; }
+
+        .blog-card {
+            background: #1a1a1a;
+            border: 1px solid rgba(212,175,55,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+        .blog-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(212,175,55,0.15);
+            border-color: rgba(212,175,55,0.3);
+        }
+        .blog-card-img {
+            width: 100%; height: 200px; object-fit: cover;
+            background: linear-gradient(135deg, #222, #1a1a1a);
+        }
+        .blog-card-body {
+            padding: 25px;
+        }
+        .blog-card-body h3 {
+            font-family: 'Playfair Display', serif;
+            color: #f0f0f0;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        .blog-card-body h3 a { color: inherit; text-decoration: none; }
+        .blog-card-body h3 a:hover { color: #d4af37; }
+        .blog-card-body p {
+            color: #999;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .blog-meta {
+            font-size: 0.78rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .blog-meta span { color: #d4af37; }
+        .blog-tag {
+            display: inline-block;
+            background: rgba(212,175,55,0.1);
+            color: #d4af37;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin: 3px 2px;
+        }
+        .blog-empty {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+        .blog-empty h3 { color: #d4af37; }
+    </style>
+</head>
+<body>
+    {% include 'components/navbar.html' %}
+
+    <section class="blog-page">
+        <div class="container">
+            <div class="blog-header">
+                <h1 class="section-title">Our Blog</h1>
+                <p>Insights about Gujarati cuisine, event planning, and catering tips</p>
+                {% if tag %}
+                <p style="color:#d4af37;">Filtered by tag: <strong>{{ tag }}</strong> | <a href="{% url 'blog:post_list' %}" style="color:#999;">Clear filter</a></p>
+                {% endif %}
+            </div>
+
+            {% if posts %}
+            <div class="row g-4">
+                {% for post in posts %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="blog-card">
+                        {% if post.og_image %}
+                        <img src="{{ post.og_image.url }}" alt="{{ post.title }}" class="blog-card-img">
+                        {% else %}
+                        <div class="blog-card-img d-flex align-items-center justify-content-center">
+                            <span style="font-size:3rem; opacity:0.3;">📝</span>
+                        </div>
+                        {% endif %}
+                        <div class="blog-card-body">
+                            <div class="blog-meta">
+                                <span>{{ post.created_at|date:"d M Y" }}</span>
+                                {% if post.author %} • {{ post.author.username }}{% endif %}
+                            </div>
+                            <h3><a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a></h3>
+                            <p>{{ post.excerpt|truncatewords:25 }}</p>
+                            <div>
+                                {% for tag in post.tag_list %}
+                                <a href="?tag={{ tag }}" class="blog-tag">{{ tag }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="blog-empty">
+                <h3>No Posts Yet</h3>
+                <p>We're working on some great content. Check back soon!</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    {% include 'components/footer.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Tasks — Swagat Caterers</title>
+    <link rel="icon" href="{% static 'images/logo/favicon.png' %}" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'images/logo/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#f4f1ec; color:#333; min-height:100vh; }
+
+        /* Navbar */
+        .tasks-nav {
+            background:#1a1a1a; padding:14px 25px; display:flex; justify-content:space-between; align-items:center;
+            box-shadow:0 2px 12px rgba(0,0,0,0.15); position:sticky; top:0; z-index:100;
+        }
+        .tasks-nav-brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .tasks-nav-brand img { height:35px; }
+        .tasks-nav-brand span { color:#D4AF37; font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700; }
+        .tasks-nav-right { display:flex; align-items:center; gap:12px; }
+        .tasks-nav-right a { color:#ccc; text-decoration:none; font-size:0.85rem; padding:8px 16px; border:1px solid #444; border-radius:20px; transition:all 0.3s; }
+        .tasks-nav-right a:hover { background:rgba(212,175,55,0.1); border-color:#D4AF37; color:#D4AF37; }
+
+        .container { max-width:900px; margin:0 auto; padding:30px 20px; }
+
+        /* Header */
+        .page-header { margin-bottom:30px; }
+        .page-header h1 { font-family:'Playfair Display',serif; font-size:1.8rem; color:#1a1a1a; margin-bottom:6px; }
+        .page-header p { color:#888; font-size:0.9rem; }
+        .page-header .stats { display:flex; gap:12px; margin-top:15px; flex-wrap:wrap; }
+        .stat-badge { padding:6px 16px; border-radius:20px; font-size:0.75rem; font-weight:700; }
+
+        /* Task Card */
+        .task-card {
+            background:#fff; border-radius:14px; padding:20px 24px; margin-bottom:14px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.04); border:1px solid #eee;
+            transition:all 0.3s; position:relative; overflow:hidden;
+        }
+        .task-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.08); transform:translateY(-1px); }
+        .task-card.overdue { border-left:4px solid #e74c3c; background:#fef8f8; }
+        .task-card.done { opacity:0.6; }
+        .task-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+        .task-title { font-size:1.05rem; font-weight:700; color:#1a1a1a; }
+        .task-desc { font-size:0.85rem; color:#666; margin-top:6px; line-height:1.5; }
+        .task-meta { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center; font-size:0.75rem; color:#999; }
+        .task-meta span { display:flex; align-items:center; gap:3px; }
+
+        /* Priority */
+        .prio { padding:3px 10px; border-radius:10px; font-size:0.7rem; font-weight:700; text-transform:uppercase; }
+        .prio-high { background:#fde8e8; color:#e74c3c; }
+        .prio-medium { background:#fef3e0; color:#f39c12; }
+        .prio-low { background:#e8f8ef; color:#27ae60; }
+
+        /* Status */
+        .status-badge { padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; }
+        .status-pending { background:#fef3e0; color:#e67e22; }
+        .status-in_progress { background:#e8f0fd; color:#3498db; }
+        .status-done { background:#e8f8ef; color:#27ae60; }
+
+        /* Action buttons */
+        .task-actions { display:flex; gap:8px; margin-top:15px; flex-wrap:wrap; }
+        .task-btn {
+            padding:8px 20px; border-radius:8px; font-weight:700; font-size:0.8rem;
+            cursor:pointer; transition:all 0.3s; border:none;
+        }
+        .task-btn-done { background:linear-gradient(135deg,#27ae60,#1e8449); color:#fff; }
+        .task-btn-done:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(39,174,96,0.3); }
+        .task-btn-reject { background:#fff; color:#e74c3c; border:1px solid #e74c3c; }
+        .task-btn-reject:hover { background:#fde8e8; }
+        .task-btn-progress { background:linear-gradient(135deg,#3498db,#2980b9); color:#fff; }
+        .task-btn-progress:hover { transform:translateY(-1px); box-shadow:0 3px 10px rgba(52,152,219,0.3); }
+        .task-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+        /* Empty state */
+        .empty-state { text-align:center; padding:60px 20px; }
+        .empty-state h3 { color:#1a1a1a; font-size:1.3rem; margin-bottom:8px; }
+        .empty-state p { color:#999; }
+
+        /* Toast */
+        .toast {
+            position:fixed; top:20px; right:20px; padding:14px 25px; border-radius:12px;
+            font-weight:700; z-index:9999; box-shadow:0 5px 20px rgba(0,0,0,0.15);
+            display:none; font-size:0.9rem; color:#fff;
+        }
+
+        /* Overdue tag */
+        .overdue-tag { background:#e74c3c; color:#fff; padding:3px 10px; border-radius:10px; font-size:0.65rem; font-weight:700; }
+
+        .loading { text-align:center; padding:60px; color:#b8860b; font-size:1rem; }
+
+        @media (max-width:600px) {
+            .container { padding:20px 14px; }
+            .page-header h1 { font-size:1.4rem; }
+            .task-card { padding:16px 18px; }
+            .task-card-top { flex-direction:column; }
+            .tasks-nav-brand span { display:none; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="tasks-nav">
+        <a href="/dashboard/" class="tasks-nav-brand">
+            <img src="{% static 'images/logo/logo.png' %}" alt="Swagat">
+            <span>Swagat Caterers</span>
+        </a>
+        <div class="tasks-nav-right">
+            <a href="/dashboard/">← Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📋 My Tasks</h1>
+            <p id="subtitle">Loading your tasks...</p>
+            <div class="stats" id="stats-row"></div>
+        </div>
+
+        <div id="tasks-container">
+            <div class="loading">Loading tasks...</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        let currentUserId = null;
+
+        async function init() {
+            if (!token) { window.location.href = '/login/'; return; }
+
+            // Get current user
+            try {
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` } });
+                const user = await uRes.json();
+                currentUserId = user.id;
+
+                // Customer check
+                if (user.user_type === 'customer') {
+                    window.location.href = '/dashboard/';
+                    return;
+                }
+
+                document.getElementById('subtitle').textContent = `Welcome ${user.username} — here are your assigned tasks`;
+                loadTasks();
+            } catch(e) {
+                document.getElementById('tasks-container').innerHTML = '<div class="empty-state"><h3>Error loading</h3><p>Please login again</p></div>';
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                const r = await fetch('/api/tasks/', { headers: { 'Authorization': `Token ${token}` } });
+                if (!r.ok) throw new Error('Failed');
+                const tasks = await r.json();
+
+                // Filter to my tasks only (backend already does this for non-admin, but double-check)
+                const myTasks = tasks.filter(t => t.assigned_to == currentUserId || t.assigned_to_id == currentUserId);
+                
+                renderStats(myTasks);
+                renderTasks(myTasks);
+            } catch(e) {
+                document.getElementById('tasks-container').innerHTML = '<div class="empty-state"><h3>Could not load tasks</h3><p>Please try again</p></div>';
+            }
+        }
+
+        function renderStats(tasks) {
+            const pending = tasks.filter(t => t.status === 'pending').length;
+            const inProgress = tasks.filter(t => t.status === 'in_progress').length;
+            const done = tasks.filter(t => t.status === 'done').length;
+            const overdue = tasks.filter(t => t.is_overdue).length;
+            
+            document.getElementById('stats-row').innerHTML = `
+                <span class="stat-badge" style="background:#fef3e0;color:#e67e22;">⏳ ${pending} Pending</span>
+                <span class="stat-badge" style="background:#e8f0fd;color:#3498db;">🔄 ${inProgress} In Progress</span>
+                <span class="stat-badge" style="background:#e8f8ef;color:#27ae60;">✅ ${done} Done</span>
+                ${overdue > 0 ? `<span class="stat-badge" style="background:#fde8e8;color:#e74c3c;">⚠️ ${overdue} Overdue</span>` : ''}
+            `;
+        }
+
+        function renderTasks(tasks) {
+            const container = document.getElementById('tasks-container');
+            if (!tasks.length) {
+                container.innerHTML = '<div class="empty-state"><h3>🎉 No tasks assigned</h3><p>You\'re all caught up!</p></div>';
+                return;
+            }
+
+            // Sort: overdue first, then pending, then in_progress, then done
+            tasks.sort((a, b) => {
+                if (a.is_overdue && !b.is_overdue) return -1;
+                if (!a.is_overdue && b.is_overdue) return 1;
+                const order = { pending: 0, in_progress: 1, done: 2 };
+                return (order[a.status] || 0) - (order[b.status] || 0);
+            });
+
+            container.innerHTML = tasks.map(t => {
+                const prioClass = `prio-${t.priority}`;
+                const statusClass = `status-${t.status}`;
+                const statusLabels = { pending: 'Pending', in_progress: 'In Progress', done: 'Completed' };
+                
+                let actions = '';
+                if (t.status === 'pending') {
+                    actions = `
+                        <button class="task-btn task-btn-progress" onclick="updateTask(${t.id}, 'in_progress')">🔄 Start Working</button>
+                        <button class="task-btn task-btn-done" onclick="updateTask(${t.id}, 'done')">✅ Mark Done</button>
+                        <button class="task-btn task-btn-reject" onclick="updateTask(${t.id}, 'rejected')">✕ Can't Do</button>
+                    `;
+                } else if (t.status === 'in_progress') {
+                    actions = `
+                        <button class="task-btn task-btn-done" onclick="updateTask(${t.id}, 'done')">✅ Mark Done</button>
+                        <button class="task-btn task-btn-reject" onclick="updateTask(${t.id}, 'rejected')">✕ Can't Do</button>
+                    `;
+                }
+
+                return `
+                <div class="task-card ${t.is_overdue ? 'overdue' : ''} ${t.status === 'done' ? 'done' : ''}">
+                    <div class="task-card-top">
+                        <div style="flex:1;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span class="task-title">${t.title}</span>
+                                <span class="prio ${prioClass}">${t.priority}</span>
+                                ${t.is_overdue ? '<span class="overdue-tag">OVERDUE</span>' : ''}
+                            </div>
+                            ${t.description ? `<div class="task-desc">${t.description}</div>` : ''}
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusLabels[t.status] || t.status}</span>
+                    </div>
+                    <div class="task-meta">
+                        <span>📅 Deadline: <strong>${t.deadline}</strong></span>
+                        <span>👤 Assigned by: <strong>${t.assigned_by}</strong></span>
+                        <span>📆 Created: ${new Date(t.created_at).toLocaleDateString()}</span>
+                    </div>
+                    ${actions ? `<div class="task-actions">${actions}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        async function updateTask(taskId, newStatus) {
+            try {
+                const r = await fetch(`/api/tasks/${taskId}/status/`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (r.ok) {
+                    showToast(newStatus === 'done' ? '✅ Task marked as done!' : newStatus === 'rejected' ? '✕ Task rejected' : '🔄 Task started!',
+                              newStatus === 'rejected' ? '#e74c3c' : '#27ae60');
+                    loadTasks();
+                } else {
+                    showToast('Failed to update', '#e74c3c');
+                }
+            } catch(e) { showToast('Connection error', '#e74c3c'); }
+        }
+
+        function showToast(msg, color) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = color;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function getCookie(name) {
+            let v = null;
+            document.cookie.split(';').forEach(c => {
+                c = c.trim();
+                if (c.startsWith(name + '=')) v = c.substring(name.length + 1);
+            });
+            return v;
+        }
+
+        init();
+    </script>
+</body>
+</html>

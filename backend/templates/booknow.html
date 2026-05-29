@@ -13,6 +13,8 @@
     gtag('js', new Date());
     gtag('config', 'G-E2P4ZTV4Z7');
     </script>
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Book Your Event | Swagat Caterers, Rajkot</title>
 
     <meta name="description" content="Book your wedding, corporate event, or celebration with Swagat Caterers in Rajkot. Get a custom catering quote, select packages, and plan your event effortlessly.">
@@ -52,6 +54,40 @@
     </header>
 
     {% include "components/contact_form.html" %}
+
+    <!-- Section 5: Weather-Based Menu Suggestions -->
+    <section class="py-5" style="background: #0d0d0d;">
+        <div class="container" style="max-width: 700px;">
+            <div class="text-center mb-4" data-aos="fade-up">
+                <h2 class="text-gold" style="font-family:'Playfair Display',serif;">
+                    🌤️ Weather-Smart Menu
+                </h2>
+                <p class="text-white-50">Get menu suggestions based on your event's weather forecast</p>
+            </div>
+            
+            <div style="background:#1a1a1a; border:1px solid rgba(212,175,55,0.15); border-radius:16px; padding:30px;" data-aos="fade-up">
+                <div style="display:flex; gap:10px; margin-bottom:20px;">
+                    <input type="text" id="weather-city" placeholder="Enter event city (e.g. Rajkot)" 
+                           style="flex:1; padding:12px 18px; background:#222; border:1px solid #333; color:#fff; border-radius:10px; font-size:0.9rem;">
+                    <button onclick="fetchWeatherSuggestions()" 
+                            style="background:#d4af37; color:#1a1a1a; border:none; padding:12px 25px; border-radius:10px; font-weight:700; cursor:pointer; white-space:nowrap;">
+                        Get Suggestions
+                    </button>
+                </div>
+                
+                <div id="weather-result" style="display:none;">
+                    <div id="weather-summary" style="text-align:center; font-size:1.1rem; color:#d4af37; margin-bottom:15px;"></div>
+                    <div id="weather-tip" style="text-align:center; color:#999; font-size:0.9rem; margin-bottom:20px;"></div>
+                    <div id="weather-items" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
+                </div>
+                
+                <div id="weather-loading" style="display:none; text-align:center; padding:20px;">
+                    <div style="color:#d4af37;">Loading weather data...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     {% include "components/footer.html" %}
 
     <button id="scrollTopBtn"><i class="bi bi-arrow-up"></i></button>
@@ -75,6 +111,14 @@
                 const minDate = `${yyyy}-${mm}-${dd}`;
                 
                 dateInput.setAttribute("min", minDate);
+
+                // Pre-fill date from URL parameter (e.g. /book-now/?date=2026-06-15)
+                const urlParams = new URLSearchParams(window.location.search);
+                const prefilledDate = urlParams.get('date');
+                if (prefilledDate && prefilledDate >= minDate) {
+                    dateInput.value = prefilledDate;
+                }
+
                 clearInterval(dateCheckInterval);
                 console.log("Date validation active.");
             }
@@ -146,6 +190,39 @@
                 })
             }
         });
+
+        // ==========================================
+        // 3. WEATHER-BASED MENU SUGGESTIONS (Section 5)
+        // ==========================================
+        async function fetchWeatherSuggestions() {
+            const city = document.getElementById('weather-city').value.trim();
+            if (!city) { alert('Please enter a city'); return; }
+
+            document.getElementById('weather-loading').style.display = 'block';
+            document.getElementById('weather-result').style.display = 'none';
+
+            try {
+                const resp = await fetch(`/api/weather-suggest/?city=${encodeURIComponent(city)}`);
+                const data = await resp.json();
+
+                document.getElementById('weather-loading').style.display = 'none';
+                document.getElementById('weather-result').style.display = 'block';
+
+                document.getElementById('weather-summary').innerHTML = 
+                    `${data.icon} ${data.weather_summary}`;
+                document.getElementById('weather-tip').innerHTML = data.tip;
+
+                const itemsDiv = document.getElementById('weather-items');
+                itemsDiv.innerHTML = (data.suggested_items || []).map(item => 
+                    `<span style="background:rgba(212,175,55,0.1); color:#d4af37; padding:8px 18px; border-radius:20px; font-size:0.85rem; font-weight:500;">${item}</span>`
+                ).join('');
+            } catch (e) {
+                document.getElementById('weather-loading').style.display = 'none';
+                document.getElementById('weather-result').style.display = 'block';
+                document.getElementById('weather-summary').innerHTML = '⚠️ Could not fetch weather data';
+                document.getElementById('weather-tip').innerHTML = 'Please try again later.';
+            }
+        }
     </script>
 </body>
 </html>

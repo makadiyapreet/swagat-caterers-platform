@@ -1,0 +1,418 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Activity Review — Swagat Caterers</title>
+    <link rel="icon" href="{% static 'images/logo/favicon.png' %}" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'images/logo/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#faf9f6; color:#333; min-height:100vh; }
+
+        /* Navbar */
+        .nav {
+            background:#fff; padding:14px 30px; display:flex; justify-content:space-between; align-items:center;
+            box-shadow:0 1px 8px rgba(0,0,0,0.06); position:sticky; top:0; z-index:100;
+            border-bottom:1px solid #f0ece4;
+        }
+        .nav-brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-brand img { height:32px; }
+        .nav-brand span { color:#1a1a1a; font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; }
+        .nav-right { display:flex; align-items:center; gap:10px; }
+        .nav-link { 
+            color:#666; text-decoration:none; font-size:0.8rem; padding:7px 16px; 
+            border:1px solid #ddd; border-radius:8px; transition:all 0.3s; font-weight:500; 
+        }
+        .nav-link:hover { background:#f5f5f5; border-color:#bbb; color:#333; }
+
+        .container { max-width:1000px; margin:0 auto; padding:30px 20px; }
+
+        /* Header */
+        .page-header { margin-bottom:25px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:15px; }
+        .page-header h1 { font-family:'Playfair Display',serif; font-size:1.7rem; color:#1a1a1a; }
+        .page-header p { color:#999; font-size:0.85rem; margin-top:4px; }
+
+        /* Filters */
+        .filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .filter-btn {
+            padding:7px 18px; border-radius:20px; font-size:0.75rem; font-weight:600;
+            cursor:pointer; transition:all 0.3s; border:1px solid #e0e0e0; background:#fff; color:#666;
+        }
+        .filter-btn.active { background:#1a1a1a; color:#D4AF37; border-color:#1a1a1a; }
+        .filter-btn:hover:not(.active) { background:#f5f5f5; }
+
+        /* Stats Row */
+        .stats { display:flex; gap:12px; margin-bottom:25px; flex-wrap:wrap; }
+        .stat-card {
+            flex:1; min-width:140px; background:#fff; border-radius:12px; padding:18px 20px;
+            border:1px solid #f0ece4; text-align:center;
+        }
+        .stat-num { font-size:1.6rem; font-weight:800; color:#1a1a1a; }
+        .stat-label { font-size:0.7rem; color:#999; margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+
+        /* Log Card */
+        .log-card {
+            background:#fff; border-radius:12px; padding:20px 24px; margin-bottom:10px;
+            border:1px solid #f0ece4; transition:all 0.3s; position:relative;
+        }
+        .log-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.04); border-color:#e0dcd4; }
+        .log-card.reviewed { opacity:0.5; background:#fafafa; }
+        .log-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+        .log-user { display:flex; align-items:center; gap:10px; }
+        .log-avatar {
+            width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+            font-weight:700; font-size:0.85rem; color:#fff;
+        }
+        .log-username { font-weight:700; font-size:0.95rem; color:#1a1a1a; }
+        .log-role { font-size:0.65rem; padding:2px 8px; border-radius:6px; font-weight:600; text-transform:uppercase; }
+        .log-action { font-weight:600; color:#333; font-size:0.9rem; margin-top:8px; }
+        .log-details { color:#777; font-size:0.82rem; margin-top:5px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+        .log-time { color:#bbb; font-size:0.72rem; margin-top:8px; }
+        .log-actions { display:flex; gap:6px; flex-wrap:wrap; }
+
+        /* Buttons */
+        .btn-review {
+            padding:7px 16px; border-radius:8px; font-size:0.75rem; font-weight:600;
+            cursor:pointer; transition:all 0.3s; border:none;
+        }
+        .btn-review-approve { background:#e8f8ef; color:#27ae60; }
+        .btn-review-approve:hover { background:#27ae60; color:#fff; }
+        .btn-preview { background:#e8f0fd; color:#3498db; }
+        .btn-preview:hover { background:#3498db; color:#fff; }
+        .btn-link { background:#fff7e6; color:#d4a017; text-decoration:none; }
+        .btn-link:hover { background:#d4a017; color:#fff; }
+        .log-type-badge { font-size:0.6rem; padding:2px 8px; border-radius:6px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; margin-left:6px; }
+        .type-event { background:#e8f0fd; color:#3498db; }
+        .type-menu { background:#e8f8ef; color:#27ae60; }
+        .type-booking { background:#fef3e2; color:#e67e22; }
+
+        /* Preview Modal */
+        .preview-modal {
+            display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:1000;
+            background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); justify-content:center; align-items:center;
+        }
+        .preview-modal.show { display:flex; }
+        .preview-content {
+            background:#fff; border-radius:16px; max-width:700px; width:90%; max-height:85vh; overflow-y:auto;
+            box-shadow:0 20px 60px rgba(0,0,0,0.2);
+        }
+        .preview-header {
+            padding:20px 25px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center;
+        }
+        .preview-header h3 { font-family:'Playfair Display',serif; font-size:1.2rem; }
+        .preview-close { background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999; padding:5px; }
+        .preview-body { padding:25px; }
+        .preview-detail { display:grid; grid-template-columns:140px 1fr; gap:10px; margin-bottom:10px; font-size:0.85rem; }
+        .preview-label { color:#999; font-weight:600; }
+        .preview-value { color:#333; }
+
+        /* Empty state */
+        .empty { text-align:center; padding:60px 20px; }
+        .empty h3 { color:#1a1a1a; margin-bottom:8px; }
+        .empty p { color:#999; }
+
+        .loading { text-align:center; padding:60px; color:#b8860b; }
+
+        /* Toast */
+        .toast { position:fixed; top:20px; right:20px; padding:12px 22px; border-radius:10px; font-weight:600; z-index:9999; display:none; color:#fff; font-size:0.85rem; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
+
+        @media (max-width:600px) {
+            .container { padding:20px 14px; }
+            .page-header { flex-direction:column; }
+            .page-header h1 { font-size:1.3rem; }
+            .log-card { padding:16px 18px; }
+            .preview-detail { grid-template-columns:1fr; }
+            .nav-brand span { display:none; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/dashboard/" class="nav-brand">
+            <img src="{% static 'images/logo/logo.png' %}" alt="Swagat">
+            <span>Swagat Caterers</span>
+        </a>
+        <div class="nav-right">
+            <a href="/dashboard/" class="nav-link">← Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1>🔔 Manager Activity Review</h1>
+                <p>Review what managers have created, edited, or deleted</p>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" onclick="setFilter('pending')">⏳ Pending</button>
+                <button class="filter-btn" onclick="setFilter('all')">📋 All Logs</button>
+                <button class="filter-btn" onclick="setFilter('reviewed')">✅ Reviewed</button>
+            </div>
+        </div>
+
+        <div class="stats" id="stats-row"></div>
+        <div id="logs-container"><div class="loading">Loading activity logs...</div></div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h3 id="preview-title">Activity Details</h3>
+                <button class="preview-close" onclick="closePreview()">×</button>
+            </div>
+            <div class="preview-body" id="preview-body"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        let allLogs = [];
+        let currentFilter = 'pending';
+
+        async function init() {
+            if (!token) { window.location.href = '/login/'; return; }
+
+            // Check admin role
+            try {
+                const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` } });
+                const user = await uRes.json();
+                if (user.user_type !== 'admin') {
+                    window.location.href = '/dashboard/';
+                    return;
+                }
+            } catch(e) { window.location.href = '/login/'; return; }
+
+            loadLogs();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderLogs();
+        }
+
+        async function loadLogs() {
+            try {
+                const r = await fetch('/api/activity-logs/?show_all=true', { headers: { 'Authorization': `Token ${token}` } });
+                if (!r.ok) throw new Error('Failed');
+                allLogs = await r.json();
+                renderStats();
+                renderLogs();
+            } catch(e) {
+                document.getElementById('logs-container').innerHTML = '<div class="empty"><h3>Could not load logs</h3><p>Please try again</p></div>';
+            }
+        }
+
+        function renderStats() {
+            const pending = allLogs.filter(l => !l.is_reviewed).length;
+            const reviewed = allLogs.filter(l => l.is_reviewed).length;
+            document.getElementById('stats-row').innerHTML = `
+                <div class="stat-card"><div class="stat-num" style="color:#e67e22;">${pending}</div><div class="stat-label">Pending Review</div></div>
+                <div class="stat-card"><div class="stat-num" style="color:#27ae60;">${reviewed}</div><div class="stat-label">Reviewed</div></div>
+                <div class="stat-card"><div class="stat-num">${allLogs.length}</div><div class="stat-label">Total Logs</div></div>
+            `;
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logs-container');
+            let logs = allLogs;
+
+            if (currentFilter === 'pending') logs = allLogs.filter(l => !l.is_reviewed);
+            else if (currentFilter === 'reviewed') logs = allLogs.filter(l => l.is_reviewed);
+
+            if (!logs.length) {
+                const msgs = { pending: 'No pending reviews! 🎉', all: 'No activity logs yet', reviewed: 'No reviewed logs' };
+                container.innerHTML = `<div class="empty"><h3>${msgs[currentFilter]}</h3><p>${currentFilter === 'pending' ? 'All caught up!' : 'Activity will appear here'}</p></div>`;
+                return;
+            }
+
+            container.innerHTML = logs.map(l => {
+                const roleColors = { admin: '#e74c3c', manager: '#8e44ad', staff: '#27ae60' };
+                const roleBg = { admin: '#fde8e8', manager: '#f3e8fd', staff: '#e8f8ef' };
+                const color = roleColors[l.user_type] || '#999';
+                const bg = roleBg[l.user_type] || '#f5f5f5';
+                const initial = (l.username || '?')[0].toUpperCase();
+                const date = new Date(l.created_at);
+                const timeAgo = getTimeAgo(date);
+
+                return `
+                <div class="log-card ${l.is_reviewed ? 'reviewed' : ''}">
+                    <div class="log-card-top">
+                        <div class="log-user">
+                            <div class="log-avatar" style="background:${color};">${initial}</div>
+                            <div>
+                                <div class="log-username">${l.username}</div>
+                                <span class="log-role" style="background:${bg};color:${color};">${l.user_type || 'user'}</span>
+                            </div>
+                        </div>
+                        <div class="log-actions">
+                            ${getActionLink(l)}
+                            <button class="btn-review btn-preview" onclick='previewLog(${JSON.stringify(l).replace(/'/g, "&#39;")})'>👁 Preview</button>
+                            ${!l.is_reviewed ? `<button class="btn-review btn-review-approve" onclick="markReviewed(${l.id})">✓ Approve & Publish</button>` : '<span style="color:#27ae60;font-size:0.75rem;font-weight:600;">✅ Approved</span>'}
+                        </div>
+                    </div>
+                    <div class="log-action">${l.action} ${getTypeBadge(l.related_type)}</div>
+                    ${l.details ? `<div class="log-details">${truncate(l.details, 150)}</div>` : ''}
+                    <div class="log-time">🕐 ${timeAgo} · ${date.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })} at ${date.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function previewLog(log) {
+            document.getElementById('preview-title').textContent = log.action;
+            
+            let detailsHtml = '';
+            
+            // Parse details if it's structured
+            if (log.details) {
+                // Try to parse as key-value pairs or show as text
+                const lines = log.details.split('\n').filter(l => l.trim());
+                if (lines.length > 0) {
+                    detailsHtml = '<div style="margin-bottom:15px;">';
+                    lines.forEach(line => {
+                        const parts = line.split(':');
+                        if (parts.length >= 2) {
+                            const key = parts[0].trim();
+                            const val = parts.slice(1).join(':').trim();
+                            detailsHtml += `<div class="preview-detail"><span class="preview-label">${key}</span><span class="preview-value">${val}</span></div>`;
+                        } else {
+                            detailsHtml += `<p style="color:#555;margin-bottom:8px;font-size:0.85rem;">${line}</p>`;
+                        }
+                    });
+                    detailsHtml += '</div>';
+                }
+            }
+
+            // Build deep link for preview
+            let deepLinkHtml = '';
+            const linkUrl = getDeepLinkUrl(log);
+            if (linkUrl) {
+                const linkLabel = { event: '📅 Open in Calendar', menu: '📋 Open Menu', booking: '📝 View Booking' }[log.related_type] || 'Open';
+                deepLinkHtml = `<a href="${linkUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,#D4AF37,#c5a028);color:#1a1a1a;text-decoration:none;border-radius:8px;font-weight:700;font-size:0.85rem;">${linkLabel}</a>`;
+            }
+
+            document.getElementById('preview-body').innerHTML = `
+                <div style="margin-bottom:20px;">
+                    <div class="preview-detail"><span class="preview-label">Performed by</span><span class="preview-value"><strong>${log.username}</strong> (${log.user_type})</span></div>
+                    <div class="preview-detail"><span class="preview-label">Action</span><span class="preview-value">${log.action}</span></div>
+                    <div class="preview-detail"><span class="preview-label">Type</span><span class="preview-value">${getTypeBadge(log.related_type)} ${log.related_id ? '#' + log.related_id : ''}</span></div>
+                    ${log.related_date ? `<div class="preview-detail"><span class="preview-label">Related Date</span><span class="preview-value">📅 ${log.related_date}</span></div>` : ''}
+                    <div class="preview-detail"><span class="preview-label">Date & Time</span><span class="preview-value">${new Date(log.created_at).toLocaleString('en-IN')}</span></div>
+                    <div class="preview-detail"><span class="preview-label">Status</span><span class="preview-value">${log.is_reviewed ? '✅ Reviewed' : '⏳ Pending Review'}</span></div>
+                </div>
+                ${detailsHtml ? `<hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;"><h4 style="font-size:0.9rem;margin-bottom:12px;color:#1a1a1a;">📝 Activity Details</h4>${detailsHtml}` : ''}
+                <div style="margin-top:25px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+                    ${deepLinkHtml}
+                    ${(log.related_type === 'booking' && log.related_id) ? `<button onclick="cancelBooking(${log.related_id}, ${log.id})" style="padding:10px 24px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem;">🗑 Cancel Booking</button>` : ''}
+                    ${!log.is_reviewed ? `<button onclick="markReviewed(${log.id});closePreview();" style="padding:10px 24px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem;">✓ Approve & Publish</button>` : ''}
+                    <button onclick="closePreview()" style="padding:10px 24px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.85rem;">Close</button>
+                </div>
+            `;
+
+            document.getElementById('previewModal').classList.add('show');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.remove('show');
+        }
+
+        async function markReviewed(logId) {
+            try {
+                const r = await fetch('/api/activity-logs/', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ log_id: logId })
+                });
+                if (r.ok) {
+                    showToast('✓ Marked as reviewed', '#27ae60');
+                    loadLogs();
+                }
+            } catch(e) { showToast('Error', '#e74c3c'); }
+        }
+
+        function truncate(str, n) { return str.length > n ? str.substring(0, n) + '…' : str; }
+
+        function getTypeBadge(type) {
+            const labels = { event: '📅 Event', menu: '📋 Menu', booking: '📝 Booking', other: '' };
+            const cls = { event: 'type-event', menu: 'type-menu', booking: 'type-booking' };
+            if (!type || type === 'other') return '';
+            return `<span class="log-type-badge ${cls[type] || ''}">${labels[type] || type}</span>`;
+        }
+
+        function getDeepLinkUrl(log) {
+            if (!log.related_type || log.related_type === 'other') return null;
+            if (log.related_type === 'event' && log.related_date) return `/dashboard/?date=${log.related_date}`;
+            if (log.related_type === 'menu' && log.related_id) {
+                // Extract event ID from details string "For event: X"
+                const eventMatch = log.details ? log.details.match(/(?:event|Event ID)[:\s]+(\d+)/i) : null;
+                const eventId = eventMatch ? eventMatch[1] : null;
+                if (eventId) return `/create-menu/?event_id=${eventId}&menu_id=${log.related_id}`;
+                return `/create-menu/?menu_id=${log.related_id}`;
+            }
+            if (log.related_type === 'booking' && log.related_id) {
+                // Booking's related_id is the event ID, link directly to the booking page
+                return `/dashboard/booking/?event_id=${log.related_id|| ''}`;
+            }
+            return null;
+        }
+
+        function getActionLink(log) {
+            const url = getDeepLinkUrl(log);
+            if (!url) return '';
+            const labels = { event: '📅 Calendar', menu: '📋 Edit Menu', booking: '📝 View Booking' };
+            return `<a href="${url}" target="_blank" class="btn-review btn-link" style="text-decoration:none;">${labels[log.related_type] || 'Open'}</a>`;
+        }
+
+        function getTimeAgo(date) {
+            const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+            return Math.floor(diff/604800) + 'w ago';
+        }
+
+        function showToast(msg, color) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.style.background = color; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function getCookie(name) {
+            let v = null;
+            document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith(name + '=')) v = c.substring(name.length + 1); });
+            return v;
+        }
+
+        // Close modal on background click
+        document.getElementById('previewModal').addEventListener('click', function(e) { if (e.target === this) closePreview(); });
+
+        async function cancelBooking(eventId, logId) {
+            if (!confirm('⚠️ Are you sure you want to cancel/delete this booking? This action cannot be undone.')) return;
+            try {
+                const r = await fetch(`/api/menu/events/${eventId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }
+                });
+                if (r.ok || r.status === 204) {
+                    showToast('🗑 Booking cancelled & deleted', '#e74c3c');
+                    // Also mark the log as reviewed
+                    await markReviewed(logId);
+                    closePreview();
+                } else {
+                    showToast('Error cancelling booking', '#e74c3c');
+                }
+            } catch(e) { showToast('Network error', '#e74c3c'); }
+        }
+
+        init();
+    </script>
+</body>
+</html>

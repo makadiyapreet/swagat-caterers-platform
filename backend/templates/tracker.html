@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Member Tracker - Swagat Caterers</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;500;600&display=swap" rel="stylesheet">
     
@@ -300,13 +302,16 @@
             // --- ROLE LOGIC ---
             const userType = user.user_type || 'customer';
             isAdmin = (userType === 'admin' || user.is_superuser);
-            isManager = (userType === 'manager' || user.is_staff);
+            isManager = (userType === 'manager');
+            const isStaffUser = (userType === 'staff');
 
-            // 
-
-            // 1. BLOCK CUSTOMERS
+            // 1. BLOCK CUSTOMERS AND STAFF
             if (!isAdmin && !isManager) {
-                document.body.innerHTML = "<div style='display:flex; height:100vh; justify-content:center; align-items:center; flex-direction:column;'><h2 style='color:#666;'>Access Denied. Admins and Managers only.</h2><button onclick='logoutUser()'>Logout</button></div>";
+                document.body.innerHTML = `<div style='display:flex; height:100vh; justify-content:center; align-items:center; flex-direction:column; font-family:sans-serif;'>
+                    <h2 style='color:#D4AF37;'>🔒 Access Restricted</h2>
+                    <p style='color:#666;'>Only Admins and Managers can access the Tracker.</p>
+                    <a href='/dashboard/' style='padding:10px 20px; background:#D4AF37; color:white; text-decoration:none; border-radius:6px; margin-top:15px;'>← Back to Dashboard</a>
+                </div>`;
                 return;
             }
 
@@ -314,14 +319,16 @@
             const adminBtns = document.getElementById('admin-buttons');
             const adminChart = document.getElementById('admin-chart-section');
             
-            // Managers might not have 'admin-buttons' container visible, but need 'save'
             if(isAdmin) {
                 if(adminBtns) adminBtns.style.display = 'contents'; 
                 if(adminChart) adminChart.style.display = 'block';
             } else if (isManager) {
                 if(adminBtns) adminBtns.style.display = 'none'; 
-                const saveContainer = document.querySelector('.save-container'); 
-                if(saveContainer) saveContainer.style.display = 'block';
+                // Hide financial columns for managers
+                document.querySelectorAll('th').forEach((th, i) => {
+                    // Columns: 0=Name, 1=Staff#, 2=Rate, 3=Total, 4=Advance, 5=Settle, 6=Net, 7=Edit
+                    if ([2,3,4,5,6,7].includes(i)) th.style.display = 'none';
+                });
             }
 
             fetchMembers();
@@ -355,33 +362,33 @@
         members.forEach(m => {
             const defaultRate = m.default_rate || 500;
             
-            // --- PRIVACY LOGIC ---
-            // Managers see placeholder "**" and cannot edit rates
-            let rateDisplayAttr = isAdmin ? `value="${defaultRate}"` : `value="" placeholder="**" disabled`;
-            let totalDisplay = isAdmin ? "0" : "**";
-            let netDisplay = isAdmin ? m.advance_amount : "**";
-            let netColor = isAdmin ? (m.advance_amount >= 0 ? '#c0392b' : '#27ae60') : '#555';
-            
-            // Action Buttons (Edit/Delete) only for Admin
-            const actionBtns = isAdmin ? `<button onclick="openEditModal(${m.id})" style="border:none; background:none; cursor:pointer; font-size:18px;">✏️</button>` : '<span style="color:#ccc">🔒</span>';
-
-            // --- SETTLE UP LOGIC (Admin Only) ---
-            let settleDisplay = '';
-            if(isAdmin) {
-                settleDisplay = `
-                    <div class="settle-wrapper">
-                        <input type="checkbox" onchange="toggleSettle(${m.id}, this)">
-                        <input type="number" class="settle-input inp-settle" placeholder="Amt" oninput="calcRow(${m.id})">
-                    </div>`;
-            } else {
-                settleDisplay = `<span style="color:#aaa; font-size:12px;">🔒</span>`;
+            if (isManager) {
+                // MANAGER VIEW: Only Name + Staff# columns
+                tbody.innerHTML += `
+                    <tr data-id="${m.id}" data-balance="${m.advance_amount}">
+                        <td>
+                            <div style="font-weight:bold;">${m.name}</div>
+                            <div style="font-size:12px; color:#888;">${m.phone}</div>
+                        </td>
+                        <td><input type="number" class="table-input inp-staff" placeholder="0" min="0"></td>
+                        <td style="display:none;"></td>
+                        <td style="display:none;"></td>
+                        <td style="display:none;"></td>
+                        <td style="display:none;"></td>
+                        <td style="display:none;"></td>
+                        <td style="display:none;"></td>
+                    </tr>`;
+                return;
             }
-
-            // --- ADVANCE INPUT (Admin Only) ---
-            // CHANGE: Strictly Admin only. Managers get Lock.
-            let advInput = isAdmin
-                ? `<input type="number" class="table-input advance-input inp-adv" placeholder="+ Add" oninput="calcRow(${m.id})">`
-                : `<input type="text" class="table-input" placeholder="🔒" disabled style="background:#eee; cursor:not-allowed;">`;
+            
+            // ADMIN VIEW: Full table
+            const actionBtns = `<button onclick="openEditModal(${m.id})" style="border:none; background:none; cursor:pointer; font-size:18px;">✏️</button>`;
+            const settleDisplay = `
+                <div class="settle-wrapper">
+                    <input type="checkbox" onchange="toggleSettle(${m.id}, this)">
+                    <input type="number" class="settle-input inp-settle" placeholder="Amt" oninput="calcRow(${m.id})">
+                </div>`;
+            const advInput = `<input type="number" class="table-input advance-input inp-adv" placeholder="+ Add" oninput="calcRow(${m.id})">`;
 
             tbody.innerHTML += `
                 <tr data-id="${m.id}" data-balance="${m.advance_amount}">
@@ -390,17 +397,11 @@
                         <div style="font-size:12px; color:#888;">${m.phone}</div>
                     </td>
                     <td><input type="number" class="table-input inp-staff" placeholder="0" min="0" oninput="calcRow(${m.id})"></td>
-                    
-                    <td><input type="text" class="rate-input inp-rate" ${rateDisplayAttr} readonly style="background:#f0f0f0; color:#888; cursor:not-allowed;"></td>
-                    
-                    <td><span id="total-${m.id}" class="total-badge">${totalDisplay}</span></td>
-                    
+                    <td><input type="text" class="rate-input inp-rate" value="${defaultRate}" readonly style="background:#f0f0f0; color:#888; cursor:not-allowed;"></td>
+                    <td><span id="total-${m.id}" class="total-badge">0</span></td>
                     <td>${advInput}</td>
-                    
                     <td>${settleDisplay}</td>
-                    
-                    <td><span id="net-${m.id}" class="net-due" style="color:${netColor}">${netDisplay}</span></td>
-                    
+                    <td><span id="net-${m.id}" class="net-due" style="color:${m.advance_amount >= 0 ? '#c0392b' : '#27ae60'}">${m.advance_amount}</span></td>
                     <td style="text-align:center;">${actionBtns}</td>
                 </tr>`;
         });

@@ -1,9 +1,9 @@
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
-from django.core.signing import Signer, BadSignature
+from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 
 User = get_user_model()
-signer = Signer()
+signer = TimestampSigner()
 
 def activate_user(request, token):
     """
@@ -21,7 +21,7 @@ def activate_user(request, token):
         # 3. Activate the user
         if not user.is_active:
             user.is_active = True
-            user.save() # This triggers the 'pre_save' signal to email the user!
+            user.save()  # This triggers the 'pre_save' signal to email the user!
             
             return HttpResponse(f"""
                 <div style='font-family: sans-serif; text-align: center; padding: 50px;'>
@@ -38,6 +38,8 @@ def activate_user(request, token):
                 </div>
             """)
             
+    except SignatureExpired:
+        return HttpResponse("<h1>❌ Error: Activation link has expired (24h limit). Please approve from the admin panel.</h1>", status=400)
     except BadSignature:
         return HttpResponse("<h1>❌ Error: Invalid or Expired Link</h1>", status=400)
     except User.DoesNotExist:

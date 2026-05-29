@@ -9,7 +9,7 @@ from django.utils.html import strip_tags
 User = get_user_model()
 signer = Signer()
 
-SITE_DOMAIN = "https://swagat-caterers-platform-production.up.railway.app"
+SITE_DOMAIN = "https://127.0.0.1:8000"
 
 @receiver(post_save, sender=User)
 def deactivate_new_user(sender, instance, created, **kwargs):
@@ -66,7 +66,7 @@ def deactivate_new_user(sender, instance, created, **kwargs):
                 from_email=settings.EMAIL_HOST_USER,
                 recipient_list=['swagatcaterersofficial@gmail.com'], # <--- Your Admin Email
                 html_message=html_message, # <--- Attach the HTML version
-                fail_silently=False,
+                fail_silently=True,
             )
             print("✅ Admin Notification Email Sent Successfully!")
             
@@ -107,10 +107,91 @@ def check_active_status(sender, instance, **kwargs):
                     from_email=settings.EMAIL_HOST_USER,
                     recipient_list=[instance.email],
                     html_message=html_message,
-                    fail_silently=False,
+                    fail_silently=True,
                 )
                 print(f"✅ Welcome Email Sent to {instance.email}")
 
         except Exception as e:
              # THIS PREVENTS THE 500 ERROR
             print(f"❌ ERROR in check_active_status: {str(e)}")
+
+
+# =========================================
+# SECTION 17: Suspicious Login Detection
+# =========================================
+from django.contrib.auth.signals import user_logged_in
+import requests as http_requests
+
+
+@receiver(user_logged_in)
+def track_user_login(sender, request, user, **kwargs):
+    """Track login IP addresses and detect new/suspicious logins."""
+    from .models import UserLoginHistory
+
+    try:
+        # Get client IP
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        # Check if this IP has been used before
+        is_new_ip = not UserLoginHistory.objects.filter(
+            user=user, ip_address=ip
+        ).exists()
+
+        # Get location from ip-api (free, no key needed)
+        city = ''
+        country = ''
+        try:
+            if ip not in ('127.0.0.1', 'localhost', '::1'):
+                geo_resp = http_requests.get(
+                    f'http://ip-api.com/json/{ip}?fields=city,country',
+                    timeout=3
+                )
+                if geo_resp.status_code == 200:
+                    geo_data = geo_resp.json()
+                    city = geo_data.get('city', '')
+                    country = geo_data.get('country', '')
+        except Exception:
+            pass
+
+        # Record login
+        UserLoginHistory.objects.create(
+            user=user,
+            ip_address=ip,
+            user_agent=user_agent,
+            is_new_ip=is_new_ip,
+            city=city,
+            country=country,
+        )
+
+        # Send alert for new IP on admin/manager accounts
+        if is_new_ip and getattr(user, 'user_type', '') in ('admin', 'manager'):
+            try:
+                location_str = f"{city}, {country}" if city else ip
+                
+                send_mail(
+                    subject=f'🚨 New Login Location Detected — {user.username}',
+                    message=(
+                        f'Hello {user.username},\n\n'
+                        f'A login to your Swagat Caterers account was detected from a new location:\n\n'
+                        f'📍 Location: {location_str}\n'
+                        f'🌐 IP Address: {ip}\n'
+                        f'📱 Device: {user_agent[:100]}\n\n'
+                        f'If this was you, you can ignore this email.\n'
+                        f'If you did not log in, please change your password immediately.\n\n'
+                        f'— Swagat Caterers Security'
+                    ),
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[user.email, settings.ADMIN_ALERT_EMAIL],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"❌ Login tracking error: {e}")

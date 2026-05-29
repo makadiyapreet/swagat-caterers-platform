@@ -9,7 +9,6 @@ staticfiles/
 
 # Environment variables
 .env
-.env.*
 
 # Secrets — NEVER commit
 variables_and_commands

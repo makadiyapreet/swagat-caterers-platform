@@ -3,6 +3,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Menu Builder - Swagat Caterers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
@@ -259,6 +261,16 @@
         </div>
 
         <div class="sidebar-right">
+            <!-- Section 10: Menu Popularity Stats -->
+            <div style="padding:12px 15px; border-bottom:1px solid #eee; background:#fffcf5;">
+                <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleStats()">
+                    <span style="font-size:13px; font-weight:700; color:#b59020;">📊 Popular Items</span>
+                    <span id="stats-toggle" style="font-size:11px; color:#999;">▼</span>
+                </div>
+                <div id="stats-panel" style="display:none; margin-top:8px;">
+                    <div id="stats-list" style="font-size:12px; color:#555;"><em>Loading...</em></div>
+                </div>
+            </div>
             <div class="preview-header">
                 <h3 class="preview-title">Selected Items (<span id="total-count">0</span>)</h3>
             </div>
@@ -331,6 +343,7 @@
         let isAdmin = false;
         let currentMenuId = null;
         let currentAddMode = 'single';
+        const isViewOnly = urlParams.get('view_only') === '1';
 
         function getCookie(name) {
             let cookieValue = null;
@@ -363,10 +376,12 @@
                 const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` ,'X-CSRFToken': getCookie('csrftoken') } });
                 if (!uRes.ok) throw new Error("Auth Failed");
                 const user = await uRes.json();
-                isAdmin = user.is_staff || user.is_superuser;
+                const rawType = (user.user_type || '').toLowerCase();
+                isAdmin = (rawType === 'admin' || user.is_superuser);
+                window.currentUsername = user.username;
                 
                 const priceInput = document.getElementById('menu-price');
-                if (!isAdmin) { if(priceInput) { priceInput.value = "**"; priceInput.disabled = true; priceInput.type = "password"; } } 
+                if (!isAdmin) { if(priceInput) { priceInput.value = ""; priceInput.disabled = true; priceInput.style.display = "none"; priceInput.closest('.config-group')?.style.setProperty('display','none'); } } 
                 else { if(priceInput) { priceInput.disabled = false; priceInput.type = "number"; } }
 
                 const cRes = await fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
@@ -394,7 +409,74 @@
                     switchEditMode();
                 }
 
+                // VIEW-ONLY MODE: Hide all editing controls
+                if (isViewOnly) {
+                    applyViewOnlyMode();
+                }
+
             } catch (e) { console.error("Init Error:", e); }
+        }
+
+        // --- VIEW ONLY MODE ---
+        function applyViewOnlyMode() {
+            // Hide action buttons (Save, PDF, etc.)
+            const actionArea = document.querySelector('.action-area');
+            if (actionArea) actionArea.innerHTML = `
+                <div style="text-align:center;padding:15px;">
+                    <div style="background:#e3f2fd;color:#1565c0;padding:10px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;">
+                        👁 View Only Mode
+                    </div>
+                </div>
+                <button class="btn-action btn-back" data-url="{% url 'dashboard' %}" onclick="window.location.href=this.dataset.url">
+                    ← Back to Dashboard
+                </button>
+            `;
+            
+            // Hide quick-add footer
+            const quickAdd = document.querySelector('.quick-add-footer');
+            if (quickAdd) quickAdd.style.display = 'none';
+            
+            // Hide price input
+            const priceEl = document.getElementById('menu-price');
+            if (priceEl) { const group = priceEl.closest('.input-group'); if (group) group.style.display = 'none'; }
+            
+            // Hide menu-title input (make readonly)
+            const titleEl = document.getElementById('menu-title');
+            if (titleEl) titleEl.disabled = true;
+            
+            // Hide note textarea (make readonly)
+            const noteEl = document.getElementById('menu-note');
+            if (noteEl) noteEl.disabled = true;
+            
+            // Hide edit-mode dropdown and "new" button
+            const editSelect = document.getElementById('edit-mode-select');
+            if (editSelect) editSelect.disabled = true;
+            const newMenuBtn = document.querySelector('[onclick*="switchEditMode"]');
+            
+            // Hide "Add to Database" button
+            const addBtn = document.querySelector('[onclick*="openAddItemModal"]');
+            if (addBtn) addBtn.style.display = 'none';
+            
+            // Disable all checkboxes after a short delay (after renderMainGrid)
+            setTimeout(() => {
+                document.querySelectorAll('.item-checkbox, .item-cb').forEach(cb => {
+                    cb.disabled = true;
+                    cb.style.pointerEvents = 'none';
+                });
+                // Also disable item cards click
+                document.querySelectorAll('.item-card').forEach(card => {
+                    card.style.pointerEvents = 'none';
+                    card.style.cursor = 'default';
+                });
+            }, 500);
+            
+            // Update page title
+            const pageTitle = document.querySelector('.page-title');
+            if (pageTitle) pageTitle.innerHTML = '🍽️ Menu Viewer <span style="font-size:12px;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:6px;margin-left:8px;vertical-align:middle;">View Only</span>';
+            
+            // Hide stats panel toggle
+            const statsPanel = document.querySelector('[onclick*="toggleStats"]');
+            if (statsPanel) statsPanel.closest('div[style*="border-bottom"]')?.style.setProperty('display','none');
         }
 
         // --- HELPERS ---
@@ -491,6 +573,10 @@
                     document.getElementById('menu-title').value = menuToEdit.title;
                     document.getElementById('menu-note').value = menuToEdit.note || "";
                     if(isAdmin) document.getElementById('menu-price').value = menuToEdit.price_per_plate;
+                    // Restore custom items from saved JSON
+                    if (menuToEdit.custom_items_text) {
+                        try { customItems = JSON.parse(menuToEdit.custom_items_text); } catch(e) { customItems = []; }
+                    }
                     saveBtn.innerText = "🔄 Update Menu"; saveBtn.className = "btn-action btn-update";
                 }
             }
@@ -552,7 +638,7 @@
             let html = '';
             categories.forEach(cat => {
                 const dbItems = allItems.filter(i => i.category == cat.id && selectedIds.has(i.id));
-                const custItems = customItems.filter(i => i.categoryId == cat.id);
+                const custItems = customItems.filter(i => String(i.categoryId) === String(cat.id));
                 if (dbItems.length > 0 || custItems.length > 0) {
                     let catName = currentLang === 'gu' && cat.gujarati_name ? cat.gujarati_name : cat.name;
                     html += `<div class="sel-category"><div class="sel-cat-title">${catName}</div>`;
@@ -582,7 +668,7 @@
             const note = document.getElementById('menu-note').value;
             if(!title) return alert("Please select Menu Name");
             if(selectedIds.size === 0 && customItems.length === 0) return alert("Select at least one item.");
-            const payload = { event: eventId, title: title, price_per_plate: price || 0, items: Array.from(selectedIds), custom_items_text: JSON.stringify(customItems), note: note };
+            const payload = { event: eventId, title: title, price_per_plate: price || 0, items: Array.from(selectedIds), custom_items_text: JSON.stringify(customItems), note: note, created_by: window.currentUsername || '' };
             try {
                 let url = '/api/menu/menus/'; let method = 'POST';
                 if (currentMenuId) { url = `/api/menu/menus/${currentMenuId}/`; method = 'PATCH'; }
@@ -686,7 +772,7 @@
 
             for (let cat of categories) {
                 const dbItems = allItems.filter(item => item.category == cat.id && selectedIds.has(item.id));
-                const custItems = customItems.filter(item => item.categoryId == cat.id);
+                const custItems = customItems.filter(item => String(item.categoryId) === String(cat.id));
                 const totalItems = [...dbItems, ...custItems];
                 if (totalItems.length === 0) continue;
 
@@ -703,12 +789,17 @@
                 doc.setTextColor(0,0,0); doc.setFontSize(10);
                 if(lang !== 'gu') doc.setFont("helvetica", "normal");
                 totalItems.forEach(item => {
-                    let itemName = item.categoryId ? item.name : ((lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name);
-                    doc.text(itemName, currentX + 5, currentY);
+                    if(currentY > maxY) {
+                        if (currentX === 15) { currentX = 110; currentY = startContentY; }
+                        else { doc.addPage(); startContentY = drawLayoutAndGrid(); currentX = 15; currentY = startContentY; }
+                    }
+                    let itemName = item.categoryId !== undefined ? item.name : ((lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name);
+                    doc.text(String(itemName), currentX + 5, currentY);
                     currentY += 6;
                 });
                 currentY += 5;
             }
+            console.log('[PDF Debug] customItems:', JSON.stringify(customItems), 'selectedIds:', Array.from(selectedIds));
 
             const noteText = document.getElementById('menu-note').value;
             if (noteText) {
@@ -727,6 +818,54 @@
 
             const safeTitle = dName.replace(/[^a-zA-Z0-9 ]/g, "").trim();
             doc.save(`${safeTitle}_Menu.pdf`);
+            
+            // Send email to admin on PDF download
+            try {
+                fetch('/send-email/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({
+                        name: dName,
+                        phone: dContact || '',
+                        subject: `PDF Downloaded: ${dName} Menu`,
+                        message: `Menu PDF Generated\n---\nClient: ${dName}\nDate: ${dDateRaw}\nGuests: ${dDish}\nVenue: ${dVenue || '-'}\nPhone: ${dContact || '-'}\nMenu Type: ${dMenuType}\nPrice: ${dPrice}\nLanguage: ${lang === 'gu' ? 'Gujarati' : 'English'}\nGenerated At: ${new Date().toLocaleString()}`
+                    })
+                });
+            } catch(e) { console.log('Email notify:', e); }
+        }
+
+        // --- Section 10: Menu Popularity Stats ---
+        function toggleStats() {
+            const panel = document.getElementById('stats-panel');
+            const toggle = document.getElementById('stats-toggle');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                toggle.textContent = '▲';
+                loadStats();
+            } else {
+                panel.style.display = 'none';
+                toggle.textContent = '▼';
+            }
+        }
+
+        async function loadStats() {
+            const list = document.getElementById('stats-list');
+            try {
+                const r = await fetch('/api/menu/recommend/?event_type=wedding');
+                const data = await r.json();
+                if (data.popular && data.popular.length > 0) {
+                    list.innerHTML = data.popular.map((p, i) =>
+                        `<div style="display:flex; justify-content:space-between; padding:3px 0; ${i < data.popular.length - 1 ? 'border-bottom:1px solid #f0f0f0;' : ''}">
+                            <span>${p.name}</span>
+                            <span style="color:#b59020; font-weight:700;">${p.bookings}x</span>
+                        </div>`
+                    ).join('');
+                } else {
+                    list.innerHTML = '<em style="color:#999;">No stats available yet.</em>';
+                }
+            } catch(e) {
+                list.innerHTML = '<em style="color:#999;">Could not load stats.</em>';
+            }
         }
 
         init();

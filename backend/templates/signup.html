@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Sign Up - Swagat Caterers</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     
@@ -102,6 +104,12 @@
         .message { margin-top: 15px; font-size: 14px; }
         .success { color: #2e7d32; }
         .error { color: #d32f2f; }
+
+        /* Section 18: Password Strength Bar */
+        .strength-container { margin: 5px 0 10px; }
+        .strength-bar { height: 4px; border-radius: 2px; background: #eee; overflow: hidden; }
+        .strength-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; width: 0; }
+        .strength-label { font-size: 11px; margin-top: 4px; color: #999; }
     </style>
 </head>
 <body>
@@ -119,7 +127,11 @@
                 <input type="email" id="email" class="swagat-input" placeholder="Email Address" required>
                 <input type="tel" id="phone" class="swagat-input" placeholder="Phone Number (e.g. 9876543210)" required>
                 
-                <input type="password" id="password" class="swagat-input" placeholder="Password" required>
+                <input type="password" id="password" class="swagat-input" placeholder="Password" required oninput="checkStrength(this.value)">
+                <div class="strength-container">
+                    <div class="strength-bar"><div class="strength-fill" id="str-fill"></div></div>
+                    <div class="strength-label" id="str-label"></div>
+                </div>
                 <input type="password" id="confirm_password" class="swagat-input" placeholder="Confirm Password" required>
                 
                 <button type="submit" class="btn-gold">Sign Up</button>
@@ -132,6 +144,34 @@
 
     
 
+<script>
+    // Section 18: Password Strength Meter
+    function checkStrength(password) {
+        const fill = document.getElementById('str-fill');
+        const label = document.getElementById('str-label');
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (password.length >= 12) score++;
+        if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        const levels = [
+            { width: '0%', color: '#eee', text: '' },
+            { width: '20%', color: '#e74c3c', text: 'Very Weak' },
+            { width: '40%', color: '#e67e22', text: 'Weak' },
+            { width: '60%', color: '#f39c12', text: 'Fair' },
+            { width: '80%', color: '#27ae60', text: 'Good' },
+            { width: '100%', color: '#2ecc71', text: 'Strong ✓' },
+        ];
+
+        const level = levels[Math.min(score, 5)];
+        fill.style.width = level.width;
+        fill.style.background = level.color;
+        label.textContent = level.text;
+        label.style.color = level.color;
+    }
+</script>
 <script>
     document.getElementById('signup-form').addEventListener('submit', async function(e) {
         e.preventDefault();

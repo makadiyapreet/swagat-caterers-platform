@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Swagat Caterers</title>
+    <link rel="icon" href="{% static 'images/logo/favicon.png' %}" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'images/logo/favicon.png' %}">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;500;600&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -46,6 +48,7 @@
         
         .event-dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); }
         .event-count { font-size: 10px; position: absolute; top: 2px; right: 5px; background: red; color: white; padding: 1px 4px; border-radius: 4px; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:translateX(-50%) scale(1);} 50%{opacity:0.5;transform:translateX(-50%) scale(1.4);} }
 
         /* Upcoming List */
         .reminder-list { max-height: 400px; overflow-y: auto; }
@@ -129,7 +132,9 @@
             .dashboard-nav { 
                 padding: 10px 15px; 
                 flex-direction: row; /* Keep logo and profile side-by-side */
-                justify-content: space-between; 
+                justify-content: space-between;
+                z-index: 9999; /* Ensure nav stays above everything */
+                position: sticky;
             }
             .brand { font-size: 20px; }
             .nav-logo { height: 35px; }
@@ -158,15 +163,19 @@
                 font-size: 16px; 
             }
 
-            /* Modal Adjustments */
+            /* Modal Adjustments - Fix overflow for dropdowns/custom items */
             .modal-content { 
                 width: 92%; 
                 max-height: 90vh; 
-                overflow-y: auto; 
+                overflow-y: auto;
+                overflow-x: visible; /* Allow dropdowns to extend beyond */
             }
             .modal-header { padding: 15px 20px; }
             .modal-title { font-size: 20px; }
-            .modal-body { padding: 20px; }
+            .modal-body { 
+                padding: 20px;
+                overflow: visible; /* Fix: prevent cutting off dropdown menus */
+            }
             
             .event-details-grid { 
                 grid-template-columns: 1fr; /* Stack labels and values */
@@ -186,6 +195,17 @@
                 gap: 8px; 
             }
             .btn-modal { width: 100%; }
+
+            /* Fix: Ensure select dropdowns and custom item options render properly */
+            select, .form-select, .custom-select {
+                position: relative;
+                z-index: 10;
+                -webkit-appearance: menulist;
+                appearance: menulist;
+            }
+
+            /* Task form responsive */
+            #task-form > div { grid-template-columns: 1fr !important; }
         }
 
         /* Extra Small Screens (Small phones) */
@@ -203,6 +223,7 @@
             <img src="{% static 'images/logo/logo.png' %}" class="nav-logo" alt="Logo"> Swagat Caterers
         </div>
         <div class="nav-actions">
+            <span id="user-role-badge" style="background:rgba(212,175,55,0.15); color:#D4AF37; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700; text-transform:uppercase;"></span>
             <a href="{% url 'profile' %}" class="profile-btn">
                 <img src="{% static 'images/default_user.png' %}" id="nav-img" class="nav-profile-img">
                 <span id="nav-username">Profile</span>
@@ -239,6 +260,20 @@
             </div>
         </div>
 
+        <!-- Activity Logs Section (Admin only) — MOVED TO TOP -->
+        <div id="activity-logs-section" style="margin-top:18px; display:none;">
+            <div style="background:#fff; border-radius:14px; padding:18px 24px; border:1px solid #f0ece4; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.3rem;">🔔</span>
+                    <div>
+                        <div style="font-weight:700; color:#1a1a1a; font-size:0.95rem;">Manager Activity Logs</div>
+                        <div id="activity-pending-count" style="font-size:0.75rem; color:#999;">Loading...</div>
+                    </div>
+                </div>
+                <a href="/activity-review/" target="_blank" style="background:linear-gradient(135deg,#1a1a1a,#333); color:#D4AF37; padding:10px 24px; border-radius:10px; font-size:0.82rem; font-weight:700; text-decoration:none; transition:all 0.3s;">Review Activity →</a>
+            </div>
+        </div>
+
         <div class="bottom-actions">
             <a href="{% url 'tracker' %}" class="btn-big btn-tracker">
                 📊 Daily Member Tracker & Accounts
@@ -250,7 +285,89 @@
                 🍽️ Create Menu Directly
             </a>
         </div>
+
+        <!-- Platform Upgrade: Quick Links (Admin/Manager only) -->
+        <div class="bottom-actions" style="margin-top: 20px;" id="upgrade-actions">
+            <a href="{% url 'gallery_manage' %}" class="btn-big" style="background:#8e44ad; color:#fff; border-bottom:5px solid #6c3483;">
+                📸 Gallery Management
+            </a>
+            <a href="{% url 'export_events_preview' %}" class="btn-big" style="background:#1abc9c; color:#fff; border-bottom:5px solid #16a085;">
+                📊 Export Events
+            </a>
+            <a href="{% url 'export_bookings_preview' %}" class="btn-big" style="background:#3498db; color:#fff; border-bottom:5px solid #2980b9;">
+                📋 Export Bookings
+            </a>
+        </div>
+
+        <!-- Task Assignment Section (Admin only) — Links to dedicated page -->
+        <div id="task-section" style="margin-top:30px; display:none;">
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 15px rgba(0,0,0,0.06); border:1px solid #f0ece4;">
+                <div style="padding:18px 22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid #f0ece4;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.3rem;">📋</span>
+                        <div>
+                            <div style="color:#1a1a1a;font-weight:700;font-size:0.95rem;">Task Management</div>
+                            <div id="task-summary-text" style="color:#999;font-size:0.75rem;margin-top:2px;">Loading tasks...</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                        <span id="task-count-badge" style="background:#fef3e2;color:#d4a017;padding:5px 14px;border-radius:20px;font-size:0.72rem;font-weight:700;">0 tasks</span>
+                        <a href="/assign-tasks/" target="_blank" style="background:linear-gradient(135deg,#1a1a1a,#333);color:#D4AF37;padding:8px 20px;border-radius:10px;font-size:0.78rem;font-weight:700;text-decoration:none;transition:all 0.3s;">Manage Tasks →</a>
+                    </div>
+                </div>
+                <!-- Mini task list preview -->
+                <div id="admin-task-list" style="padding:0 22px;max-height:250px;overflow-y:auto;"></div>
+            </div>
+        </div>
     </div>
+
+        <!-- Staff/Manager Tasks Section -->
+        <div id="staff-tasks-section" style="margin-top:30px; display:none;">
+            <div style="background:linear-gradient(135deg,#1a1a1a 0%,#2c2c2c 100%); border-radius:16px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+                <div style="background:linear-gradient(135deg,#D4AF37,#aa8c2c); padding:16px 25px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <h3 style="color:#1a1a1a; font-size:1.1rem; font-weight:800; margin:0;">📋 My Assigned Tasks</h3>
+                    <a href="/my-tasks/" style="background:rgba(0,0,0,0.15); color:#1a1a1a; padding:6px 16px; border-radius:20px; font-size:0.75rem; font-weight:700; text-decoration:none; transition:all 0.3s;">Open Full Page →</a>
+                </div>
+                <div id="staff-task-list" style="padding:15px 25px 20px; max-height:350px; overflow-y:auto;">
+                    <p style="color:#666;text-align:center;padding:20px;">Loading tasks...</p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Personal Tracker Chart (Manager + Staff) -->
+        <div id="personal-chart-section" style="margin-top:30px; display:none;">
+            <div class="card">
+                <h3>📊 My Work Summary</h3>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:15px; margin-bottom:20px;" id="personal-stats"></div>
+                <div style="position:relative; height:300px;">
+                    <canvas id="personalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes Section (All Roles) -->
+        <div id="admin-notes-section" style="margin-top:30px; display:none;">
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.06); border:1px solid #eee;">
+                <div style="background:linear-gradient(135deg,#1a1a1a,#2c2c2c); padding:16px 25px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h3 style="color:#D4AF37; font-size:1.1rem; font-weight:700; margin:0;">📝 My Notes</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <span style="background:rgba(212,175,55,0.15); color:#D4AF37; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:600;" id="notes-info-badge">Auto-deletes after 60 days</span>
+                        <button id="download-notes-btn" onclick="downloadNotes()" style="display:none; background:rgba(39,174,96,0.15); color:#27ae60; border:1px solid rgba(39,174,96,0.3); padding:4px 14px; border-radius:20px; font-size:0.7rem; font-weight:600; cursor:pointer;">📥 Download CSV</button>
+                    </div>
+                </div>
+                <div style="padding:20px 25px;">
+                    <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;">
+                        <input type="date" id="admin-note-date" style="padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.85rem; background:#fafafa;">
+                        <input type="text" id="admin-note-input" placeholder="Write a note..." style="flex:1; min-width:180px; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:0.85rem; background:#fafafa;">
+                        <button onclick="saveAdminNote()" style="background:linear-gradient(135deg,#D4AF37,#b8860b); color:#fff; border:none; padding:10px 22px; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.85rem; white-space:nowrap;">Save ✓</button>
+                    </div>
+                    <div id="admin-notes-list"></div>
+                </div>
+            </div>
+        </div>
+
+
 
     <div id="eventModal" class="modal">
         <div class="modal-content">
@@ -261,7 +378,66 @@
             <div class="modal-body">
                 <div id="multi-event-list" style="display:none;" class="event-select-list"></div>
                 <div id="event-details-content"></div>
+
+                <!-- Section 3: Status Update -->
+                <div id="status-update-section" style="margin-top:15px; padding-top:15px; border-top:1px solid #eee; display:none;">
+                    <label style="font-weight:700; font-size:13px; color:#aa8c2c;">Update Status:</label>
+                    <div style="display:flex; gap:8px; margin-top:5px;">
+                        <select id="status-select" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                            <option value="received">Received</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button onclick="updateEventStatus()" style="background:#D4AF37; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Update</button>
+                    </div>
+                </div>
+
+                <!-- Section 6: Internal Notes -->
+                <div id="notes-section" style="margin-top:15px; padding-top:15px; border-top:1px solid #eee; display:none;">
+                    <label style="font-weight:700; font-size:13px; color:#aa8c2c;">📝 Internal Notes:</label>
+                    <textarea id="internal-notes" rows="3" style="width:100%; margin-top:5px; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                    <button onclick="saveInternalNotes()" style="background:#27ae60; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; margin-top:5px; font-size:13px;">Save Notes</button>
+                    <span id="notes-status" style="margin-left:10px; font-size:12px; color:#27ae60;"></span>
+                </div>
+
+                <!-- Section 13: Staff assigned -->
+                <div id="staff-section" style="margin-top:15px; padding-top:15px; border-top:1px solid #eee; display:none;">
+                    <label style="font-weight:700; font-size:13px; color:#aa8c2c;">👥 Assigned Staff:</label>
+                    <div id="staff-list" style="margin-top:5px;"></div>
+                </div>
+
                 <div id="admin-menu-actions" class="modal-actions" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 15: Task Widget (Floating bottom-left) -->
+    <div id="task-widget" style="position:fixed; bottom:20px; left:20px; z-index:1500; display:none;">
+        <button onclick="toggleTaskPanel()" id="task-widget-fab" style="background:#D4AF37; color:#1a1a1a; border:none; width:50px; height:50px; border-radius:50%; font-size:20px; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative;">📋<span id="widget-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#e74c3c;color:#fff;font-size:10px;min-width:18px;height:18px;border-radius:9px;font-weight:700;line-height:18px;"></span></button>
+        <div id="task-panel" style="display:none; position:absolute; bottom:60px; left:0; width:350px; background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.15); overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#D4AF37,#aa8c2c); padding:15px 20px; color:#1a1a1a; font-weight:700; display:flex;justify-content:space-between;align-items:center;">
+                <span>My Tasks</span>
+                <a href="/my-tasks/" target="_blank" style="color:#1a1a1a;font-size:0.7rem;text-decoration:underline;">View All →</a>
+            </div>
+            <div id="widget-task-list" style="max-height:300px; overflow-y:auto; padding:15px;"></div>
+        </div>
+    </div>
+
+    <!-- Section 8: Admin Chatbot Widget -->
+    <div id="admin-chat-widget" style="position:fixed; bottom:20px; right:20px; z-index:1500;">
+        <button onclick="toggleAdminChat()" style="background:linear-gradient(135deg,#1a1a1a,#333); color:#D4AF37; border:2px solid #D4AF37; width:50px; height:50px; border-radius:50%; font-size:22px; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.2); transition:0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🤖</button>
+        <div id="admin-chat-panel" style="display:none; position:absolute; bottom:60px; right:0; width:380px; background:#1a1a1a; border:1px solid rgba(212,175,55,0.2); border-radius:15px; box-shadow:0 15px 50px rgba(0,0,0,0.3); overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#D4AF37,#aa8c2c); padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#1a1a1a; font-weight:700;">🤖 Business Insights</span>
+                <button onclick="toggleAdminChat()" style="background:none; border:none; color:#1a1a1a; font-size:18px; cursor:pointer;">&times;</button>
+            </div>
+            <div id="admin-chat-messages" style="height:250px; overflow-y:auto; padding:15px;"></div>
+            <div style="padding:10px; border-top:1px solid rgba(212,175,55,0.1); display:flex; gap:8px;">
+                <input id="admin-chat-input" type="text" placeholder="Ask about your business..." style="flex:1; padding:10px; background:#222; border:1px solid #333; color:#fff; border-radius:8px; font-size:0.85rem;" onkeypress="if(event.key==='Enter')sendAdminChat()">
+                <button onclick="sendAdminChat()" style="background:#D4AF37; color:#1a1a1a; border:none; padding:10px 15px; border-radius:8px; font-weight:700; cursor:pointer;">Send</button>
             </div>
         </div>
     </div>
@@ -280,8 +456,10 @@
     let categories = [];
 
     // Role Flags
-    let isAdmin = false;   // Can edit, delete, see prices
-    let isManager = false; // Can view only (no prices, no edit)
+    let isAdmin = false;
+    let isManager = false;
+    let currentUserId = null;
+    let currentUsername = '';
 
     // --- HELPER: COOKIE FETCH ---
     function getCookie(name) {
@@ -342,35 +520,122 @@
             // --- ROLE LOGIC START ---
             const rawType = (user.user_type || '').toLowerCase();
             
-            // ADMIN: user_type is 'admin' OR they are django staff
-            isAdmin = (rawType === 'admin' || user.is_staff === true);
-            
-            // MANAGER: user_type is 'manager'
+            isAdmin = (rawType === 'admin');
             isManager = (rawType === 'manager');
+            const isStaffUser = (rawType === 'staff');
+            currentUserId = user.id;
+            currentUsername = user.username;
 
-            // CUSTOMER CHECK: If not Admin AND not Manager -> Block Access
-            if (!isAdmin && !isManager) {
+            // CUSTOMER CHECK
+            if (!isAdmin && !isManager && !isStaffUser) {
                 document.body.innerHTML = `
-                    <div style="display:flex; height:100vh; justify-content:center; align-items:center; flex-direction:column; background-color:#f9f9f9; font-family:sans-serif;">
-                        <h1 style="color:#D4AF37; font-size:3rem; margin-bottom:10px;">Coming Soon</h1>
-                        <p style="color:#666; font-size:1.2rem; max-width:500px; text-align:center;">
-                            Dear ${user.username}, the Customer Dashboard is currently under development.
-                            Please contact Swagat Caterers directly for bookings.
-                        </p>
-                        <br>
-                        <button onclick="logoutUser()" style="padding:10px 20px; background:#333; color:white; border:none; cursor:pointer; font-size:1rem; border-radius:5px;">
-                            Logout
-                        </button>
-                    </div>
-                `;
-                return; // STOP EXECUTION
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Inter:wght@300;400;600;700&display=swap');
+                        @keyframes gradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+                        @keyframes float { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-12px)} }
+                        @keyframes fadeInUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+                        @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+                        * { margin:0; padding:0; box-sizing:border-box; }
+                        .cust-bg {
+                            display:flex; min-height:100vh; justify-content:center; align-items:center; flex-direction:column;
+                            background: linear-gradient(160deg, #0a0a0a 0%, #1a1209 30%, #0d0d0d 60%, #1a0f05 100%);
+                            font-family:'Inter',sans-serif; padding:20px; text-align:center;
+                            position:relative; overflow:hidden;
+                        }
+                        .cust-bg::before {
+                            content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+                            background:radial-gradient(circle at 30% 50%, rgba(212,175,55,0.04) 0%, transparent 50%),
+                                       radial-gradient(circle at 70% 80%, rgba(212,175,55,0.03) 0%, transparent 50%);
+                            animation:gradientShift 15s ease infinite; background-size:400% 400%;
+                        }
+                        .cust-card {
+                            background:rgba(255,255,255,0.04); border:1px solid rgba(212,175,55,0.25); border-radius:28px;
+                            padding:55px 45px; max-width:500px; width:100%; backdrop-filter:blur(20px);
+                            box-shadow:0 25px 80px rgba(0,0,0,0.5), 0 0 40px rgba(212,175,55,0.05);
+                            animation:fadeInUp 0.8s ease; position:relative; z-index:1;
+                        }
+                        .cust-logo { width:60px; height:60px; margin:0 auto 10px; animation:float 3s ease-in-out infinite; }
+                        .cust-logo img { width:100%; height:100%; object-fit:contain; }
+                        .cust-badge {
+                            display:inline-block; background:linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05));
+                            border:1px solid rgba(212,175,55,0.3); color:#D4AF37; padding:5px 18px; border-radius:20px;
+                            font-size:0.7rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px;
+                        }
+                        .cust-title {
+                            font-family:'Playfair Display',serif; color:#D4AF37; font-size:2.6rem; font-weight:800; margin-bottom:12px;
+                            background:linear-gradient(90deg, #D4AF37, #f5e6a3, #D4AF37); background-size:200% auto;
+                            -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:shimmer 3s linear infinite;
+                        }
+                        .cust-sub { color:#999; font-size:0.95rem; line-height:1.7; margin-bottom:32px; }
+                        .cust-sub b { color:#e8dcc8; }
+                        .cust-contact {
+                            background:linear-gradient(135deg, rgba(212,175,55,0.06), rgba(212,175,55,0.02));
+                            border:1px solid rgba(212,175,55,0.15); border-radius:20px; padding:28px; margin-bottom:28px;
+                        }
+                        .cust-contact h4 { color:#D4AF37; margin-bottom:8px; font-size:0.85rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; }
+                        .cust-name { color:#fff; font-size:1.5rem; font-weight:800; font-family:'Playfair Display',serif; margin-bottom:18px; }
+                        .cust-links { display:flex; flex-direction:column; gap:10px; }
+                        .cust-link {
+                            display:flex; align-items:center; gap:14px; color:#d1c4a9; text-decoration:none;
+                            padding:13px 18px; border-radius:12px; transition:all 0.3s;
+                            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+                        }
+                        .cust-link:hover { background:rgba(212,175,55,0.1); border-color:rgba(212,175,55,0.3); color:#D4AF37; transform:translateX(4px); }
+                        .cust-link-icon { font-size:1.2rem; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:rgba(212,175,55,0.1); border-radius:8px; }
+                        .cust-link-text { font-size:0.9rem; font-weight:500; }
+                        .cust-divider { border:none; border-top:1px solid rgba(212,175,55,0.1); margin:22px 0; }
+                        .cust-logout {
+                            padding:15px 40px; background:linear-gradient(135deg,#D4AF37,#c5a028); color:#0a0a0a; border:none;
+                            cursor:pointer; font-weight:800; font-size:1rem; border-radius:30px; transition:all 0.3s;
+                            box-shadow:0 6px 25px rgba(212,175,55,0.35); letter-spacing:0.5px;
+                        }
+                        .cust-logout:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(212,175,55,0.5); background:linear-gradient(135deg,#e0be4a,#D4AF37); }
+                        .cust-footer { color:#444; font-size:0.7rem; margin-top:25px; z-index:1; position:relative; }
+                        @media(max-width:480px) { .cust-card{padding:35px 22px;border-radius:20px;} .cust-title{font-size:2rem;} .cust-name{font-size:1.2rem;} }
+                    </style>
+                    <div class="cust-bg" id="customer-screen">
+                        <div class="cust-card">
+                            <div class="cust-logo"><img src="/static/images/logo/logo.png" alt="Swagat" onerror="this.parentElement.innerHTML='🍽️'"></div>
+                            <div class="cust-badge">Under Development</div>
+                            <div class="cust-title">Coming Soon</div>
+                            <p class="cust-sub">
+                                Dear <b>${user.username}</b>, the Customer Dashboard is currently under development.<br>
+                                We're crafting something extraordinary for you!
+                            </p>
+                            <div class="cust-contact">
+                                <h4>Need immediate assistance?</h4>
+                                <div class="cust-name">Preet Patel</div>
+                                <div class="cust-links">
+                                    <a href="tel:+918160238745" class="cust-link">
+                                        <span class="cust-link-icon">📞</span>
+                                        <span class="cust-link-text">+91 81602 38745</span>
+                                    </a>
+                                    <a href="https://wa.me/918160238745" target="_blank" class="cust-link">
+                                        <span class="cust-link-icon">💬</span>
+                                        <span class="cust-link-text">WhatsApp Chat</span>
+                                    </a>
+                                    <a href="mailto:swagatcaterersofficial@gmail.com" class="cust-link">
+                                        <span class="cust-link-icon">✉️</span>
+                                        <span class="cust-link-text">swagatcaterersofficial@gmail.com</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <hr class="cust-divider">
+                            <button onclick="logoutUser()" class="cust-logout">Logout</button>
+                        </div>
+                        <p class="cust-footer">© Swagat Caterers — Premium Catering Services, Rajkot</p>
+                    </div>`;
+                return;
             }
             // --- ROLE LOGIC END ---
 
-            // 2. UPDATE UI (Welcome Msg & Image)
-            const roleDisplay = isAdmin ? "ADMIN" : "MANAGER";
+            // 2. UPDATE UI
+            const roleDisplay = isAdmin ? "ADMIN" : (isManager ? "MANAGER" : "STAFF");
             const welcomeEl = document.getElementById('welcome-msg');
-            if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username} (${roleDisplay})`;
+            if (welcomeEl) welcomeEl.innerText = `Welcome, ${user.username}`;
+            
+            const roleBadge = document.getElementById('user-role-badge');
+            if (roleBadge) { roleBadge.innerText = roleDisplay; roleBadge.style.display = 'inline'; }
             
             const navImg = document.getElementById('nav-img');
             if(user.profile_image && navImg) navImg.src = user.profile_image;
@@ -387,10 +652,78 @@
             categories = await cRes.json();
             allItems = await iRes.json();
 
-            // 4. HIDE SIDEBAR BUTTONS FOR MANAGERS
-            if (!isAdmin) {
-                document.querySelector('.btn-booking')?.style.setProperty('display', 'none');
-                document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'none');
+            // ============ ROLE-BASED UI VISIBILITY ============
+
+            // --- ADMIN: Full access ---
+            if (isAdmin) {
+                // Show task section + activity logs
+                document.getElementById('task-section').style.display = 'block';
+                document.getElementById('activity-logs-section').style.display = 'block';
+                
+                // Show team management section
+                const teamSection = document.getElementById('team-manage-section');
+                if (teamSection) teamSection.style.display = 'block';
+                
+                // Load admin task summary
+                loadTasks(headers);
+                
+                // Load activity logs count
+                loadActivityLogs(headers);
+                
+                // Load team members for management
+                loadTeamMembers();
+            }
+            
+            // All staff (admin, manager, staff) get to see their admin notes
+            loadAdminNotes(headers);
+
+            // --- MANAGER: Calendar + Create Booking/Menu (no price) ---
+            if (isManager) {
+                // Show create booking + menu buttons
+                document.querySelector('.btn-booking')?.style.setProperty('display', 'flex');
+                document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'flex');
+                
+                // Hide: gallery, exports, task assignment
+                document.getElementById('upgrade-actions')?.style.setProperty('display', 'none');
+                document.getElementById('task-section')?.style.setProperty('display', 'none');
+                
+                // Show manager's assigned tasks
+                const staffTaskSection = document.getElementById('staff-tasks-section');
+                if (staffTaskSection) {
+                    staffTaskSection.style.display = 'block';
+                    loadStaffTasks(headers, user.id);
+                }
+                
+                // Show personal tracker chart
+                loadPersonalTrackerChart(headers, currentUsername);
+            }
+
+            // --- STAFF: Only tasks + calendar (no prices) ---
+            if (isStaffUser) {
+                // Hide ALL action buttons
+                document.querySelector('.bottom-actions')?.style.setProperty('display', 'none');
+                document.getElementById('upgrade-actions')?.style.setProperty('display', 'none');
+                document.getElementById('task-section')?.style.setProperty('display', 'none');
+                
+                // Show staff task view
+                const staffTaskSection = document.getElementById('staff-tasks-section');
+                if (staffTaskSection) {
+                    staffTaskSection.style.display = 'block';
+                    loadStaffTasks(headers, user.id);
+                }
+                
+                // Strip prices from events for staff view
+                allEvents = allEvents.map(e => ({ ...e, rate: '**', total_cost: '**', advance_amount: '**', pending_amount: '**' }));
+                
+                // Show personal tracker chart
+                loadPersonalTrackerChart(headers, currentUsername);
+            }
+
+            // --- MANAGER + ADMIN: Show booking/menu ---
+            if (!isStaffUser) {
+                // Both admin and manager see calendar with full data
+            } else {
+                // Staff: remove price-related data from upcoming events display
             }
 
             renderCalendar(currentDate);
@@ -399,6 +732,304 @@
         } catch(e) { 
             console.error("Dashboard Load Error:", e);
         }
+    }
+
+    // --- LOAD TASKS (Admin dashboard compact view) ---
+    async function loadTasks(headers) {
+        try {
+            const r = await fetch('/api/tasks/', { headers });
+            if (!r.ok) return;
+            const tasks = await r.json();
+            const badge = document.getElementById('task-count-badge');
+            const summary = document.getElementById('task-summary-text');
+            const container = document.getElementById('admin-task-list');
+            if (badge) badge.textContent = `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+            
+            const pending = tasks.filter(t => t.status === 'pending').length;
+            const inProgress = tasks.filter(t => t.status === 'in_progress').length;
+            const done = tasks.filter(t => t.status === 'done').length;
+            if (summary) summary.textContent = `${pending} pending · ${inProgress} in progress · ${done} done`;
+            
+            if (!container) return;
+            if (!tasks.length) {
+                container.innerHTML = '<p style="color:#666;text-align:center;padding:15px;font-size:0.8rem;">No tasks yet. Use "Manage Tasks" to assign.</p>';
+                return;
+            }
+            // Show top 5 most recent/pending tasks
+            const topTasks = tasks.filter(t => t.status !== 'done').slice(0, 5);
+            if (!topTasks.length) {
+                container.innerHTML = '<p style="color:#27ae60;text-align:center;padding:12px;font-size:0.8rem;">✅ All tasks completed!</p>';
+                return;
+            }
+            const prioColors = { high: '#e74c3c', medium: '#f39c12', low: '#27ae60' };
+            const statusLabels = { pending: 'Pending', in_progress: 'In Progress', done: 'Done', rejected: 'Rejected' };
+            container.innerHTML = topTasks.map(t => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f0ece4;gap:10px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="width:7px;height:7px;border-radius:50%;background:${prioColors[t.priority] || '#ccc'};flex-shrink:0;"></span>
+                            <span style="color:#1a1a1a;font-size:0.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title}</span>
+                        </div>
+                        <div style="font-size:0.75rem;color:#999;margin-top:3px;">→ ${t.assigned_to_name || 'Staff'} · 📅 ${t.deadline || '-'}</div>
+                    </div>
+                    <span style="font-size:0.68rem;padding:4px 12px;border-radius:10px;font-weight:700;white-space:nowrap;${t.status === 'pending' ? 'background:#fef3e2;color:#d4a017;' : t.status === 'in_progress' ? 'background:#e8f4fd;color:#2980b9;' : 'background:#fde8e8;color:#c0392b;'}">${statusLabels[t.status] || t.status}</span>
+                </div>
+            `).join('');
+        } catch(e) { console.log('Tasks:', e); }
+    }
+
+    // --- LOAD STAFF TASKS (Staff/Manager - their assigned tasks) ---
+    async function loadStaffTasks(headers, userId) {
+        try {
+            const r = await fetch('/api/tasks/', { headers });
+            if (!r.ok) return;
+            const allTasks = await r.json();
+            // Fix: filter by assigned_to (now numeric ID) matching userId
+            const myTasks = allTasks.filter(t => 
+                t.assigned_to == userId || t.assigned_to_id == userId
+            );
+            const container = document.getElementById('staff-task-list');
+            if (!myTasks.length) {
+                container.innerHTML = '<p style="color:#999;text-align:center;padding:30px;">No tasks assigned to you yet. ✅</p>';
+                return;
+            }
+            const prioColors = { high: '#e74c3c', medium: '#f39c12', low: '#27ae60' };
+            const prioIcons = { high: '🔴', medium: '🟡', low: '🟢' };
+            const statusStyles = {
+                pending: 'background:rgba(243,156,18,0.08);color:#f39c12;border:1px solid rgba(243,156,18,0.2);',
+                in_progress: 'background:rgba(52,152,219,0.08);color:#3498db;border:1px solid rgba(52,152,219,0.2);',
+                done: 'background:rgba(39,174,96,0.08);color:#27ae60;border:1px solid rgba(39,174,96,0.2);'
+            };
+            const statusLabels = { pending: 'Pending', in_progress: 'In Progress', done: 'Done' };
+            
+            container.innerHTML = myTasks.map(t => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border:1px solid #eee;border-left:4px solid ${prioColors[t.priority] || '#ddd'};border-radius:10px;margin-bottom:10px;background:${t.is_overdue ? '#fdf2f2' : '#fdfdfd'};flex-wrap:wrap;gap:10px;">
+                    <div style="flex:1;min-width:150px;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:0.7rem;">${prioIcons[t.priority] || ''}</span>
+                            <strong style="font-size:0.95rem;">${t.title}</strong>
+                            ${t.is_overdue ? '<span style="background:#e74c3c;color:#fff;padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:700;">OVERDUE</span>' : ''}
+                        </div>
+                        <div style="font-size:0.8rem;color:#888;margin-top:4px;">${t.description || ''}</div>
+                        <div style="font-size:0.75rem;color:#aaa;margin-top:5px;">📅 Deadline: ${t.deadline} &nbsp;|&nbsp; By: ${t.assigned_by}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="font-size:0.75rem;padding:5px 14px;border-radius:15px;font-weight:600;${statusStyles[t.status] || ''}">${statusLabels[t.status] || t.status}</span>
+                        ${t.status !== 'done' ? `
+                            <select onchange="updateStaffTaskStatus(${t.id}, this.value)" style="padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.75rem;cursor:pointer;background:#fff;">
+                                <option value="">Update ▾</option>
+                                <option value="in_progress">Start Working</option>
+                                <option value="done">Mark Done ✓</option>
+                            </select>` : '<span style="font-size:0.85rem;">✅</span>'}
+                    </div>
+                </div>
+            `).join('');
+        } catch(e) { console.log('Staff tasks:', e); }
+    }
+
+    // Update task status from staff view
+    async function updateStaffTaskStatus(taskId, newStatus) {
+        if (!newStatus) return;
+        const token = localStorage.getItem('authToken');
+        try {
+            const r = await fetch(`/api/tasks/${taskId}/status/`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (r.ok) {
+                const headers = { 'Authorization': `Token ${token}` };
+                loadStaffTasks(headers, currentUserId);
+            }
+        } catch(e) { console.log(e); }
+    }
+
+    // --- PERSONAL TRACKER CHART (Manager + Staff) ---
+    async function loadPersonalTrackerChart(headers, username) {
+        try {
+            const section = document.getElementById('personal-chart-section');
+            if (!section) return;
+            section.style.display = 'block';
+
+            // Fetch all logs and filter by username
+            const r = await fetch('/api/menu/logs/', { headers });
+            if (!r.ok) return;
+            const allLogs = await r.json();
+            const myLogs = allLogs.filter(l => l.log_entry_by === username || l.member_name === username);
+            
+            if (!myLogs.length) {
+                document.getElementById('personal-stats').innerHTML = '<p style="color:#999;grid-column:1/-1;">No tracker data found for you yet.</p>';
+                return;
+            }
+
+            // Calculate stats
+            let totalDays = myLogs.length;
+            let totalEarned = 0, totalAdvance = 0, totalSettle = 0;
+            myLogs.forEach(l => {
+                totalEarned += parseFloat(l.log_total || 0);
+                totalAdvance += parseFloat(l.log_advance || 0);
+                totalSettle += parseFloat(l.log_settle || 0);
+            });
+            const netDue = totalEarned - totalAdvance - totalSettle;
+
+            // Stats cards
+            const statsHtml = [
+                { label: 'Days Worked', value: totalDays, color: '#3498db', icon: '📅' },
+                { label: 'Total Earned', value: `₹${totalEarned.toFixed(0)}`, color: '#27ae60', icon: '💰' },
+                { label: 'Advance Taken', value: `₹${totalAdvance.toFixed(0)}`, color: '#e67e22', icon: '💸' },
+                { label: 'Net Due', value: `₹${netDue.toFixed(0)}`, color: netDue >= 0 ? '#c0392b' : '#27ae60', icon: '📊' },
+            ].map(s => `
+                <div style="background:${s.color}10;border:1px solid ${s.color}30;border-radius:10px;padding:15px;text-align:center;">
+                    <div style="font-size:1.5rem;">${s.icon}</div>
+                    <div style="font-size:1.3rem;font-weight:800;color:${s.color};">${s.value}</div>
+                    <div style="font-size:0.75rem;color:#888;text-transform:uppercase;">${s.label}</div>
+                </div>
+            `).join('');
+            document.getElementById('personal-stats').innerHTML = statsHtml;
+
+            // Chart - last 30 entries
+            const recent = myLogs.slice(-30);
+            const ctx = document.getElementById('personalChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: recent.map(l => l.log_date),
+                    datasets: [
+                        { label: 'Earned (₹)', data: recent.map(l => parseFloat(l.log_total || 0)), backgroundColor: 'rgba(46,204,113,0.6)', borderRadius: 4 },
+                        { label: 'Advance (₹)', data: recent.map(l => parseFloat(l.log_advance || 0)), backgroundColor: 'rgba(231,76,60,0.6)', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { display: true, grid: { display: false } }, y: { beginAtZero: true } },
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+        } catch(e) { console.log('Personal chart:', e); }
+    }
+
+    // --- NOTES (All Roles) ---
+    async function loadAdminNotes(headers) {
+        const section = document.getElementById('admin-notes-section');
+        if (section) section.style.display = 'block';
+        
+        // Show download button for admin only
+        if (isAdmin) {
+            const dlBtn = document.getElementById('download-notes-btn');
+            if (dlBtn) dlBtn.style.display = 'inline-block';
+        }
+        
+        try {
+            const r = await fetch('/api/admin-notes/', { headers });
+            if (!r.ok) return;
+            const notes = await r.json();
+            const container = document.getElementById('admin-notes-list');
+            if (!notes.length) {
+                container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">No notes yet. Start writing!</p>';
+                return;
+            }
+            
+            const roleColors = { admin: '#e74c3c', manager: '#8e44ad', staff: '#27ae60' };
+            
+            container.innerHTML = notes.map(n => {
+                const roleColor = roleColors[n.author_type] || '#888';
+                const isOwn = n.author_name === currentUsername;
+                return `
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 16px;border-left:3px solid ${roleColor};background:#fafafa;border-radius:8px;margin-bottom:8px;gap:10px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:150px;">
+                        <div style="font-size:0.9rem;color:#333;line-height:1.5;">${n.content}</div>
+                        <div style="font-size:0.7rem;color:#999;margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="background:${roleColor};color:#fff;padding:2px 8px;border-radius:10px;font-weight:600;font-size:0.65rem;text-transform:uppercase;">${n.author_type || 'user'}</span>
+                            <span>${n.author_name}</span>
+                            <span>•</span>
+                            <span>📅 ${n.note_date}</span>
+                        </div>
+                    </div>
+                    ${isOwn || isAdmin ? `
+                        <button onclick="deleteNote(${n.id})" style="background:none;border:1px solid #ddd;color:#999;padding:4px 10px;border-radius:6px;font-size:0.7rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor='#e74c3c';this.style.color='#e74c3c'" onmouseout="this.style.borderColor='#ddd';this.style.color='#999'">🗑 Delete</button>
+                    ` : ''}
+                </div>`;
+            }).join('');
+        } catch(e) { console.log('Notes:', e); }
+    }
+
+    async function deleteNote(noteId) {
+        if (!confirm('Delete this note?')) return;
+        const token = localStorage.getItem('authToken');
+        try {
+            const r = await fetch(`/api/admin-notes/${noteId}/delete/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            if (r.ok) loadAdminNotes({ 'Authorization': `Token ${token}` });
+        } catch(e) { console.log(e); }
+    }
+
+    function downloadNotes() {
+        const token = localStorage.getItem('authToken');
+        // Create a hidden link that fetches the CSV
+        fetch('/api/admin-notes/download/', {
+            headers: { 'Authorization': `Token ${token}` }
+        }).then(r => r.blob()).then(blob => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `swagat_notes_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }).catch(e => console.log(e));
+    }
+
+    async function loadActivityLogs(headers) {
+        try {
+            const r = await fetch('/api/activity-logs/', { headers });
+            if (!r.ok) return;
+            const logs = await r.json();
+            const countEl = document.getElementById('activity-pending-count');
+            if (countEl) {
+                countEl.textContent = logs.length > 0 
+                    ? `${logs.length} pending review${logs.length > 1 ? 's' : ''}`
+                    : 'All caught up! No pending reviews';
+                countEl.style.color = logs.length > 0 ? '#e67e22' : '#27ae60';
+            }
+        } catch(e) { console.log('Activity Logs Error:', e); }
+    }
+
+    async function saveAdminNote() {
+        const token = localStorage.getItem('authToken');
+        const input = document.getElementById('admin-note-input');
+        const content = input.value.trim();
+        if (!content) return;
+        const dateInput = document.getElementById('admin-note-date');
+        const note_date = dateInput ? dateInput.value : '';
+        
+        const headers = { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') };
+        try {
+            const bodyData = { content, note_type: 'general' };
+            if (note_date) bodyData.note_date = note_date;
+            
+            const r = await fetch('/api/admin-notes/', {
+                method: 'POST', headers,
+                body: JSON.stringify(bodyData)
+            });
+            if (r.ok) { input.value = ''; loadAdminNotes({ 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }); }
+        } catch(e) { console.log('Save note:', e); }
+    }
+
+    async function saveEventNote(eventId, noteType) {
+        const token = localStorage.getItem('authToken');
+        const textarea = document.getElementById(`note-task-${eventId}`);
+        if (!textarea) return;
+        const content = textarea.value.trim();
+        if (!content) return;
+        
+        const headers = { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') };
+        try {
+            await fetch('/api/admin-notes/', {
+                method: 'POST', headers,
+                body: JSON.stringify({ content: `[Task #${eventId}] ${content}`, note_type: 'event' })
+            });
+            textarea.value = '';
+            alert('Note saved! Admin will be able to see it.');
+        } catch(e) { console.log('Event note:', e); }
     }
 
     // --- CALENDAR RENDER ---
@@ -413,16 +1044,22 @@
         for(let i=1; i<=days; i++) {
             const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const eventsOnDay = allEvents.filter(e => e.date === dStr);
+            const approvedCount = eventsOnDay.filter(e => e.is_approved !== false).length;
+            const pendingCount = eventsOnDay.filter(e => e.is_approved === false).length;
             const count = eventsOnDay.length;
             const dayObj = new Date(year, month, i);
             const isToday = (today.getDate()===i && today.getMonth()===month && today.getFullYear()===year);
             let cls = 'day' + (dayObj.getDay()===0||dayObj.getDay()===6 ? ' weekend' : '');
-            if (count === 1) cls += ' booked';
+            if (approvedCount >= 1) cls += ' booked';
             if (count > 1) cls += ' multiple';
             if (isToday) cls += ' today';
             let indicators = '';
-            if(count > 0) indicators = `<div class="event-dot"></div>`;
-            if(count > 1) indicators = `<span class="event-count">${count}</span>`;
+            if(approvedCount > 0) indicators = `<div class="event-dot"></div>`;
+            if(approvedCount > 1) indicators = `<span class="event-count">${approvedCount}</span>`;
+            // Show pending indicator for admin/manager
+            if(pendingCount > 0 && (isAdmin || isManager)) {
+                indicators += `<div class="event-dot" style="background:#e67e22;animation:pulse 1.5s infinite;" title="${pendingCount} pending review"></div>`;
+            }
             grid.innerHTML += `<div class="${cls}" onclick="handleDateClick('${dStr}')">${i} ${indicators}</div>`;
         }
     }
@@ -436,11 +1073,12 @@
         container.innerHTML = list.length ? '' : '<p style="color:#999; text-align:center;">No upcoming events.</p>';
         
         list.forEach(e => {
+            const pendingBadge = e.is_approved === false ? '<span style="background:#e67e22;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-left:6px;">⏳ Pending Review</span>' : '';
             container.innerHTML += `
-                <div class="reminder-item" onclick="handleDateClick(null, ${e.id})">
+                <div class="reminder-item" onclick="handleDateClick(null, ${e.id})" style="${e.is_approved === false ? 'border-left:3px solid #e67e22;opacity:0.85;' : ''}">
                     <div class="reminder-date"><span class="date-num">${new Date(e.date).getDate()}</span></div>
                     <div>
-                        <strong>${e.title}</strong><br>
+                        <strong>${e.title}</strong>${pendingBadge}<br>
                         <small>${formatDateDisplay(e.date)} | ${e.guests} Guests</small>
                     </div>
                 </div>`;
@@ -544,6 +1182,8 @@
             event.menus.forEach(m => {
                 // VISIBILITY: Only Admin sees price
                 let priceDisplay = isAdmin ? `<br><span style='font-size:11px; color:green;'>₹${m.price_per_plate}</span>` : "";
+                // Admin sees who created the menu
+                let createdByDisplay = (isAdmin && m.created_by) ? `<br><span style='font-size:10px; color:#999;'>Created by: ${m.created_by}</span>` : "";
                 let actionsHtml = "";
                 
                 // DATA CLEANUP FOR PDF FUNCTION
@@ -564,37 +1204,66 @@
                         <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ GUJ</button>
                         ${editBtn}
                     `;
-                } else {
-                    // MANAGER: View Only (No Edit, No Download)
+                } else if (isManager) {
+                    // MANAGER: Download PDF without price, Edit menu
                     actionsHtml = `
-                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 View ENG</button>
-                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 View GUJ</button>
+                        <button class="btn-dl" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ ENG (No Price)</button>
+                        <button class="btn-dl" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ GUJ (No Price)</button>
+                        <button class="btn-dl btn-edit-menu"
+                            onclick="window.location.href=\`${CREATE_MENU_URL}?event_id=${event.id}&menu_id=${m.id}\`"
+                            title="Edit Menu">
+                            ✏️
+                        </button>
+                    `;
+                } else {
+                    // STAFF: View Only — PDF preview in both languages (no price, no download)
+                    actionsHtml = `
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 ENG</button>
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 GUJ</button>
                     `;
                 }
 
-                menuListHtml += `<tr><td style="padding:6px; border-bottom:1px solid #eee;"><strong>${m.title}</strong>${priceDisplay}</td><td style="padding:6px; border-bottom:1px solid #eee; text-align:right;">${actionsHtml}</td></tr>`;
+                menuListHtml += `<tr><td style="padding:6px; border-bottom:1px solid #eee;"><strong>${m.title}</strong>${priceDisplay}${createdByDisplay}</td><td style="padding:6px; border-bottom:1px solid #eee; text-align:right;">${actionsHtml}</td></tr>`;
             });
             menuListHtml += `</table>`;
         }
 
         modalContent.innerHTML = `<div class="event-details-grid"><div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${formatDateDisplay(event.date)}</span></div><div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${event.venue || 'N/A'}</span></div><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div><div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div><div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px;">${contactInfo}</span>${alternateInfo}</div><div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div><div class="detail-item detail-note"><span class="detail-label">Notes</span><span class="detail-value">${noteInfo}</span></div></div>`;
 
-        // VISIBILITY: Only Admin sees actions (Edit/Delete Booking)
-        if (isAdmin) {
+        // VISIBILITY: Admin & Manager see actions (Print Bill is Admin Only)
+        if (isAdmin || isManager) {
             adminActions.style.display = 'flex';
+            
+            const billBtnHtml = isAdmin ? `
+                <button class="btn-modal"
+                    onclick="window.location.href=\`${PRINT_BILL_URL}?event_id=${event.id}\`"
+                    style="background:var(--gold); color:white;">
+                    🧾 Print Bill
+                </button>
+            ` : '';
+
+            let manageMenuBtnHtml = '';
+            if (isAdmin || (isManager && event.is_approved)) {
+                manageMenuBtnHtml = `
+                    <button class="btn-modal"
+                        onclick="window.location.href=\`${CREATE_MENU_URL}?event_id=${event.id}\`"
+                        style="background:#2c3e50; color:white;">
+                        🍽️ Manage Menu
+                    </button>
+                `;
+            } else if (isManager && !event.is_approved) {
+                manageMenuBtnHtml = `
+                    <button class="btn-modal" disabled
+                        style="background:#bdc3c7; color:#fff; cursor:not-allowed;" title="Waiting for admin approval">
+                        ⏳ Menu Pending Review
+                    </button>
+                `;
+            }
+
             adminActions.innerHTML = `
                     <div class="action-row">
-                        <button class="btn-modal"
-                            onclick="window.location.href=\`${CREATE_MENU_URL}?event_id=${event.id}\`"
-                            style="background:#2c3e50; color:white;">
-                            🍽️ Manage Menu
-                        </button>
-
-                        <button class="btn-modal"
-                            onclick="window.location.href=\`${PRINT_BILL_URL}?event_id=${event.id}\`"
-                            style="background:var(--gold); color:white;">
-                            🧾 Print Bill
-                        </button>
+                        ${manageMenuBtnHtml}
+                        ${billBtnHtml}
                     </div>
 
                     <div class="action-row">
@@ -609,11 +1278,10 @@
                             style="background:#ffebee; color:#c0392b; border:1px solid #ffcdd2;">
                             🗑️ Delete Event
                         </button>
-                    </div>
-                    `;            
+                    </div>`;
         } else {
-            // Manager does not see the action buttons
-            adminActions.style.display = 'none';
+            // Manager does not see the action buttons (Wait, this else block needs to be removed because managers DO see it now!)
+            // adminActions.style.display = 'none'; // REMOVED THIS LINE
         }
         document.getElementById('eventModal').style.display = 'flex';
     }
@@ -623,7 +1291,7 @@
         if (!confirm("⚠️ Are you sure you want to PERMANENTLY DELETE this booking?")) return;
         try {
             const token = localStorage.getItem('authToken');
-            const res = await fetch(`/api/menu/events/${id}/`, { 
+            const res = await fetch(`/api/events/${id}/`, { 
                 method: 'DELETE', 
                 headers: { 'Authorization': `Token ${token}` ,'X-CSRFToken': getCookie('csrftoken') } 
             });
@@ -640,6 +1308,152 @@
     }
 
     // --- PDF GENERATOR ---
+    // --- INLINE BILINGUAL MENU VIEWER (for Staff) ---
+    async function viewMenuInline(menuId) {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const existing = document.getElementById('menu-inline-overlay');
+        if (existing) existing.remove();
+
+        try {
+            const [menuRes, catRes, itemRes] = await Promise.all([
+                fetch(`/api/menu/menus/${menuId}/`, { headers: { 'Authorization': `Token ${token}` } }),
+                fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
+                fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } })
+            ]);
+            const menu = await menuRes.json();
+            const cats = await catRes.json();
+            const allMenuItems = await itemRes.json();
+
+            const selectedItemIds = new Set(menu.items.map(id => parseInt(id)));
+            let customData = {};
+            if (menu.custom_items_text) {
+                try { customData = JSON.parse(menu.custom_items_text); } catch(e) {}
+            }
+
+            function getCustLines(catId) {
+                let lines = [];
+                if (Array.isArray(customData)) {
+                    lines = customData.filter(ci => String(ci.categoryId) === String(catId)).map(ci => ci.name);
+                } else if (customData[String(catId)]) {
+                    lines = customData[String(catId)];
+                } else if (customData[catId]) {
+                    lines = customData[catId];
+                }
+                return Array.isArray(lines) ? lines : [];
+            }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'menu-inline-overlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:15px;backdrop-filter:blur(4px);';
+            overlay.onclick = e => { if(e.target === overlay) overlay.remove(); };
+
+            let viewMode = 'both';
+
+            function buildCatBlock(cat, lang, fontCls) {
+                const catItems = allMenuItems.filter(i => selectedItemIds.has(i.id) && i.category == cat.id);
+                const custLines = getCustLines(cat.id);
+                if (catItems.length === 0 && custLines.length === 0) return '';
+                const isGu = lang === 'gu';
+                const catName = isGu && cat.gujarati_name ? cat.gujarati_name : cat.name;
+                let h = `<div style="margin-bottom:14px;">
+                    <div style="background:linear-gradient(135deg,#1a1a1a,#2a2a2a);color:#D4AF37;padding:8px 14px;border-radius:8px 8px 0 0;font-weight:700;font-size:0.85rem;${fontCls}">${catName}</div>
+                    <div style="background:#fafafa;border:1px solid #f0ece4;border-top:none;border-radius:0 0 8px 8px;">`;
+                catItems.forEach(item => {
+                    const name = isGu && item.gujarati_name ? item.gujarati_name : item.name;
+                    h += `<div style="padding:7px 14px;border-bottom:1px solid #f5f0e5;display:flex;align-items:center;gap:8px;">
+                        <span style="width:5px;height:5px;border-radius:50%;background:#D4AF37;flex-shrink:0;"></span>
+                        <span style="font-size:0.88rem;color:#333;${fontCls}">${name}</span>
+                    </div>`;
+                });
+                custLines.forEach(line => {
+                    h += `<div style="padding:7px 14px;border-bottom:1px solid #f5f0e5;display:flex;align-items:center;gap:8px;background:#f0f9ff;">
+                        <span style="width:5px;height:5px;border-radius:50%;background:#3498db;flex-shrink:0;"></span>
+                        <span style="font-size:0.88rem;color:#2c7aa0;">★ ${line}</span>
+                    </div>`;
+                });
+                return h + `</div></div>`;
+            }
+
+            function renderMenuView(mode) {
+                const guFont = "font-family:'Noto Sans Gujarati',sans-serif;";
+                let html = `
+                    <div style="background:#fff;border-radius:18px;max-width:${mode==='both'?'900':'550'}px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,0.4);">
+                        <div style="background:linear-gradient(135deg,#1a1a1a,#2a2a2a);padding:18px 24px;border-radius:18px 18px 0 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:2;">
+                            <div>
+                                <div style="color:#D4AF37;font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;">🍽️ ${menu.title || 'Menu'}</div>
+                                <div style="color:rgba(255,255,255,0.4);font-size:0.7rem;margin-top:2px;">View Only</div>
+                            </div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <button onclick="window._menuViewRender('en')" style="padding:7px 16px;border-radius:8px;border:2px solid ${mode==='en'?'#D4AF37':'#555'};background:${mode==='en'?'#D4AF37':'transparent'};color:${mode==='en'?'#000':'#ccc'};font-size:0.78rem;font-weight:700;cursor:pointer;">English</button>
+                                <button onclick="window._menuViewRender('gu')" style="padding:7px 16px;border-radius:8px;border:2px solid ${mode==='gu'?'#D4AF37':'#555'};background:${mode==='gu'?'#D4AF37':'transparent'};color:${mode==='gu'?'#000':'#ccc'};font-size:0.78rem;font-weight:700;cursor:pointer;${guFont}">ગુજરાતી</button>
+                                <button onclick="window._menuViewRender('both')" style="padding:7px 16px;border-radius:8px;border:2px solid ${mode==='both'?'#D4AF37':'#555'};background:${mode==='both'?'#D4AF37':'transparent'};color:${mode==='both'?'#000':'#ccc'};font-size:0.78rem;font-weight:700;cursor:pointer;">Both</button>
+                                <button onclick="document.getElementById('menu-inline-overlay').remove()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:1.2rem;cursor:pointer;margin-left:8px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;">✕</button>
+                            </div>
+                        </div>
+                        <div style="padding:20px;">`;
+
+                if (mode === 'both') {
+                    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">`;
+                    // English column
+                    html += `<div><div style="text-align:center;padding:6px;margin-bottom:10px;background:#f5f5f5;border-radius:6px;font-size:0.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;">🇬🇧 English</div>`;
+                    cats.forEach(cat => { html += buildCatBlock(cat, 'en', ''); });
+                    html += `</div>`;
+                    // Gujarati column
+                    html += `<div><div style="text-align:center;padding:6px;margin-bottom:10px;background:#f5f5f5;border-radius:6px;font-size:0.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;${guFont}">🇮🇳 ગુજરાતી</div>`;
+                    cats.forEach(cat => { html += buildCatBlock(cat, 'gu', guFont); });
+                    html += `</div></div>`;
+                } else {
+                    const isGu = mode === 'gu';
+                    const fCls = isGu ? guFont : '';
+                    cats.forEach(cat => {
+                        const catItems = allMenuItems.filter(i => selectedItemIds.has(i.id) && i.category == cat.id);
+                        const custLines = getCustLines(cat.id);
+                        if (catItems.length === 0 && custLines.length === 0) return;
+                        const catName = isGu && cat.gujarati_name ? cat.gujarati_name : cat.name;
+                        html += `<div style="margin-bottom:16px;">
+                            <div style="background:linear-gradient(135deg,#1a1a1a,#2a2a2a);color:#D4AF37;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:700;font-size:0.9rem;${fCls}">${catName}</div>
+                            <div style="background:#fafafa;border:1px solid #f0ece4;border-top:none;border-radius:0 0 10px 10px;">`;
+                        catItems.forEach(item => {
+                            const name = isGu && item.gujarati_name ? item.gujarati_name : item.name;
+                            const sub = isGu ? `<div style="font-size:0.7rem;color:#aaa;">${item.name}</div>` 
+                                             : (item.gujarati_name ? `<div style="font-size:0.7rem;color:#aaa;${guFont}">${item.gujarati_name}</div>` : '');
+                            html += `<div style="padding:9px 16px;border-bottom:1px solid #f5f0e5;display:flex;align-items:center;gap:10px;">
+                                <span style="width:6px;height:6px;border-radius:50%;background:#D4AF37;flex-shrink:0;"></span>
+                                <div><span style="font-size:0.9rem;color:#333;${fCls}">${name}</span>${sub}</div>
+                            </div>`;
+                        });
+                        custLines.forEach(line => {
+                            html += `<div style="padding:9px 16px;border-bottom:1px solid #f5f0e5;display:flex;align-items:center;gap:10px;background:#f0f9ff;">
+                                <span style="width:6px;height:6px;border-radius:50%;background:#3498db;flex-shrink:0;"></span>
+                                <span style="font-size:0.9rem;color:#2c7aa0;">★ ${line}</span>
+                            </div>`;
+                        });
+                        html += `</div></div>`;
+                    });
+                }
+
+                if (menu.note) {
+                    html += `<div style="background:#fffcf5;border:1px solid #ffe082;border-radius:10px;padding:14px 18px;margin-top:12px;">
+                        <div style="font-size:0.72rem;font-weight:700;color:#b59020;text-transform:uppercase;margin-bottom:5px;">📝 Note</div>
+                        <div style="font-size:0.85rem;color:#555;">${menu.note}</div>
+                    </div>`;
+                }
+
+                html += `</div></div>`;
+                overlay.innerHTML = html;
+            }
+
+            window._menuViewRender = (mode) => { viewMode = mode; renderMenuView(mode); };
+            renderMenuView(viewMode);
+            document.body.appendChild(overlay);
+
+        } catch(e) {
+            console.error('viewMenuInline error:', e);
+            alert('Could not load menu items.');
+        }
+    }
+
     async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
     
     // 1. SET UI LOADING STATE
@@ -820,15 +1634,37 @@
             }
         }
 
-        // Assuming allItems and categories are global variables available in script
+        // Parse custom items from DB
+        let customItemsMap = {}; // { catId: ['item1', 'item2'] }
+        if (menu.custom_items_text) {
+            try {
+                const parsed = JSON.parse(menu.custom_items_text);
+                if (Array.isArray(parsed)) {
+                    // Format: [{name, categoryId}, ...]
+                    parsed.forEach(ci => {
+                        const cid = String(ci.categoryId);
+                        if (!customItemsMap[cid]) customItemsMap[cid] = [];
+                        customItemsMap[cid].push(ci.name);
+                    });
+                } else if (typeof parsed === 'object') {
+                    // Format: { catId: ['item1', 'item2'] }
+                    Object.keys(parsed).forEach(cid => {
+                        customItemsMap[String(cid)] = parsed[cid];
+                    });
+                }
+            } catch(e) { console.log('Could not parse custom_items_text for PDF:', e); }
+        }
+
         const menuItems = allItems.filter(i => menu.items.includes(i.id));
 
         for (let i = 0; i < categories.length; i++) {
             const cat = categories[i];
             const itemsInCat = menuItems.filter(item => item.category == cat.id);
-            if (itemsInCat.length === 0) continue;
+            const custLines = customItemsMap[String(cat.id)] || [];
+            if (itemsInCat.length === 0 && custLines.length === 0) continue;
 
-            const blockHeight = headerHeight + (itemsInCat.length * itemLineHeight) + 5;
+            const totalCount = itemsInCat.length + custLines.length;
+            const blockHeight = headerHeight + (totalCount * itemLineHeight) + 5;
             checkPageBreak(blockHeight);
 
             let catName = (lang==='gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
@@ -839,10 +1675,19 @@
             setFontStyle('normal'); // Ensure normal font for items
 
             itemsInCat.forEach(item => {
+                if (currentY > maxY) checkPageBreak(itemLineHeight);
                 let itemName = (lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name;
                 doc.text(itemName, currentX + 5, currentY);
                 currentY += itemLineHeight;
             });
+
+            // Custom items
+            custLines.forEach(line => {
+                if (currentY > maxY) checkPageBreak(itemLineHeight);
+                doc.text(String(line), currentX + 5, currentY);
+                currentY += itemLineHeight;
+            });
+
             currentY += 5;
         }
 
@@ -903,5 +1748,439 @@
         window.location.href = "{% url 'login' %}";
     }
 </script>
+
+<!-- Platform Upgrade JavaScript -->
+<script>
+    const authToken = localStorage.getItem('authToken');
+    let currentEventId = null;
+
+    function getCsrf() {
+        let v = null;
+        if (document.cookie) {
+            document.cookie.split(';').forEach(c => {
+                c = c.trim();
+                if (c.startsWith('csrftoken=')) v = decodeURIComponent(c.substring(10));
+            });
+        }
+        return v;
+    }
+
+    // Show sections when modal opens with event data
+    const origOpenModal = window.openEventModal || function(){};
+    document.getElementById('eventModal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+
+    // Hook: when event-details-content is updated, show our upgrade sections
+    const observer = new MutationObserver(function() {
+        const content = document.getElementById('event-details-content').innerHTML;
+        if (content && content.length > 10) {
+            // Try to extract event ID from the content or global
+            if (typeof currentModalEventId !== 'undefined' && currentModalEventId) {
+                currentEventId = currentModalEventId;
+                showUpgradeSections(currentEventId);
+            }
+        }
+    });
+    observer.observe(document.getElementById('event-details-content'), { childList: true, subtree: true });
+
+    function showUpgradeSections(eventId) {
+        document.getElementById('status-update-section').style.display = 'block';
+        document.getElementById('notes-section').style.display = 'block';
+        document.getElementById('staff-section').style.display = 'block';
+        loadInternalNotes(eventId);
+        loadStaff(eventId);
+    }
+
+    // --- Section 3: Update Event Status ---
+    async function updateEventStatus() {
+        const token = localStorage.getItem('authToken');
+        if (!currentEventId) return alert('No event selected');
+        const status = document.getElementById('status-select').value;
+        try {
+            await fetch(`/api/events/${currentEventId}/status/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ status })
+            });
+            alert('Status updated to: ' + status);
+        } catch(e) { alert('Failed to update status'); }
+    }
+
+    // --- Section 6: Internal Notes ---
+    async function loadInternalNotes(eventId) {
+        const token = localStorage.getItem('authToken');
+        try {
+            const r = await fetch(`/api/events/${eventId}/notes/`, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+            if (r.ok) {
+                const data = await r.json();
+                document.getElementById('internal-notes').value = data.internal_notes || '';
+            }
+        } catch(e) {}
+    }
+
+    async function saveInternalNotes() {
+        const token = localStorage.getItem('authToken');
+        if (!currentEventId) return;
+        const notes = document.getElementById('internal-notes').value;
+        try {
+            await fetch(`/api/events/${currentEventId}/notes/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ internal_notes: notes })
+            });
+            document.getElementById('notes-status').textContent = '✓ Saved';
+            setTimeout(() => document.getElementById('notes-status').textContent = '', 2000);
+        } catch(e) { alert('Failed to save notes'); }
+    }
+
+    // --- Section 13: Load Staff ---
+    async function loadStaff(eventId) {
+        const token = localStorage.getItem('authToken');
+        try {
+            const r = await fetch(`/api/events/${eventId}/staff/`, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+            if (r.ok) {
+                const data = await r.json();
+                const list = document.getElementById('staff-list');
+                if (data.length === 0) {
+                    list.innerHTML = '<p style="color:#999; font-size:13px;">No staff assigned yet.</p>';
+                } else {
+                    list.innerHTML = data.map(s =>
+                        `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:13px;">
+                            <span><strong>${s.member_name || 'Staff'}</strong> — ${s.role}</span>
+                            <span style="color:${s.confirmed ? '#27ae60' : '#e67e22'};">${s.confirmed ? '✓ Confirmed' : '⏳ Pending'}</span>
+                        </div>`
+                    ).join('');
+                }
+            }
+        } catch(e) {}
+    }
+
+    // --- Section 8: Admin Chatbot ---
+    function toggleAdminChat() {
+        const panel = document.getElementById('admin-chat-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function sendAdminChat() {
+        const token = localStorage.getItem('authToken');
+        const input = document.getElementById('admin-chat-input');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        const msgs = document.getElementById('admin-chat-messages');
+        msgs.innerHTML += `<div style="text-align:right; margin-bottom:10px;"><span style="background:rgba(212,175,55,0.2); color:#d4af37; padding:8px 14px; border-radius:12px; font-size:0.85rem; display:inline-block;">${msg}</span></div>`;
+        input.value = '';
+        msgs.scrollTop = msgs.scrollHeight;
+
+        // Show typing indicator
+        const typingId = 'typing-' + Date.now();
+        msgs.innerHTML += `<div id="${typingId}" style="margin-bottom:10px;"><span style="background:#222; color:#999; padding:8px 14px; border-radius:12px; font-size:0.85rem; display:inline-block;">Thinking...</span></div>`;
+        msgs.scrollTop = msgs.scrollHeight;
+
+        try {
+            const r = await fetch('/api/admin-chat/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ message: msg })
+            });
+            const data = await r.json();
+            
+            // Remove typing indicator
+            const typingEl = document.getElementById(typingId);
+            if (typingEl) typingEl.remove();
+            
+            // Format the reply text into readable HTML
+            let reply = data.reply || data.error || 'No response';
+            reply = formatBotReply(reply);
+            
+            msgs.innerHTML += `<div style="margin-bottom:12px;"><div style="background:#222; color:#ddd; padding:12px 16px; border-radius:12px; font-size:0.85rem; display:inline-block; max-width:92%; line-height:1.6; word-wrap:break-word;">${reply}</div></div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+        } catch(e) {
+            const typingEl = document.getElementById(typingId);
+            if (typingEl) typingEl.remove();
+            msgs.innerHTML += `<div style="margin-bottom:10px;"><span style="background:#222; color:#e74c3c; padding:8px 14px; border-radius:12px; font-size:0.85rem;">Connection error</span></div>`;
+        }
+    }
+
+    // Format bot reply into readable HTML
+    function formatBotReply(text) {
+        // Escape HTML first
+        text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // Bold: **text** or __text__
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#d4af37;">$1</strong>');
+        text = text.replace(/__(.*?)__/g, '<strong style="color:#d4af37;">$1</strong>');
+        
+        // Numbered lists: "1. item" "2. item" etc.
+        text = text.replace(/(\d+)\.\s+/g, '<br>  <span style="color:#d4af37;font-weight:700;">$1.</span> ');
+        
+        // Bullet points: "- item" or "• item"
+        text = text.replace(/(?:^|\n)[-•]\s+/g, '<br>  <span style="color:#d4af37;">•</span> ');
+        
+        // Newlines
+        text = text.replace(/\n/g, '<br>');
+        
+        // Headers: lines ending with colon that aren't too long
+        text = text.replace(/([A-Z][^<.]{3,40}):/g, '<br><strong style="color:#d4af37;border-bottom:1px solid rgba(212,175,55,0.3);padding-bottom:2px;">$1:</strong>');
+        
+        // Clean up multiple <br>
+        text = text.replace(/(<br>\s*){3,}/g, '<br><br>');
+        // Remove leading <br>
+        text = text.replace(/^(<br>\s*)+/, '');
+        
+        return text;
+    }
+
+    // --- Section 15: Floating Task Widget ---
+    function toggleTaskPanel() {
+        const panel = document.getElementById('task-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        if (panel.style.display === 'block') loadWidgetTasks();
+    }
+
+    async function loadWidgetTasks() {
+        const list = document.getElementById('widget-task-list');
+        if (!list) return;
+        try {
+            const r = await fetch('/api/tasks/?my=true', {
+                headers: { 'Authorization': `Token ${authToken}` }
+            });
+            const tasks = await r.json();
+            // For non-admin: API returns only their tasks. For admin: returns all.
+            const myTasks = tasks.filter(t => t.status !== 'done');
+            
+            // Update badge
+            const badge = document.getElementById('widget-badge');
+            if (badge) {
+                if (myTasks.length > 0) { badge.textContent = myTasks.length; badge.style.display = 'block'; }
+                else { badge.style.display = 'none'; }
+            }
+            
+            if (myTasks.length === 0) {
+                list.innerHTML = '<p style="color:#999; text-align:center; padding:20px; font-size:0.85rem;">No pending tasks ✅</p>';
+                return;
+            }
+            const statusColors = { pending: '#e67e22', in_progress: '#3498db', done: '#27ae60', rejected: '#e74c3c' };
+            const statusLabels = { pending: 'Pending', in_progress: 'In Progress', done: 'Done', rejected: 'Rejected' };
+            const prioIcons = { high: '🔴', medium: '🟡', low: '🟢' };
+            list.innerHTML = myTasks.slice(0, 8).map(t => `
+                <div style="padding:10px 0; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600; font-size:13px; display:flex; align-items:center; gap:4px;">
+                            <span style="font-size:10px;">${prioIcons[t.priority] || ''}</span>
+                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title}</span>
+                        </div>
+                        <div style="font-size:11px; color:#999; margin-top:2px;">${t.assigned_to_name ? '→ ' + t.assigned_to_name + ' · ' : ''}📅 ${t.deadline || 'No deadline'}</div>
+                    </div>
+                    <span style="background:${statusColors[t.status] || '#999'}; color:#fff; padding:3px 8px; border-radius:10px; font-size:10px; font-weight:700; white-space:nowrap;">${statusLabels[t.status] || t.status}</span>
+                </div>
+            `).join('');
+        } catch(e) {
+            list.innerHTML = '<p style="color:#999; text-align:center;">Could not load tasks.</p>';
+        }
+    }
+
+    // Show task widget for authenticated users (non-customer)
+    if (authToken && !document.getElementById('customer-screen')) {
+        document.getElementById('task-widget').style.display = 'block';
+        loadWidgetTasks(); // Pre-load badge count
+    }
+
+    // --- Section 22: PWA Install Prompt ---
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const hero = document.querySelector('.welcome-hero');
+        if (hero) {
+            const btn = document.createElement('button');
+            btn.textContent = '📲 Install App';
+            btn.style.cssText = 'margin-top:15px; background:#D4AF37; color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:700; cursor:pointer; font-size:14px;';
+            btn.addEventListener('click', () => {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; btn.remove(); });
+            });
+            hero.appendChild(btn);
+        }
+    });
+
+    // --- Section 20: Granular Role-Based Visibility ---
+    (async function applyRolePermissions() {
+        if (!authToken) return;
+        try {
+            const r = await fetch('/auth/users/me/', {
+                headers: { 'Authorization': `Token ${authToken}` }
+            });
+            const user = await r.json();
+            const role = user.user_type || 'customer';
+            
+            // Show role badge
+            const badge = document.getElementById('user-role-badge');
+            if (badge) {
+                badge.textContent = role;
+                badge.style.display = 'inline-block';
+                const roleColors = { admin: '#e74c3c', manager: '#8e44ad', staff: '#27ae60', customer: '#3498db' };
+                badge.style.background = roleColors[role] || '#999';
+                badge.style.color = '#fff';
+            }
+
+            // Hide admin-only sections for staff/customer
+            if (role === 'staff' || role === 'customer') {
+                const upgradeActions = document.getElementById('upgrade-actions');
+                if (upgradeActions) upgradeActions.style.display = 'none';
+                // Hide admin chatbot for non-admins/managers
+                const adminChat = document.getElementById('admin-chat-widget');
+                if (adminChat && role !== 'admin' && role !== 'manager') adminChat.style.display = 'none';
+            }
+
+            // Hide status update for non-admin/manager (notes are now visible to all)
+            if (role !== 'admin' && role !== 'manager') {
+                const statusSec = document.getElementById('status-update-section');
+                if (statusSec) statusSec.style.display = 'none';
+            }
+        } catch(e) { console.log('Role check failed:', e); }
+    })();
+</script>
+
+<!-- Admin: Team Management Section -->
+<div id="team-manage-section" style="display:none; margin-top:30px;">
+    <div style="background:#fff; border-radius:14px; padding:20px 24px; border:1px solid #f0ece4;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.3rem;">👥</span>
+                <div>
+                    <div style="font-weight:700; color:#1a1a1a; font-size:1rem;">Team Management</div>
+                    <div style="font-size:0.72rem; color:#999;">Remove staff or manager accounts</div>
+                </div>
+            </div>
+        </div>
+        <div id="team-list" style="font-size:0.85rem; color:#555;">
+            <em>Loading team members...</em>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load team members for admin
+    async function loadTeamMembers() {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        try {
+            const res = await fetch('/api/menu/api/staff-users/', {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+            const users = await res.json();
+            const container = document.getElementById('team-list');
+            if (!users.length) {
+                container.innerHTML = '<p style="color:#999;text-align:center;padding:15px;">No staff or manager accounts found.</p>';
+                return;
+            }
+            let html = `<table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f9f6f0;text-align:left;">
+                        <th style="padding:10px 12px;font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #f0ece4;">User</th>
+                        <th style="padding:10px 12px;font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #f0ece4;">Role</th>
+                        <th style="padding:10px 12px;font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #f0ece4;">Contact</th>
+                        <th style="padding:10px 12px;font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #f0ece4;text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            users.forEach(u => {
+                const roleColor = u.user_type === 'manager' ? '#e67e22' : '#3498db';
+                const roleBg = u.user_type === 'manager' ? '#fef5e7' : '#ebf5fb';
+                html += `<tr style="border-bottom:1px solid #f5f0e5;" id="user-row-${u.id}">
+                    <td style="padding:12px;">
+                        <div style="font-weight:600;color:#1a1a1a;">${u.username}</div>
+                        <div style="font-size:0.72rem;color:#aaa;">${u.email || '—'}</div>
+                    </td>
+                    <td style="padding:12px;">
+                        <span style="background:${roleBg};color:${roleColor};padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:700;text-transform:uppercase;">${u.user_type}</span>
+                    </td>
+                    <td style="padding:12px;font-size:0.82rem;color:#555;">${u.phone_number || '—'}</td>
+                    <td style="padding:12px;text-align:right;">
+                        <button onclick="deleteTeamUser(${u.id}, '${u.username.replace(/'/g, "\\'")}')" 
+                            style="background:#fee;border:1px solid #e74c3c;color:#c0392b;padding:6px 14px;border-radius:8px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+                            onmouseover="this.style.background='#e74c3c';this.style.color='#fff'"
+                            onmouseout="this.style.background='#fee';this.style.color='#c0392b'">
+                            🗑 Remove
+                        </button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        } catch(e) {
+            console.error('loadTeamMembers error:', e);
+        }
+    }
+
+    async function deleteTeamUser(userId, username) {
+        const confirmed = confirm(`⚠️ PERMANENT ACTION\n\nAre you sure you want to remove "${username}"?\n\nThis will permanently delete:\n• User account & login\n• All assigned tasks\n• Login history\n• Activity logs\n• All associated data\n\nThis action CANNOT be undone.`);
+        if (!confirmed) return;
+
+        const doubleConfirm = prompt(`Type "${username}" to confirm deletion:`);
+        if (doubleConfirm !== username) {
+            alert('Deletion cancelled. Username did not match.');
+            return;
+        }
+
+        const token = localStorage.getItem('authToken');
+        try {
+            const res = await fetch(`/api/menu/api/admin/delete-user/${userId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`✅ ${data.message}`);
+                const row = document.getElementById(`user-row-${userId}`);
+                if (row) {
+                    row.style.transition = 'all 0.3s';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(50px)';
+                    setTimeout(() => row.remove(), 300);
+                }
+            } else {
+                alert(`❌ Error: ${data.error}`);
+            }
+        } catch(e) {
+            console.error('deleteTeamUser error:', e);
+            alert('Network error. Please try again.');
+        }
+    }
+</script>
+
+<!-- Support Footer -->
+<footer style="background:linear-gradient(135deg,#1a1a1a,#111); padding:25px 30px; margin-top:40px; border-top:3px solid #D4AF37;">
+    <div style="max-width:900px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+        <div>
+            <div style="color:#D4AF37; font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; margin-bottom:6px;">
+                🍽️ Swagat Caterers — Admin Panel
+            </div>
+            <div style="color:rgba(255,255,255,0.5); font-size:0.75rem;">
+                &copy; 2025 Swagat Caterers. All rights reserved.
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div style="color:#fff; font-size:0.82rem; font-weight:600; margin-bottom:4px;">
+                ⚙️ Any Issue? Contact Developer
+            </div>
+            <div style="color:rgba(255,255,255,0.7); font-size:0.78rem; line-height:1.6;">
+                <strong style="color:#D4AF37;">Preet Patel</strong><br>
+                📞 <a href="tel:+918160238745" style="color:rgba(255,255,255,0.7); text-decoration:none;">+91 81602 38745</a><br>
+                ✉️ <a href="mailto:swagatcaterersofficial@gmail.com" style="color:rgba(255,255,255,0.7); text-decoration:none;">swagatcaterersofficial@gmail.com</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
 </body>
 </html>

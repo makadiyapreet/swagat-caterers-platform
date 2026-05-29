@@ -1,0 +1,337 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
+    <title>Gallery Management — Swagat Caterers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0d0d0d; color: #e0e0e0; min-height: 100vh; }
+        
+        .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+        
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; flex-wrap: wrap; gap: 15px;
+        }
+        .page-header h1 { font-family: 'Playfair Display', serif; color: #d4af37; font-size: 1.8rem; }
+        .page-header a {
+            color: #d4af37; text-decoration: none; font-size: 0.9rem;
+            border: 1px solid rgba(212,175,55,0.3); padding: 8px 20px;
+            border-radius: 25px; transition: all 0.3s;
+        }
+        .page-header a:hover { background: rgba(212,175,55,0.1); }
+        
+        /* Upload Form */
+        .upload-card {
+            background: #1a1a1a; border: 1px solid rgba(212,175,55,0.15);
+            border-radius: 16px; padding: 30px; margin-bottom: 30px;
+        }
+        .upload-card h2 { color: #d4af37; font-size: 1.2rem; margin-bottom: 20px; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        
+        .form-group label { display: block; font-size: 0.8rem; color: #999; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 14px; background: #222; border: 1px solid #333;
+            color: #fff; border-radius: 8px; font-size: 0.9rem;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #d4af37; outline: none; }
+        
+        .btn-upload {
+            background: #d4af37; color: #1a1a1a; border: none; padding: 12px 30px;
+            border-radius: 25px; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+            text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s;
+        }
+        .btn-upload:hover { background: #b4901e; transform: translateY(-2px); }
+        
+        /* Gallery Grid */
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .gallery-card {
+            background: #1a1a1a; border: 1px solid rgba(212,175,55,0.1);
+            border-radius: 12px; overflow: hidden; transition: border-color 0.3s;
+        }
+        .gallery-card:hover { border-color: rgba(212,175,55,0.3); }
+        .gallery-card img { width: 100%; height: 180px; object-fit: cover; }
+        .gallery-card .card-info { padding: 15px; }
+        .gallery-card h3 { font-size: 0.95rem; color: #f0f0f0; margin-bottom: 5px; }
+        .gallery-card .card-meta { font-size: 0.75rem; color: #666; }
+        .gallery-card .badge-cat {
+            display: inline-block; background: rgba(212,175,55,0.1); color: #d4af37;
+            padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; margin-top: 8px;
+        }
+        
+        .empty-state { text-align: center; padding: 60px; color: #555; }
+        .empty-state h3 { color: #d4af37; margin-bottom: 10px; }
+        
+        .msg-toast {
+            position: fixed; top: 20px; right: 20px; background: #27ae60; color: #fff;
+            padding: 12px 25px; border-radius: 10px; font-weight: 600; display: none;
+            z-index: 999; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .msg-toast.error { background: #e74c3c; }
+        
+        .btn-delete {
+            background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3);
+            padding: 6px 14px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; margin-top: 10px; display: inline-block;
+        }
+        .btn-delete:hover {
+            background: #e74c3c; color: #fff; border-color: #e74c3c;
+        }
+        
+        .delete-confirm {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center;
+            justify-content: center; z-index: 2000;
+        }
+        .delete-confirm-box {
+            background: #1a1a1a; border: 1px solid rgba(212,175,55,0.2); border-radius: 16px;
+            padding: 30px; text-align: center; max-width: 400px; width: 90%;
+        }
+        .delete-confirm-box h3 { color: #e74c3c; margin-bottom: 10px; font-size: 1.2rem; }
+        .delete-confirm-box p { color: #999; margin-bottom: 20px; font-size: 0.9rem; }
+        .delete-confirm-box .btn-row { display: flex; gap: 10px; justify-content: center; }
+        .delete-confirm-box .btn-cancel {
+            background: #333; color: #ccc; border: none; padding: 10px 25px;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+        }
+        .delete-confirm-box .btn-confirm-del {
+            background: #e74c3c; color: #fff; border: none; padding: 10px 25px;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .gallery-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="msg-toast" id="toast">Uploaded!</div>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1>📸 Gallery Management</h1>
+            <a href="/dashboard/">← Back to Dashboard</a>
+        </div>
+        
+        <!-- Upload Form -->
+        <div class="upload-card">
+            <h2>Upload New Item</h2>
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="title" placeholder="e.g. Wedding Setup 2024" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="category">
+                            <option value="wedding">Wedding</option>
+                            <option value="corporate">Corporate</option>
+                            <option value="birthday">Birthday</option>
+                            <option value="food">Food</option>
+                            <option value="setup">Setup</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Media Type</label>
+                        <select id="media_type" onchange="toggleMediaFields()">
+                            <option value="image">Image</option>
+                            <option value="video">Video (Upload File)</option>
+                            <option value="youtube">Video (YouTube URL)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="file-group">
+                        <label>Image File</label>
+                        <input type="file" id="image" accept="image/*">
+                    </div>
+                    <div class="form-group" id="video-file-group" style="display:none;">
+                        <label>Video File</label>
+                        <input type="file" id="video_file" accept="video/*">
+                    </div>
+                    <div class="form-group" id="youtube-group" style="display:none;">
+                        <label>YouTube URL</label>
+                        <input type="url" id="youtube_url" placeholder="https://youtube.com/watch?v=...">
+                    </div>
+                </div>
+                <button type="submit" class="btn-upload">Upload</button>
+            </form>
+        </div>
+        
+        <!-- Gallery Grid -->
+        <div class="gallery-grid" id="gallery-grid">
+            <div class="empty-state" id="empty-state">
+                <h3>No items yet</h3>
+                <p>Upload your first gallery item above</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const token = localStorage.getItem('authToken');
+        
+        function getCookie(name) {
+            let v = null;
+            if (document.cookie) {
+                document.cookie.split(';').forEach(c => {
+                    c = c.trim();
+                    if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+                });
+            }
+            return v;
+        }
+        
+        function toggleMediaFields() {
+            const type = document.getElementById('media_type').value;
+            document.getElementById('file-group').style.display = type === 'image' ? '' : 'none';
+            document.getElementById('video-file-group').style.display = type === 'video' ? '' : 'none';
+            document.getElementById('youtube-group').style.display = type === 'youtube' ? '' : 'none';
+        }
+        
+        // Load existing items
+        async function loadGallery() {
+            const resp = await fetch('/api/gallery/');
+            const items = await resp.json();
+            const grid = document.getElementById('gallery-grid');
+            const empty = document.getElementById('empty-state');
+            
+            if (items.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            
+            empty.style.display = 'none';
+            grid.innerHTML = items.map(item => `
+                <div class="gallery-card" id="gallery-card-${item.id}">
+                    ${item.media_type === 'image' 
+                        ? `<img src="${item.url}" alt="${item.title}" onerror="this.src='/static/images/logo/logo.png'">`
+                        : `<div style="height:180px;background:#222;display:flex;align-items:center;justify-content:center;font-size:3rem;">🎬</div>`
+                    }
+                    <div class="card-info">
+                        <h3>${item.title}</h3>
+                        <div class="card-meta">${new Date(item.created_at).toLocaleDateString()}</div>
+                        <span class="badge-cat">${item.category}</span>
+                        <span class="badge-cat" style="background:rgba(39,174,96,0.1);color:#27ae60;">${item.media_type}</span>
+                        <br>
+                        <button class="btn-delete" onclick="confirmDeleteGallery(${item.id}, '${item.title.replace(/'/g, "\\'")}')">🗑 Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Upload
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const mediaType = document.getElementById('media_type').value;
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('media_type', mediaType === 'youtube' ? 'video' : mediaType);
+            
+            if (mediaType === 'youtube') {
+                formData.append('youtube_url', document.getElementById('youtube_url').value);
+            } else if (mediaType === 'video') {
+                const file = document.getElementById('video_file').files[0];
+                if (file) formData.append('image', file);
+            } else {
+                const file = document.getElementById('image').files[0];
+                if (file) formData.append('image', file);
+            }
+            
+            const resp = await fetch('/api/gallery/upload/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            if (resp.ok) {
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 3000);
+                document.getElementById('upload-form').reset();
+                loadGallery();
+            } else {
+                alert('Upload failed. Please try again.');
+            }
+        });
+        
+        loadGallery();
+        
+        // Delete confirmation
+        function confirmDeleteGallery(itemId, title) {
+            const overlay = document.createElement('div');
+            overlay.className = 'delete-confirm';
+            overlay.innerHTML = `
+                <div class="delete-confirm-box">
+                    <h3>🗑 Delete Item?</h3>
+                    <p>Are you sure you want to delete <strong style="color:#d4af37;">${title}</strong>? This cannot be undone.</p>
+                    <div class="btn-row">
+                        <button class="btn-cancel" onclick="this.closest('.delete-confirm').remove()">Cancel</button>
+                        <button class="btn-confirm-del" onclick="deleteGalleryItem(${itemId}, this)">Delete</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            // Close on backdrop click
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+        }
+        
+        async function deleteGalleryItem(itemId, btn) {
+            btn.textContent = 'Deleting...';
+            btn.disabled = true;
+            
+            try {
+                const resp = await fetch(`/api/gallery/${itemId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                });
+                
+                // Close the confirm dialog
+                const overlay = btn.closest('.delete-confirm');
+                if (overlay) overlay.remove();
+                
+                if (resp.ok) {
+                    showToast('Item deleted successfully!', false);
+                    loadGallery();
+                } else {
+                    const data = await resp.json();
+                    showToast(data.error || 'Failed to delete', true);
+                }
+            } catch(e) {
+                const overlay = btn.closest('.delete-confirm');
+                if (overlay) overlay.remove();
+                showToast('Network error. Please try again.', true);
+            }
+        }
+        
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = isError ? 'msg-toast error' : 'msg-toast';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

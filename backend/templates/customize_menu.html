@@ -16,6 +16,8 @@
     <!-- End Google Analytics -->
      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Build Your Custom Menu | Swagat Caterers</title>
 
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/logo/logo.png' %}">
@@ -246,6 +248,29 @@
             
             <div class="row g-5">
                 <div class="col-lg-7">
+
+                    <!-- Section 9: AI Recommendation Panel -->
+                    <div class="p-3 mb-4 rounded shadow-sm" style="background:linear-gradient(135deg,#fffdf5,#fff8e1); border:1px solid rgba(212,175,55,0.2);">
+                        <h6 class="text-gold font-serif mb-2">✨ Smart Suggestions</h6>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                            <select id="rec-event-type" style="padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.85rem;">
+                                <option value="wedding">Wedding</option>
+                                <option value="engagement">Engagement</option>
+                                <option value="birthday">Birthday</option>
+                                <option value="corporate">Corporate</option>
+                                <option value="thread_ceremony">Thread Ceremony</option>
+                            </select>
+                            <button onclick="getRecommendations()" style="background:#d4af37; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-weight:600; font-size:0.85rem; cursor:pointer;">Get Suggestions</button>
+                        </div>
+                        <div id="rec-results" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                    </div>
+
+                    <!-- Section 11: Also Selected Widget -->
+                    <div id="also-selected-panel" class="p-3 mb-4 rounded shadow-sm" style="background:#f9f9f9; border:1px solid #eee; display:none;">
+                        <h6 class="text-gold font-serif mb-2">🔗 Frequently Paired With</h6>
+                        <div id="also-selected-items" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                    </div>
+
                     <form id="menuForm">
                         <div class="accordion custom-accordion" id="menuAccordion">
                             <div class="text-center py-5">
@@ -710,6 +735,51 @@
             message: `Enquiry (${currentLang.toUpperCase()})\n\nMENU:\n${selection.textData}\nNotes: ${document.getElementById('specialNotes').value}`,
             subject: "New Website Enquiry"
         }, false);
+    }
+
+    // --- Section 9: AI Menu Recommendations ---
+    async function getRecommendations() {
+        const eventType = document.getElementById('rec-event-type').value;
+        const results = document.getElementById('rec-results');
+        results.innerHTML = '<span style="color:#999; font-size:0.85rem;">Loading...</span>';
+        try {
+            const r = await fetch(`/api/menu/recommend/?event_type=${eventType}`);
+            const data = await r.json();
+            if (data.recommended && data.recommended.length > 0) {
+                results.innerHTML = data.recommended.map(item =>
+                    `<span style="background:rgba(212,175,55,0.12); color:#b39028; padding:5px 14px; border-radius:20px; font-size:0.82rem; font-weight:500; cursor:default;">${item.name}</span>`
+                ).join('');
+            } else {
+                results.innerHTML = '<span style="color:#999; font-size:0.85rem;">No recommendations for this event type.</span>';
+            }
+        } catch(e) {
+            results.innerHTML = '<span style="color:#999; font-size:0.85rem;">Could not load recommendations.</span>';
+        }
+    }
+
+    // --- Section 11: Also Selected (Co-occurrence) ---
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('dish-item') && e.target.checked) {
+            const itemIndex = e.target.value.split('_')[1];
+            loadAlsoSelected(itemIndex);
+        }
+    });
+
+    async function loadAlsoSelected(itemId) {
+        try {
+            const r = await fetch(`/api/menu/also-selected/${itemId}/`);
+            const data = await r.json();
+            const panel = document.getElementById('also-selected-panel');
+            const items = document.getElementById('also-selected-items');
+            if (data.also_selected && data.also_selected.length > 0) {
+                panel.style.display = 'block';
+                items.innerHTML = data.also_selected.map(item =>
+                    `<span style="background:#e8f5e9; color:#2e7d32; padding:5px 14px; border-radius:20px; font-size:0.82rem; font-weight:500;">
+                        ${item.name} <span style="color:#999; font-size:0.7rem;">(${item.co_count}x)</span>
+                    </span>`
+                ).join('');
+            }
+        } catch(e) {}
     }
 </script>
 </body>

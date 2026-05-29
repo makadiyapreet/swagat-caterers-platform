@@ -1,0 +1,355 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
+    <title>Check Availability — Swagat Caterers</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS: Bootstrap FIRST, then style.css LAST -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+
+    <style>
+        /* =============================================
+           CALENDAR PAGE — All classes prefixed sc-cal-
+           ============================================= */
+
+        /* Hero Banner */
+        .sc-cal-hero {
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+            padding: 140px 0 60px;
+            text-align: center;
+        }
+
+        .sc-cal-hero h1 {
+            font-family: 'Playfair Display', serif;
+            color: #d4af37;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .sc-cal-hero p {
+            color: rgba(255,255,255,0.5);
+            font-size: 1.05rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Calendar Section */
+        .sc-cal-section {
+            background: #f4f1ec;
+            padding: 60px 0 80px;
+        }
+
+        .sc-cal-wrapper {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 20px;
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            padding: 35px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        /* FullCalendar Theme — scoped to .sc-cal-wrapper */
+        .sc-cal-wrapper .fc {
+            --fc-border-color: #eee;
+            --fc-button-bg-color: #1a1a1a;
+            --fc-button-border-color: #1a1a1a;
+            --fc-button-hover-bg-color: #d4af37;
+            --fc-button-hover-border-color: #d4af37;
+            --fc-button-active-bg-color: #b4901e;
+            --fc-button-active-border-color: #b4901e;
+            --fc-today-bg-color: rgba(212, 175, 55, 0.10);
+            --fc-page-bg-color: #ffffff;
+            --fc-neutral-bg-color: #fafafa;
+            --fc-neutral-text-color: #333;
+            --fc-event-text-color: #fff;
+        }
+
+        .sc-cal-wrapper .fc .fc-toolbar-title {
+            font-family: 'Playfair Display', serif;
+            color: #1a1a1a;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .sc-cal-wrapper .fc .fc-col-header-cell {
+            background: #1a1a1a;
+        }
+
+        .sc-cal-wrapper .fc .fc-col-header-cell-cushion {
+            color: #d4af37;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px 0;
+        }
+
+        .sc-cal-wrapper .fc .fc-daygrid-day-number {
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 10px;
+        }
+
+        .sc-cal-wrapper .fc .fc-daygrid-day {
+            transition: background 0.2s ease;
+            cursor: pointer;
+            min-height: 80px;
+        }
+
+        .sc-cal-wrapper .fc .fc-daygrid-day:hover {
+            background: rgba(212, 175, 55, 0.08) !important;
+        }
+
+        .sc-cal-wrapper .fc .fc-day-today {
+            background: rgba(212, 175, 55, 0.12) !important;
+        }
+
+        .sc-cal-wrapper .fc .fc-day-today .fc-daygrid-day-number {
+            color: #d4af37;
+            font-weight: 700;
+        }
+
+        /* Event pills — big bold colorful badges */
+        .sc-cal-wrapper .fc-event {
+            border-radius: 20px !important;
+            padding: 4px 10px !important;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            border: none !important;
+            text-align: center !important;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin: 2px 4px !important;
+        }
+
+        .sc-cal-wrapper .fc .fc-button {
+            text-transform: capitalize;
+            font-weight: 600;
+            border-radius: 8px !important;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .sc-cal-wrapper .fc .fc-button:focus {
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
+        }
+
+        /* Legend */
+        .sc-cal-legend {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .sc-cal-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #555;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .sc-cal-legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        /* CTA Section */
+        .sc-cal-cta {
+            text-align: center;
+            margin-top: 50px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+            border-radius: 20px;
+            max-width: 950px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .sc-cal-cta h3 {
+            font-family: 'Playfair Display', serif;
+            color: #d4af37;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .sc-cal-cta p {
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+
+        .sc-cal-cta-btn {
+            background-color: #d4af37;
+            color: #1a1a1a;
+            border: 2px solid #d4af37;
+            border-radius: 50px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            padding: 14px 45px;
+            font-size: 0.95rem;
+        }
+
+        .sc-cal-cta-btn:hover {
+            background-color: transparent;
+            color: #d4af37;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.35);
+        }
+
+        /* Tap hint */
+        .sc-cal-tap-hint {
+            text-align: center;
+            margin-top: 15px;
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .sc-cal-tap-hint i {
+            color: #d4af37;
+            margin-right: 5px;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sc-cal-hero h1 { font-size: 2rem; }
+            .sc-cal-wrapper { padding: 15px; border-radius: 15px; }
+            .sc-cal-legend { gap: 15px; }
+            .sc-cal-cta { padding: 30px 15px; margin-top: 30px; }
+            .sc-cal-cta h3 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    {% include 'components/navbar.html' %}
+
+    <!-- Hero Banner -->
+    <section class="sc-cal-hero">
+        <div class="container">
+            <h1>📅 Check Availability</h1>
+            <p>See our real-time booking calendar and find the perfect date for your special event</p>
+        </div>
+    </section>
+
+    <!-- Calendar Section -->
+    <section class="sc-cal-section">
+        <div class="container">
+            <div class="sc-cal-wrapper">
+                <div id="public-calendar"></div>
+
+                <p class="sc-cal-tap-hint">
+                    <i class="bi bi-hand-index"></i> Tap any date to book instantly
+                </p>
+
+                <div class="sc-cal-legend">
+                    <div class="sc-cal-legend-item">
+                        <div class="sc-cal-legend-dot" style="background: #e74c3c;"></div>
+                        Booked
+                    </div>
+                    <div class="sc-cal-legend-item">
+                        <div class="sc-cal-legend-dot" style="background: #f39c12;"></div>
+                        Pending
+                    </div>
+                    <div class="sc-cal-legend-item">
+                        <div class="sc-cal-legend-dot" style="background: #27ae60;"></div>
+                        Available
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="sc-cal-cta">
+                <h3>Found Your Perfect Date?</h3>
+                <p>Lock it in before someone else does!</p>
+                <a href="{% url 'book_now' %}" class="sc-cal-cta-btn">
+                    Book Your Event →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {% include 'components/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('public-calendar');
+            // Support ?date= param for deep linking from Activity Review
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateParam = urlParams.get('date');
+            const initialDate = dateParam ? dateParam : undefined;
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                ...(initialDate && { initialDate: initialDate }),
+                validRange: function(nowDate) {
+                    var endDate = new Date(nowDate.valueOf());
+                    endDate.setDate(endDate.getDate() + 120);
+                    return { start: nowDate, end: endDate };
+                },
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: ''
+                },
+                themeSystem: 'standard',
+                height: 'auto',
+                dayMaxEvents: 2,
+
+                // Fetch events from API
+                events: '/api/events/calendar/',
+
+                // Make event colors bolder via eventDidMount
+                eventDidMount: function(info) {
+                    const el = info.el;
+                    el.style.opacity = '1';
+                    el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
+                },
+
+                // Click on an event (Booked/Pending pill)
+                eventClick: function(info) {
+                    info.jsEvent.preventDefault();
+                    const clickedDate = info.event.startStr;
+                    window.location.href = '/book-now/?date=' + clickedDate;
+                },
+
+                // Click on an empty date
+                dateClick: function(info) {
+                    window.location.href = '/book-now/?date=' + info.dateStr;
+                }
+            });
+            calendar.render();
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

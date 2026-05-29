@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.signing import Signer, BadSignature
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.conf import settings
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -16,6 +16,11 @@ from django.core.mail import send_mail
 import json
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+
+def custom_404_view(request, exception):
+    """Custom 404 error page."""
+    return render(request, '404.html', status=404)
+
 # --- IMPORTS ---
 from .models import Category, Menu_item, CateringEvent, Member, MemberLog , Menu, Booking
 from .serializers import (
@@ -55,8 +60,8 @@ def activate_user(request, token):
             user.user_type = selected_role
             user.is_active = True
             
-            # Auto-promote Managers/Admins to staff so they can log in
-            if selected_role in ['manager', 'admin']:
+            # Auto-promote Managers/Admins/Staff to staff so they can log in
+            if selected_role in ['manager', 'admin', 'staff']:
                 user.is_staff = True
                 
             user.save() 
@@ -72,6 +77,7 @@ def activate_user(request, token):
                     <label>Assign Role:</label>
                     <select name="role" style="padding:10px; margin:10px; font-size:16px;">
                         <option value="customer">Customer</option>
+                        <option value="staff">Staff</option>
                         <option value="manager">Manager</option>
                         <option value="admin">Admin</option>
                     </select>
@@ -127,6 +133,71 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = CateringEventSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        user_type = getattr(user, 'user_type', 'customer')
+        if user_type in ('admin', 'manager'):
+            return CateringEvent.objects.all()
+        # Staff and others only see approved events
+        return CateringEvent.objects.filter(is_approved=True)
+
+    def perform_create(self, serializer):
+        user_type = getattr(self.request.user, 'user_type', '')
+        # Manager-created events need admin approval
+        if user_type == 'manager':
+            instance = serializer.save(is_approved=False)
+        else:
+            instance = serializer.save(is_approved=True)
+        
+        if user_type == 'manager':
+            from .models import ActivityLog
+            ActivityLog.objects.create(
+                user=self.request.user,
+                action=f"Created Booking: {instance.title}",
+                details=(
+                    f"Client: {instance.title}\n"
+                    f"Date: {instance.date}\n"
+                    f"Guests: {instance.guests}\n"
+                    f"Venue: {getattr(instance, 'venue', '-')}\n"
+                    f"Contact: {getattr(instance, 'contact_number', '-')}\n"
+                    f"Event ID: {instance.id}"
+                ),
+                related_type='booking',
+                related_id=instance.id,
+                related_date=instance.date
+            )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if getattr(self.request.user, 'user_type', '') == 'manager':
+            from .models import ActivityLog
+            ActivityLog.objects.create(
+                user=self.request.user,
+                action=f"Updated Booking: {instance.title}",
+                details=(
+                    f"Client: {instance.title}\n"
+                    f"Date: {instance.date}\n"
+                    f"Guests: {instance.guests}\n"
+                    f"Event ID: {instance.id}"
+                ),
+                related_type='booking',
+                related_id=instance.id,
+                related_date=instance.date
+            )
+
+    def perform_destroy(self, instance):
+        if getattr(self.request.user, 'user_type', '') == 'manager':
+            from .models import ActivityLog
+            ActivityLog.objects.create(
+                user=self.request.user,
+                action=f"Deleted Event {instance.id}",
+                details=f"Event was on {instance.date}",
+                related_type='event',
+                related_id=instance.id,
+                related_date=instance.date
+            )
+        super().perform_destroy(instance)
+
 # --- 5. NEW TRACKER VIEWSETS ---
 
 class MemberViewSet(viewsets.ModelViewSet):
@@ -149,6 +220,43 @@ class MemberLogViewSet(viewsets.ReadOnlyModelViewSet):
 class MenuViewSet(viewsets.ModelViewSet):
     queryset = Menu.objects.all()
     serializer_class = MenuSerializer
+
+    def perform_create(self, serializer):
+        user_type = getattr(self.request.user, 'user_type', '')
+        if user_type == 'manager':
+            instance = serializer.save(is_approved=False)
+        else:
+            instance = serializer.save(is_approved=True)
+        
+        if user_type == 'manager':
+            from .models import ActivityLog
+            event = getattr(instance, 'event', None)
+            ActivityLog.objects.create(
+                user=self.request.user,
+                action=f"Created Menu: {instance.title}",
+                details=(
+                    f"Menu: {instance.title}\n"
+                    f"Client: {event.title if event else '-'}\n"
+                    f"Date: {event.date if event else '-'}\n"
+                    f"Event ID: {event.id if event else 'None'}\n"
+                    f"Menu ID: {instance.id}"
+                ),
+                related_type='menu',
+                related_id=instance.id,
+                related_date=getattr(event, 'date', None) if event else None
+            )
+
+    def perform_destroy(self, instance):
+        if getattr(self.request.user, 'user_type', '') == 'manager':
+            from .models import ActivityLog
+            ActivityLog.objects.create(
+                user=self.request.user,
+                action=f"Deleted Menu {instance.id}",
+                details=f"For event: {getattr(instance.event, 'id', 'None')}",
+                related_type='menu',
+                related_id=instance.id
+            )
+        super().perform_destroy(instance)
 
 # --- 6. BOOKING API VIEW ---
 @csrf_exempt
@@ -193,8 +301,26 @@ def book_event_api(request):
                 message,
                 settings.EMAIL_HOST_USER,  # From email
                 [settings.EMAIL_HOST_USER], # To email (send to yourself)
-                fail_silently=False,
+                fail_silently=True,
             )
+
+            # Log Manager Action
+            if request.user.is_authenticated and getattr(request.user, 'user_type', '') == 'manager':
+                from .models import ActivityLog
+                from datetime import datetime as dt
+                booking_date = None
+                try:
+                    booking_date = dt.strptime(data.get('date', ''), '%Y-%m-%d').date()
+                except Exception:
+                    pass
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action=f"Created booking for {data.get('name')}",
+                    details=f"Date: {data.get('date')} | Guests: {data.get('guest_count')} | Phone: {data.get('phone', '-')}",
+                    related_type='booking',
+                    related_id=booking.id,
+                    related_date=booking_date
+                )
 
             return JsonResponse({'status': 'success', 'message': 'Booking Saved & Email Sent!'})
 
@@ -211,33 +337,32 @@ def send_enquiry_email(request):
         try:
             data = json.loads(request.body)
             
-            client_name = data.get('name')
-            client_phone = data.get('phone')
-            message_body = data.get('message')
+            client_name = data.get('name', 'Website Visitor')
+            client_phone = data.get('phone', 'Not provided')
+            message_body = data.get('message', '')
             subject = data.get('subject', 'New Enquiry from Website')
 
             email_message = f"""
-            New Enquiry Received!
-            ---------------------
-            Name: {client_name}
-            Phone: {client_phone}
-            
-            Order Details:
-            {message_body}
+New Enquiry Received!
+---------------------
+Name: {client_name}
+Phone: {client_phone}
+
+Order Details:
+{message_body}
             """
 
             send_mail(
                 subject,
                 email_message,
-                'swagatcaterersofficial@gmail.com',  # <--- SENDER (Must match settings.py EMAIL_HOST_USER)
-                ['swagatcaterersofficial@gmail.com'], # <--- RECEIVER (Where you want the enquiry to go)
-                fail_silently=False,
+                settings.DEFAULT_FROM_EMAIL,
+                ['swagatcaterersofficial@gmail.com'],
+                fail_silently=True,
             )
 
             return JsonResponse({'status': 'success', 'message': 'Email sent successfully!'})
 
         except Exception as e:
-            # Print the error to your console so you can see why it failed
             print(f"Email Error: {e}") 
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
@@ -338,3 +463,965 @@ def create_menu(request):
 @login_required
 def print_bill(request):
     return render(request, "print_bill.html")
+
+
+# =========================================
+# NEW VIEWS — PLATFORM UPGRADE
+# =========================================
+from .models import (
+    GalleryItem, MenuItemStats, ItemCoOccurrence,
+    EventStaff, Attendance, EventReminder, TaskAssignment, UserLoginHistory
+)
+from .decorators import require_role, require_permission
+from django.utils import timezone
+from datetime import timedelta, date
+import requests as http_requests
+
+
+# --- PDF Logging API ---
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def log_pdf_download(request):
+    try:
+        from .models import PdfLog
+        import os
+        event_details = request.data.get('event_details', 'Direct Menu PDF (No specific event)')
+        
+        PdfLog.objects.create(
+            generated_by=request.user,
+            event_details=event_details
+        )
+        
+        # Send email to Admin
+        admin_email = os.getenv('ADMIN_ALERT_EMAIL')
+        if admin_email:
+            subject = "New PDF Downloaded"
+            message = f"A PDF was just generated.\n\nGenerated by: {request.user.username}\nDetails: {event_details}"
+            send_mail(subject, message, settings.EMAIL_HOST_USER, [admin_email], fail_silently=True)
+            
+        return Response({'status': 'logged'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+# --- 7. NOTIFICATIONS / DASHBOARD APIS ---
+# --- SECTION 2: Gallery API ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def gallery_api(request):
+    """Public API to list gallery items."""
+    items = GalleryItem.objects.all()
+    category = request.query_params.get('category')
+    if category:
+        items = items.filter(category=category)
+    data = [{
+        'id': item.id,
+        'title': item.title,
+        'category': item.category,
+        'media_type': item.media_type,
+        'url': item.media_url,
+        'youtube_url': item.youtube_url,
+        'created_at': item.created_at.isoformat(),
+    } for item in items]
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def gallery_upload(request):
+    """Upload gallery item (admin/manager only)."""
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type not in ('admin', 'manager'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    title = request.data.get('title', 'Untitled')
+    category = request.data.get('category', 'other')
+    media_type = request.data.get('media_type', 'image')
+    youtube_url = request.data.get('youtube_url', '')
+
+    item = GalleryItem(
+        title=title,
+        category=category,
+        media_type=media_type,
+        youtube_url=youtube_url,
+        uploaded_by=request.user,
+    )
+
+    if 'image' in request.FILES:
+        item.image = request.FILES['image']
+
+    if request.data.get('cloudinary_url'):
+        item.cloudinary_url = request.data['cloudinary_url']
+
+    item.save()
+    return Response({'status': 'success', 'id': item.id, 'message': 'Gallery item uploaded!'})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def gallery_delete(request, item_id):
+    """Delete a gallery item (admin/manager only)."""
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type not in ('admin', 'manager'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    try:
+        item = GalleryItem.objects.get(id=item_id)
+    except GalleryItem.DoesNotExist:
+        return Response({'error': 'Item not found'}, status=404)
+
+    # Delete the file from storage if it exists
+    if item.image:
+        try:
+            item.image.delete(save=False)
+        except Exception:
+            pass
+
+    item.delete()
+    return Response({'status': 'success', 'message': 'Gallery item deleted!'})
+
+
+@login_required
+@require_role(['admin', 'manager'])
+def gallery_manage(request):
+    """Dashboard gallery management page."""
+    return render(request, "gallery_manage.html")
+
+
+# --- SECTION 3: Public Booking Status Tracker ---
+def booking_status(request, token):
+    """Public booking status tracker - no login required."""
+    event = get_object_or_404(CateringEvent, tracking_token=token)
+    
+    # Only expose safe data
+    manager_name = ''
+    if event.assigned_manager:
+        manager_name = event.assigned_manager.first_name or 'Your Manager'
+
+    context = {
+        'event_name': event.title,
+        'event_date': event.date,
+        'status': event.status,
+        'manager_name': manager_name,
+        'tracking_token': str(token),
+    }
+    return render(request, "public/booking_status.html", context)
+
+
+# --- SECTION 4: Calendar API ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def calendar_api(request):
+    """Returns events for FullCalendar.js. Public view hides client names and restricts to 120 days."""
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    today = timezone.now().date()
+    max_date = today + timedelta(days=120)
+    
+    events = CateringEvent.objects.filter(date__gte=today, date__lte=max_date, is_approved=True)
+    
+    is_authenticated = request.user.is_authenticated
+
+    color_map = {
+        'confirmed': '#e74c3c',
+        'in_progress': '#e74c3c',
+        'received': '#f39c12',
+        'pending': '#f39c12',
+        'completed': '#27ae60',
+        'cancelled': '#95a5a6',
+    }
+
+    data = []
+    for event in events:
+        # Everyone sees generic titles on public calendar to protect privacy
+        title = 'Booked' if event.status in ('confirmed', 'in_progress') else 'Pending'
+        
+        data.append({
+            'title': title,
+            'start': event.date.isoformat(),
+            'end': event.date.isoformat(),
+            'status': event.status,
+            'color': color_map.get(event.status, '#e67e22'),
+            'id': event.id if is_authenticated else None,
+        })
+
+    return Response(data)
+
+
+def calendar_public(request):
+    """Public calendar page showing availability."""
+    return render(request, "calendar_public.html")
+
+
+# --- SECTION 5: Weather-Based Menu Suggestions ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def weather_suggest(request):
+    """Get weather-based menu suggestions for a city and date."""
+    city = request.query_params.get('city', '')
+    event_date = request.query_params.get('date', '')
+
+    if not city:
+        return Response({'error': 'City is required'}, status=400)
+
+    api_key = settings.OPENWEATHERMAP_API_KEY
+    if not api_key:
+        return Response({
+            'weather_summary': 'Weather service not configured',
+            'icon': '🌤️',
+            'suggested_items': [],
+            'tip': 'Contact us for personalized menu suggestions!'
+        })
+
+    try:
+        url = f'https://api.openweathermap.org/data/2.5/weather?q={city},IN&appid={api_key}&units=metric'
+        resp = http_requests.get(url, timeout=5)
+        data = resp.json()
+
+        if resp.status_code != 200:
+            return Response({
+                'weather_summary': f'Could not fetch weather for {city}',
+                'icon': '❓',
+                'suggested_items': [],
+                'tip': 'Try a different city name.'
+            })
+
+        temp = data.get('main', {}).get('temp', 25)
+        weather_main = data.get('weather', [{}])[0].get('main', '').lower()
+        icon_code = data.get('weather', [{}])[0].get('icon', '01d')
+
+        # Determine suggestions based on weather
+        if temp < 20 or 'rain' in weather_main or 'drizzle' in weather_main:
+            suggested = ['Hot Tomato Soup', 'Masala Chai', 'Pakoda', 'Warm Starters', 'Gajar Halwa', 'Hot Jalebi']
+            tip = f'🌧️ Expected {temp:.0f}°C with {weather_main}. Warm items recommended!'
+            icon = '🌧️'
+        elif temp > 35:
+            suggested = ['Cold Coffee', 'Jaljeera', 'Ice Cream', 'Fruit Salad', 'Buttermilk', 'Light Salads']
+            tip = f'☀️ Expected {temp:.0f}°C — hot weather! Chilled items will be perfect.'
+            icon = '🔥'
+        else:
+            suggested = ['Mixed Starters', 'Paneer Tikka', 'Dal Makhani', 'Gulab Jamun', 'Lassi', 'Biryani']
+            tip = f'🌤️ Pleasant {temp:.0f}°C weather. Standard menu works great!'
+            icon = '🌤️'
+
+        return Response({
+            'weather_summary': f'{temp:.0f}°C, {weather_main.title()} in {city}',
+            'icon': icon,
+            'suggested_items': suggested,
+            'tip': tip,
+            'temp': temp,
+        })
+
+    except Exception as e:
+        return Response({
+            'weather_summary': 'Weather service unavailable',
+            'icon': '⚠️',
+            'suggested_items': [],
+            'tip': str(e)
+        })
+
+
+# --- SECTION 6: Internal Notes AJAX Save ---
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_internal_notes(request, event_id):
+    """AJAX save internal notes for an event (admin/manager only)."""
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type not in ('admin', 'manager'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    event = get_object_or_404(CateringEvent, id=event_id)
+    notes = request.data.get('notes', '')
+
+    event.internal_notes = notes
+    event.notes_updated_by = request.user
+    event.notes_updated_at = timezone.now()
+    event.save(update_fields=['internal_notes', 'notes_updated_by', 'notes_updated_at'])
+
+    return Response({
+        'status': 'success',
+        'message': f'Saved by {request.user.username} at {timezone.now().strftime("%H:%M")}',
+        'updated_at': event.notes_updated_at.isoformat(),
+    })
+
+
+# --- SECTION 3: Update Event Status ---
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_event_status(request, event_id):
+    """Update event status (admin/manager only)."""
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type not in ('admin', 'manager'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    event = get_object_or_404(CateringEvent, id=event_id)
+    new_status = request.data.get('status')
+
+    valid_statuses = [s[0] for s in CateringEvent.STATUS_CHOICES]
+    if new_status not in valid_statuses:
+        return Response({'error': f'Invalid status. Must be one of: {valid_statuses}'}, status=400)
+
+    event.status = new_status
+    event.save(update_fields=['status'])
+
+    # Log Manager Action
+    if user_type == 'manager':
+        from .models import ActivityLog
+        ActivityLog.objects.create(
+            user=request.user,
+            action=f"Updated status of Event {event.id} to {new_status}",
+            details=f"Date: {event.date}",
+            related_type='event',
+            related_id=event.id,
+            related_date=event.date
+        )
+
+    return Response({
+        'status': 'success',
+        'new_status': new_status,
+        'message': f'Status updated to {new_status}',
+    })
+
+
+# --- SECTION 13: Staff Scheduling Views ---
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def event_staff_api(request, event_id):
+    """Manage staff assignments for an event."""
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type not in ('admin', 'manager', 'event_manager'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    event = get_object_or_404(CateringEvent, id=event_id)
+
+    if request.method == 'GET':
+        assignments = EventStaff.objects.filter(event=event).select_related('member')
+        data = [{
+            'id': a.id,
+            'member_id': a.member.id,
+            'member_name': a.member.username,
+            'role': a.role,
+            'confirmed': a.confirmed,
+            'has_conflict': False,
+        } for a in assignments]
+        return Response(data)
+
+    if request.method == 'POST':
+        member_id = request.data.get('member_id')
+        role = request.data.get('role', 'server')
+        confirmed = request.data.get('confirmed', False)
+
+        User = get_user_model()
+        member = get_object_or_404(User, id=member_id)
+
+        assignment = EventStaff(event=event, member=member, role=role, confirmed=confirmed)
+        try:
+            assignment.full_clean()
+            assignment.save()
+            return Response({'status': 'success', 'id': assignment.id})
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+
+# --- My Tasks Page ---
+@login_required
+def my_tasks_page(request):
+    """Dedicated page for staff/managers to see and manage their assigned tasks."""
+    return render(request, 'my_tasks.html')
+
+
+# --- SECTION 15: Task Assignment Views ---
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def task_api(request):
+    """List/create tasks."""
+    user = request.user
+    user_type = getattr(user, 'user_type', 'customer')
+
+    if request.method == 'GET':
+        # ?my=true returns only tasks assigned to the current user (for the floating widget)
+        my_only = request.query_params.get('my', '').lower() == 'true'
+
+        if user_type == 'admin' and not my_only:
+            tasks = TaskAssignment.objects.all()
+        else:
+            # Manager, Staff, or admin with ?my=true see only tasks assigned to them
+            tasks = TaskAssignment.objects.filter(assigned_to=user)
+
+        # Apply filters
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            tasks = tasks.filter(status=status_filter)
+
+        assignee_filter = request.query_params.get('assignee')
+        if assignee_filter:
+            tasks = tasks.filter(assigned_to_id=assignee_filter)
+
+        data = [{
+            'id': t.id,
+            'title': t.title,
+            'description': t.description,
+            'deadline': t.deadline.isoformat(),
+            'priority': t.priority,
+            'status': t.status,
+            'assigned_by': t.assigned_by.username,
+            'assigned_to': t.assigned_to.id,
+            'assigned_to_name': t.assigned_to.username,
+            'assigned_to_id': t.assigned_to.id,
+            'is_overdue': t.is_overdue,
+            'created_at': t.created_at.isoformat(),
+        } for t in tasks]
+        return Response(data)
+
+    if request.method == 'POST':
+        if user_type not in ('admin', 'manager'):
+            return Response({'error': 'Only admin/manager can assign tasks'}, status=403)
+
+        User = get_user_model()
+        assigned_to = get_object_or_404(User, id=request.data.get('assigned_to'))
+
+        task = TaskAssignment.objects.create(
+            assigned_by=user,
+            assigned_to=assigned_to,
+            title=request.data.get('title', ''),
+            description=request.data.get('description', ''),
+            deadline=request.data.get('deadline'),
+            priority=request.data.get('priority', 'medium'),
+        )
+
+        # Send attractive HTML email notification
+        try:
+            from django.core.mail import EmailMultiAlternatives
+            from django.utils import timezone
+
+            priority_colors = {'high': '#e74c3c', 'medium': '#f39c12', 'low': '#27ae60'}
+            priority_labels = {'high': '🔴 High Priority', 'medium': '🟡 Medium', 'low': '🟢 Low'}
+            prio_color = priority_colors.get(task.priority, '#999')
+            prio_label = priority_labels.get(task.priority, task.priority)
+            deadline_str = task.deadline.strftime('%d %B %Y') if task.deadline else 'No deadline'
+
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:30px 15px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+  <!-- Header -->
+  <tr><td style="background:linear-gradient(135deg,#1a1a1a,#2c2c2c);padding:28px 30px;text-align:center;">
+    <h1 style="margin:0;color:#D4AF37;font-size:22px;font-weight:700;letter-spacing:0.5px;">📋 New Task Assigned</h1>
+    <p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:13px;">Swagat Caterers — Task Management</p>
+  </td></tr>
+
+  <!-- Greeting -->
+  <tr><td style="padding:28px 30px 10px;">
+    <p style="margin:0;color:#333;font-size:16px;">Hi <strong>{assigned_to.username}</strong>,</p>
+    <p style="margin:8px 0 0;color:#666;font-size:14px;line-height:1.5;">You have been assigned a new task by <strong>{user.username}</strong>. Please review the details below.</p>
+  </td></tr>
+
+  <!-- Task Card -->
+  <tr><td style="padding:15px 30px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf9f6;border:1px solid #f0ece4;border-radius:10px;border-left:4px solid {prio_color};">
+      <tr><td style="padding:20px;">
+        <h2 style="margin:0 0 12px;color:#1a1a1a;font-size:18px;font-weight:700;">{task.title}</h2>
+        {'<p style="margin:0 0 14px;color:#666;font-size:13px;line-height:1.5;">' + task.description + '</p>' if task.description else ''}
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding:6px 0;">
+              <span style="color:#999;font-size:12px;">Priority</span><br>
+              <span style="display:inline-block;margin-top:4px;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:700;color:#fff;background:{prio_color};">{prio_label}</span>
+            </td>
+            <td style="padding:6px 0;">
+              <span style="color:#999;font-size:12px;">Deadline</span><br>
+              <span style="color:#1a1a1a;font-size:14px;font-weight:600;margin-top:4px;display:inline-block;">📅 {deadline_str}</span>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:10px 0 0;">
+              <span style="color:#999;font-size:12px;">Assigned By</span><br>
+              <span style="color:#1a1a1a;font-size:14px;font-weight:600;margin-top:4px;display:inline-block;">👤 {user.username}</span>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- CTA Button -->
+  <tr><td style="padding:10px 30px 25px;text-align:center;">
+    <a href="https://swagat-caterers-platform-production.up.railway.app/my-tasks/" style="display:inline-block;background:linear-gradient(135deg,#D4AF37,#c5a028);color:#1a1a1a;padding:13px 35px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 3px 12px rgba(212,175,55,0.3);">View My Tasks →</a>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="background:#faf9f6;padding:18px 30px;text-align:center;border-top:1px solid #f0ece4;">
+    <p style="margin:0;color:#999;font-size:11px;">🍽️ Swagat Caterers · Task Management System</p>
+    <p style="margin:5px 0 0;color:#bbb;font-size:10px;">This is an automated notification. Please do not reply to this email.</p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+            plain_text = (
+                f"Hi {assigned_to.username},\n\n"
+                f"You have been assigned a new task by {user.username}.\n\n"
+                f"Title: {task.title}\n"
+                f"Description: {task.description or 'N/A'}\n"
+                f"Deadline: {deadline_str}\n"
+                f"Priority: {task.priority}\n\n"
+                f"Log in to view: https://swagat-caterers-platform-production.up.railway.app/my-tasks/"
+            )
+
+            msg = EmailMultiAlternatives(
+                subject=f'📋 New Task: {task.title} — Swagat Caterers',
+                body=plain_text,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[assigned_to.email],
+            )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send(fail_silently=True)
+        except Exception:
+            pass
+
+        return Response({'status': 'success', 'id': task.id})
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def task_update_status(request, task_id):
+    """Update task status (assignee can update to in_progress/done)."""
+    task = get_object_or_404(TaskAssignment, id=task_id)
+    user = request.user
+
+    # Only assignee, admin, or manager can update
+    if task.assigned_to != user and getattr(user, 'user_type', '') not in ('admin', 'manager'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    new_status = request.data.get('status')
+    if new_status not in ('pending', 'in_progress', 'done', 'rejected'):
+        return Response({'error': 'Invalid status'}, status=400)
+
+    task.status = new_status
+    task.save(update_fields=['status', 'updated_at'])
+
+    return Response({'status': 'success', 'new_status': new_status})
+
+
+# --- SECTION 17: Notes API (All Roles) ---
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def admin_notes_api(request):
+    """
+    GET: Admin sees ALL notes. Manager/Staff see only their own notes.
+    POST: Any authenticated user can create a note.
+    Notes auto-delete after 60 days.
+    """
+    from .models import AdminNote
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Auto-delete notes older than 60 days
+    sixty_days_ago = timezone.now().date() - timedelta(days=60)
+    AdminNote.objects.filter(note_date__lt=sixty_days_ago).delete()
+    
+    if request.method == 'GET':
+        user_type = getattr(request.user, 'user_type', 'customer')
+        if user_type == 'admin':
+            # Admin sees ALL notes from everyone
+            notes = AdminNote.objects.all().select_related('author')[:100]
+        else:
+            # Manager/Staff see only their own notes
+            notes = AdminNote.objects.filter(author=request.user)[:50]
+        
+        data = [{
+            'id': n.id,
+            'content': n.content,
+            'note_type': n.note_type,
+            'author_name': n.author.username,
+            'author_type': getattr(n.author, 'user_type', 'unknown'),
+            'event_id': n.event_id,
+            'note_date': str(n.note_date),
+            'created_at': n.created_at.isoformat(),
+        } for n in notes]
+        return Response(data)
+    
+    if request.method == 'POST':
+        note_date_str = request.data.get('note_date')
+        if note_date_str:
+            note_date = note_date_str
+        else:
+            note_date = timezone.now().date()
+
+        note = AdminNote.objects.create(
+            author=request.user,
+            content=request.data.get('content', ''),
+            note_type=request.data.get('note_type', 'general'),
+            event_id=request.data.get('event_id'),
+            note_date=note_date
+        )
+        return Response({'status': 'success', 'id': note.id})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_note_delete(request, note_id):
+    """Delete a note. Users can delete their own. Admin can delete any."""
+    from .models import AdminNote
+    try:
+        note = AdminNote.objects.get(id=note_id)
+    except AdminNote.DoesNotExist:
+        return Response({'error': 'Note not found'}, status=404)
+    
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if note.author != request.user and user_type != 'admin':
+        return Response({'error': 'Permission denied'}, status=403)
+    
+    note.delete()
+    return Response({'status': 'success'})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_notes_download(request):
+    """Download all notes as CSV. Admin only."""
+    from .models import AdminNote
+    import csv
+    from django.http import HttpResponse as DjangoHttpResponse
+    
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type != 'admin':
+        return Response({'error': 'Permission denied'}, status=403)
+    
+    notes = AdminNote.objects.all().select_related('author')
+    
+    response = DjangoHttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="swagat_notes_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Author', 'Role', 'Date', 'Content', 'Type', 'Created At'])
+    
+    for n in notes:
+        writer.writerow([
+            n.author.username,
+            getattr(n.author, 'user_type', 'unknown'),
+            str(n.note_date),
+            n.content,
+            n.note_type,
+            str(n.created_at),
+        ])
+    
+    return response
+
+
+# --- Staff/Manager Users API (for task assignment dropdown) ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def staff_users_api(request):
+    """Return list of staff and manager users for task assignment."""
+    User = get_user_model()
+    users = User.objects.filter(user_type__in=['staff', 'manager']).values(
+        'id', 'username', 'user_type', 'email', 'phone_number'
+    )
+    return Response(list(users))
+
+
+# --- Admin: Delete Staff/Manager User ---
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_delete_user(request, user_id):
+    """Admin-only: Delete a staff/manager user and ALL their data."""
+    if not (request.user.is_superuser or getattr(request.user, 'user_type', '') == 'admin'):
+        return Response({'error': 'Admin access required'}, status=403)
+    
+    UserModel = get_user_model()
+    try:
+        target_user = UserModel.objects.get(id=user_id)
+    except UserModel.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+    
+    # Prevent deleting admin users
+    if target_user.is_superuser or target_user.user_type == 'admin':
+        return Response({'error': 'Cannot delete admin users'}, status=403)
+    
+    username = target_user.username
+    
+    # Clean up CharField-based references (not FK, so no cascade)
+    # Menus created by this user
+    Menu.objects.filter(created_by=username).update(created_by='[deleted]')
+    
+    # Activity logs are automatically deleted via Django CASCADE
+    
+    # Delete the user — Django CASCADE will handle FK relationships:
+    # - StaffAssignment (member FK → Member, not User directly)
+    # - Task (assigned_to FK → User) 
+    # - LoginHistory (user FK → User)
+    # - Notification (user FK → User)
+    # - EventComment (author FK → User)
+    target_user.delete()
+    
+    return Response({
+        'success': True, 
+        'message': f'User "{username}" and all associated data deleted successfully.'
+    })
+
+
+# --- Activity Review Page ---
+@login_required
+def activity_review_page(request):
+    """Dedicated page for admin to review manager activity logs."""
+    return render(request, 'activity_review.html')
+
+
+# --- Assign Tasks Page (Admin only) ---
+@login_required
+def assign_tasks_page(request):
+    """Dedicated page for admin to assign and manage tasks."""
+    return render(request, 'assign_tasks.html')
+
+
+# --- Staff Menu Viewer Page (View-only, no download) ---
+@login_required
+def view_menu_page(request):
+    """Read-only menu viewer page for staff in both languages."""
+    return render(request, 'view_menu.html')
+
+
+# --- SECTION 18: Activity Logs API (Manager Actions) ---
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def activity_logs_api(request):
+    """
+    GET: Admin sees activity logs. ?show_all=true for all logs, default only unreviewed.
+    POST: Admin marks a log as reviewed (hidden).
+    """
+    user_type = getattr(request.user, 'user_type', 'customer')
+    if user_type != 'admin':
+        return Response({'error': 'Permission denied'}, status=403)
+
+    from .models import ActivityLog
+
+    if request.method == 'GET':
+        show_all = request.query_params.get('show_all', 'false') == 'true'
+        if show_all:
+            logs = ActivityLog.objects.exclude(related_type='menu').select_related('user')[:100]
+        else:
+            logs = ActivityLog.objects.filter(is_reviewed=False).exclude(related_type='menu').select_related('user')[:50]
+        data = [{
+            'id': log.id,
+            'username': log.user.username,
+            'user_type': getattr(log.user, 'user_type', 'unknown'),
+            'action': log.action,
+            'details': log.details,
+            'is_reviewed': log.is_reviewed,
+            'related_type': log.related_type or 'other',
+            'related_id': log.related_id,
+            'related_date': str(log.related_date) if log.related_date else None,
+            'created_at': log.created_at.isoformat()
+        } for log in logs]
+        return Response(data)
+    
+    if request.method == 'POST':
+        # Mark log as reviewed AND approve the related event/menu
+        log_id = request.data.get('log_id')
+        if log_id:
+            try:
+                log = ActivityLog.objects.get(id=log_id)
+                log.is_reviewed = True
+                log.save(update_fields=['is_reviewed'])
+
+                # Auto-approve the related booking/menu
+                if log.related_type == 'booking' and log.related_id:
+                    try:
+                        event = CateringEvent.objects.get(id=log.related_id)
+                        if not event.is_approved:
+                            event.is_approved = True
+                            event.save(update_fields=['is_approved'])
+                    except CateringEvent.DoesNotExist:
+                        pass
+                elif log.related_type == 'menu' and log.related_id:
+                    try:
+                        menu = Menu.objects.get(id=log.related_id)
+                        if not menu.is_approved:
+                            menu.is_approved = True
+                            menu.save(update_fields=['is_approved'])
+                    except Menu.DoesNotExist:
+                        pass
+
+                return Response({'status': 'success', 'approved': True})
+            except ActivityLog.DoesNotExist:
+                return Response({'error': 'Log not found'}, status=404)
+        return Response({'error': 'Log ID required'}, status=400)
+
+
+# --- SECTION 4: Menu Items List API (for offline/calendar) ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def menu_items_public(request):
+    """Public API for menu items (used by offline sync + recommendations)."""
+    items = Menu_item.objects.select_related('category').all()
+    data = [{
+        'id': item.id,
+        'name': item.name,
+        'gujarati_name': item.gujarati_name or '',
+        'category': item.category.name,
+        'category_id': item.category.id,
+        'image': item.image.url if item.image else '',
+    } for item in items]
+    return Response(data)
+
+
+# --- SECTION 4: Events List API (for offline sync) ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def events_list_public(request):
+    """Public API listing events (minimal info for calendar/offline)."""
+    events = CateringEvent.objects.all()
+    data = [{
+        'id': e.id,
+        'title': 'Booked' if e.status in ('confirmed', 'in_progress') else 'Available',
+        'date': e.date.isoformat(),
+        'status': e.status,
+    } for e in events]
+    return Response(data)
+
+
+# --- SECTION 22: PWA Manifest & Offline ---
+def manifest_json(request):
+    """Serve manifest.json for PWA."""
+    manifest = {
+        "name": "Swagat Caterers",
+        "short_name": "Swagat",
+        "description": "Premium Gujarati Catering Service — Book events, track bookings, manage menus.",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0d0d0d",
+        "theme_color": "#d4af37",
+        "orientation": "portrait",
+        "icons": [
+            {
+                "src": "/static/images/logo/logo.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "/static/images/logo/logo.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }
+        ]
+    }
+    return JsonResponse(manifest, content_type='application/manifest+json')
+
+
+def offline_page(request):
+    """Offline fallback page."""
+    return render(request, "offline.html")
+
+
+# --- SECTION 9: AI Menu Recommendation Engine ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def menu_recommend(request):
+    """Recommend menu items based on event type, guest count, and season."""
+    event_type = request.GET.get('event_type', 'wedding')
+    guests = int(request.GET.get('guests', 100))
+    month = request.GET.get('month', '')
+
+    # Build smart recommendations based on event type
+    type_tags = {
+        'wedding': ['paneer', 'dal', 'rice', 'sweet', 'starter', 'puri'],
+        'corporate': ['sandwich', 'pasta', 'salad', 'soup', 'juice'],
+        'birthday': ['pizza', 'cake', 'sweet', 'starter', 'ice cream'],
+        'engagement': ['paneer', 'biryani', 'sweet', 'starter', 'kulfi'],
+        'thread_ceremony': ['puri', 'dal', 'rice', 'sweet', 'khichdi'],
+    }
+
+    # Get items matching the event type tags
+    tags = type_tags.get(event_type.lower(), type_tags['wedding'])
+    from django.db.models import Q
+    q = Q()
+    for tag in tags:
+        q |= Q(name__icontains=tag) | Q(gujarati_name__icontains=tag)
+
+    recommended = Menu_item.objects.filter(q).distinct()[:12]
+
+    # Also get popular items from MenuItemStats
+    try:
+        popular = MenuItemStats.objects.order_by('-booking_count')[:5]
+        popular_items = [{'id': s.menu_item.id, 'name': s.menu_item.name, 'bookings': s.booking_count}
+                        for s in popular if s.menu_item]
+    except Exception:
+        popular_items = []
+
+    data = {
+        'event_type': event_type,
+        'guests': guests,
+        'recommended': [{'id': i.id, 'name': i.name, 'gujarati_name': i.gujarati_name,
+                         'category': i.category.name if i.category else ''} for i in recommended],
+        'popular': popular_items,
+        'tip': f"For a {event_type} with {guests} guests, we recommend {len(recommended)} curated items.",
+    }
+    return Response(data)
+
+
+# --- SECTION 11: Also-Selected (Co-occurrence) API ---
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def also_selected_api(request, item_id):
+    """Get items frequently ordered together with a given item."""
+    from django.db.models import Q
+    pairs = ItemCoOccurrence.objects.filter(
+        Q(item_a_id=item_id) | Q(item_b_id=item_id)
+    ).order_by('-count')[:6]
+
+    results = []
+    for pair in pairs:
+        other = pair.item_b if pair.item_a_id == item_id else pair.item_a
+        results.append({
+            'id': other.id,
+            'name': other.name,
+            'gujarati_name': other.gujarati_name,
+            'category': other.category.name if other.category else '',
+            'co_count': pair.count,
+        })
+
+    return Response({'item_id': item_id, 'also_selected': results})
+
+
+# --- SECTION 19: Login History + Logout All ---
+@login_required
+def login_history_page(request):
+    """Render login history page."""
+    return render(request, 'login_history.html')
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def login_history_api(request):
+    """Get login history for the current user."""
+    history = UserLoginHistory.objects.filter(user=request.user).order_by('-timestamp')[:50]
+    data = [{
+        'ip': h.ip_address,
+        'user_agent': h.user_agent[:80] if h.user_agent else '',
+        'city': h.city,
+        'country': h.country,
+        'is_new_ip': h.is_new_ip,
+        'timestamp': h.timestamp.isoformat(),
+    } for h in history]
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_all_sessions(request):
+    """Invalidate all auth tokens for this user (logout everywhere)."""
+    from rest_framework.authtoken.models import Token
+    Token.objects.filter(user=request.user).delete()
+    # Create a fresh token for the current session
+    new_token = Token.objects.create(user=request.user)
+    return Response({'message': 'All other sessions logged out.', 'new_token': new_token.key})

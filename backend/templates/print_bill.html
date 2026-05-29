@@ -3,6 +3,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Print Bill - Swagat Caterers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -505,6 +507,17 @@
             doc.text("Thank you for choosing Swagat Caterers! We look forward to serving you again.", 105, 282, {align:'center'});
 
             doc.save(`Invoice_${document.getElementById('client-name').innerText}.pdf`);
+            
+            // Log PDF generation to DB and Email Admin
+            try {
+                fetch('/api/log-pdf/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({
+                        event_details: `Invoice PDF Generated\n---\nClient: ${document.getElementById('client-name').innerText}\nInvoice #: ${document.getElementById('inv-num').innerText}\nGrand Total: Rs. ${document.getElementById('grand-total').innerText}`
+                    })
+                });
+            } catch(e) { console.log('PDF Log notify:', e); }
         }
 
         init();

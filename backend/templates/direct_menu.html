@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Direct Menu Creator - Swagat Caterers</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;700&display=swap" rel="stylesheet">
     
@@ -53,13 +55,16 @@
         .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
         .item-check { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: white; border: 1px solid #eee; border-radius: 6px; cursor: pointer; transition: 0.2s; min-height: 40px; }
         .item-check:hover { border-color: #ddd; }
+        .item-check.checked { background: #fffcf5; border-color: #ffe082; }
         .item-check input { margin-top: 4px; transform: scale(1.2); cursor: pointer; accent-color: var(--gold); flex-shrink: 0; }
         .item-label { font-size: 14px; color: #333; user-select: none; flex: 1; line-height: 1.4; }
 
         .custom-area { margin-top: 15px; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+        .custom-area:focus { border-color: var(--gold); outline: none; }
+        .custom-area-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
 
         /* Sidebar / Summary */
-        .summary-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); position: sticky; top: 100px; border-top: 4px solid var(--gold); }
+        .summary-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); position: sticky; top: 100px; border-top: 4px solid var(--gold); max-height: calc(100vh - 130px); overflow-y: auto; }
         .summary-card h3 { margin-top: 0; font-family: 'Playfair Display', serif; color: #333; font-size: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         
         /* Language Switcher */
@@ -70,6 +75,22 @@
         .summary-stats { margin: 15px 0; font-size: 14px; color: #555; }
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .stat-val { font-weight: 700; color: var(--dark-gold); }
+
+        /* ── Selected Items Live Panel ── */
+        .selected-panel { margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; }
+        .selected-panel-title { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .selected-panel-title button { background: none; border: none; font-size: 11px; color: #e74c3c; cursor: pointer; font-weight: 600; padding: 0; }
+        .selected-panel-title button:hover { text-decoration: underline; }
+        .sel-category { margin-bottom: 12px; }
+        .sel-cat-name { font-size: 11px; font-weight: 700; color: var(--dark-gold); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; padding: 3px 8px; background: #fffcf5; border-left: 3px solid var(--gold); border-radius: 0 4px 4px 0; }
+        .sel-items-list { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 0 8px; }
+        .sel-chip { background: white; border: 1px solid #e8d9a0; border-radius: 20px; padding: 3px 10px 3px 10px; font-size: 12px; color: #444; display: inline-flex; align-items: center; gap: 5px; transition: 0.15s; }
+        .sel-chip:hover { border-color: #e74c3c; background: #fff5f5; }
+        .sel-chip button { background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; margin-left: 2px; }
+        .sel-chip button:hover { color: #e74c3c; }
+        .sel-empty { font-size: 13px; color: #bbb; font-style: italic; text-align: center; padding: 14px 0; }
+        .sel-chip-custom { background: #f0f9ff; border-color: #b3d9f0; color: #2c7aa0; }
+        .sel-chip-custom:hover { border-color: #2c7aa0; background: #e0f2fe; }
 
         .btn-action { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: 10px; transition: 0.2s; text-align: center; gap: 8px; }
         .btn-pdf { background: #2c3e50; color: white; }
@@ -82,7 +103,7 @@
         /* Responsive */
         @media (max-width: 900px) {
             .builder-grid { grid-template-columns: 1fr; }
-            .summary-card { position: relative; top: 0; z-index: 10; margin-bottom: 30px; }
+            .summary-card { position: relative; top: 0; z-index: 10; margin-bottom: 30px; max-height: none; }
             .client-inputs { flex-direction: column; gap: 10px; }
             .page-header { flex-direction: column; align-items: stretch; }
             .nav-logo { height: 35px; }
@@ -157,8 +178,19 @@
                         <div class="stat-row"><span>Categories:</span> <span class="stat-val" id="count-cats">0</span></div>
                         <div class="stat-row"><span>Items:</span> <span class="stat-val" id="count-items">0</span></div>
                     </div>
+
+                    <!-- ── LIVE SELECTED ITEMS PANEL ── -->
+                    <div class="selected-panel">
+                        <div class="selected-panel-title">
+                            <span>Selected Items</span>
+                            <button onclick="clearAllItems()" id="clear-all-btn" style="display:none;">Clear All</button>
+                        </div>
+                        <div id="selected-preview">
+                            <div class="sel-empty">No items selected yet</div>
+                        </div>
+                    </div>
                     
-                    <div class="input-group" style="margin-bottom: 20px;">
+                    <div class="input-group" style="margin-bottom: 20px; margin-top: 18px;">
                         <label>Footer Note</label>
                         <textarea id="menu-note" class="custom-area" rows="3" placeholder="Ex: Jain Food, Spicy..."></textarea>
                     </div>
@@ -185,7 +217,6 @@
 
     <script>
         // --- 1. SETUP & AUTH ---
-        // FIX: Ensuring we use 'authToken' to match your storage key
         const token = localStorage.getItem('authToken');
         if (!token) window.location.href = "{% url 'login' %}";
 
@@ -198,7 +229,7 @@
         let allItems = [];
         let selectedItems = new Set(); 
         let currentEventData = null;
-        let viewLang = 'en'; // Controls what language is shown on screen
+        let viewLang = 'en';
 
         function getCookie(name) {
             let cookieValue = null;
@@ -217,29 +248,31 @@
 
         async function init() {
             try {
-                // 1. Verify Admin Status First
                 const userRes = await fetch('/auth/users/me/', { 
                     headers: { 
-                        'Authorization': `Token ${token}`, // FIX: Ensure 'Token ' prefix is present
+                        'Authorization': `Token ${token}`,
                         'X-CSRFToken': getCookie('csrftoken')
                     } 
                 });
                 
                 if (!userRes.ok) {
-                    // If auth fails, token might be expired
                     localStorage.removeItem('authToken');
                     window.location.href = "{% url 'login' %}";
                     return;
                 }
                 
                 const user = await userRes.json();
+                const rawType = (user.user_type || '').toLowerCase();
+                const isAdminUser = (rawType === 'admin' || user.is_superuser);
+                const isManagerUser = (rawType === 'manager');
+                window.currentUsername = user.username;
+                window.isAdminUser = isAdminUser;
                 
-                // RESTRICT ACCESS: Only Staff/Superusers can see this page
-                if (!user.is_staff && !user.is_superuser) {
+                if (!isAdminUser && !isManagerUser) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Access Denied',
-                        text: 'Only Admins can access the Direct Menu Creator.',
+                        text: 'Only Admins and Managers can access the Menu Creator.',
                         confirmButtonText: 'Go to Dashboard',
                         confirmButtonColor: '#d4af37',
                         allowOutsideClick: false
@@ -249,7 +282,6 @@
                     return; 
                 }
 
-                // 2. Load Data if Admin
                 const [catRes, itemRes] = await Promise.all([
                     fetch('/api/menu/categories/', { headers: { 'Authorization': `Token ${token}` } }),
                     fetch('/api/menu/menu-items/', { headers: { 'Authorization': `Token ${token}` } })
@@ -311,11 +343,33 @@
                 
                 if(menu.note) document.getElementById('menu-note').value = menu.note;
                 
+                // Restore custom items from saved JSON into category textareas
+                if (menu.custom_items_text) {
+                    try {
+                        const customData = JSON.parse(menu.custom_items_text);
+                        // customData format: { "catId": ["item1", "item2"], ... }
+                        window._pendingCustomItems = customData;
+                    } catch(e) { console.log('Could not parse custom_items_text', e); }
+                }
+                
                 renderAccordion();
+                
+                // After rendering, restore custom textarea values
+                if (window._pendingCustomItems) {
+                    const customData = window._pendingCustomItems;
+                    Object.keys(customData).forEach(catId => {
+                        const textarea = document.getElementById(`custom-${catId}`);
+                        if (textarea && Array.isArray(customData[catId]) && customData[catId].length > 0) {
+                            textarea.value = customData[catId].join('\n');
+                        }
+                    });
+                    delete window._pendingCustomItems;
+                }
                 
                 categories.forEach(cat => {
                     const hasSel = menu.items.some(iId => allItems.find(x => x.id === iId)?.category === cat.id);
-                    if(hasSel) toggleCategory(cat.id, true);
+                    const hasCustom = document.getElementById(`custom-${cat.id}`)?.value?.trim();
+                    if(hasSel || hasCustom) toggleCategory(cat.id, true);
                 });
                 updateStats();
             } catch(e) { console.error(e); }
@@ -326,7 +380,8 @@
             viewLang = lang;
             document.getElementById('lang-en').className = `lang-opt ${lang === 'en' ? 'active' : ''}`;
             document.getElementById('lang-gu').className = `lang-opt font-guj ${lang === 'gu' ? 'active' : ''}`;
-            renderAccordion(); 
+            renderAccordion();
+            updateStats(); // re-render selected panel in new language
         }
 
         function renderAccordion() {
@@ -343,11 +398,12 @@
                 let itemsHtml = '';
                 catItems.forEach(item => {
                     const isChecked = selectedItems.has(item.id) ? 'checked' : '';
+                    const checkedClass = selectedItems.has(item.id) ? 'checked' : '';
                     const itemName = (viewLang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
                     const fontClass = viewLang === 'gu' ? 'font-guj' : '';
 
                     itemsHtml += `
-                        <label class="item-check">
+                        <label class="item-check ${checkedClass}">
                             <input type="checkbox" class="item-checkbox" value="${item.id}" ${isChecked} onchange="toggleItem(${item.id}, this)">
                             <span class="item-label ${fontClass}">${itemName}</span>
                         </label>
@@ -357,16 +413,20 @@
                 const isOpen = openCats.includes(`cat-body-${cat.id}`);
                 const openClass = isOpen ? 'open' : '';
                 const activeClass = isOpen ? 'active' : '';
+                const placeholderText = viewLang === 'gu' 
+                    ? 'દરેક લાઈનમાં એક વસ્તુ ઉમેરો...' 
+                    : 'One custom item per line...';
 
                 const html = `
                     <div class="category-card">
                         <div class="cat-header ${activeClass}" onclick="toggleCategory(${cat.id})">
                             <span class="${viewLang==='gu'?'font-guj':''}">${catName}</span>
-                            <span style="font-size:12px; color:#999;">${catItems.length}</span>
+                            <span style="font-size:12px; color:#999;">${catItems.length} items</span>
                         </div>
                         <div class="cat-body ${openClass}" id="cat-body-${cat.id}">
                             <div class="item-grid">${itemsHtml}</div>
-                            <textarea class="custom-area" placeholder="${viewLang==='gu' ? 'અન્ય વસ્તુઓ ઉમેરો...' : 'Add custom items (optional)...'}" id="custom-${cat.id}"></textarea>
+                            <textarea class="custom-area" placeholder="${placeholderText}" id="custom-${cat.id}" rows="3" oninput="updateStats()"></textarea>
+                            <div class="custom-area-hint">💡 Each line = one item in the PDF</div>
                         </div>
                     </div>
                 `;
@@ -388,19 +448,104 @@
         }
 
         function toggleItem(id, checkbox) {
-            if (checkbox.checked) selectedItems.add(id);
-            else selectedItems.delete(id);
+            if (checkbox.checked) {
+                selectedItems.add(id);
+                checkbox.closest('.item-check').classList.add('checked');
+            } else {
+                selectedItems.delete(id);
+                checkbox.closest('.item-check').classList.remove('checked');
+            }
+            updateStats();
+        }
+
+        // Remove item from outside the accordion (chip × button)
+        function removeItem(id) {
+            selectedItems.delete(id);
+            // Sync checkbox in accordion if visible
+            const cb = document.querySelector(`.item-checkbox[value="${id}"]`);
+            if (cb) {
+                cb.checked = false;
+                cb.closest('.item-check').classList.remove('checked');
+            }
+            updateStats();
+        }
+
+        // Clear all selected items
+        function clearAllItems() {
+            selectedItems.clear();
+            // Uncheck all visible checkboxes
+            document.querySelectorAll('.item-checkbox').forEach(cb => {
+                cb.checked = false;
+                cb.closest('.item-check').classList.remove('checked');
+            });
             updateStats();
         }
 
         function updateStats() {
             document.getElementById('count-items').innerText = selectedItems.size;
+
+            // Compute active categories
             const activeCatIds = new Set();
             selectedItems.forEach(iid => {
                 const item = allItems.find(x => x.id === iid);
                 if(item) activeCatIds.add(item.category);
             });
             document.getElementById('count-cats').innerText = activeCatIds.size;
+
+            const clearBtn = document.getElementById('clear-all-btn');
+            const preview = document.getElementById('selected-preview');
+
+            // Build grouped structure: regular checked items + custom lines per category
+            let totalVisible = 0;
+            let html = '';
+
+            categories.forEach(cat => {
+                // Regular checked items for this category
+                const checkedItems = allItems.filter(x => selectedItems.has(x.id) && x.category === cat.id);
+
+                // Custom lines from this category's textarea
+                const textarea = document.getElementById(`custom-${cat.id}`);
+                const customLines = textarea
+                    ? textarea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+                    : [];
+
+                if (checkedItems.length === 0 && customLines.length === 0) return;
+
+                totalVisible += checkedItems.length + customLines.length;
+
+                const catName = (viewLang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+                const fontClass = viewLang === 'gu' ? 'font-guj' : '';
+
+                html += `<div class="sel-category">
+                    <div class="sel-cat-name ${fontClass}">${catName}</div>
+                    <div class="sel-items-list">`;
+
+                // Regular item chips (removable via ×)
+                checkedItems.forEach(item => {
+                    const iName = (viewLang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
+                    html += `<span class="sel-chip">
+                        <span class="${fontClass}">${iName}</span>
+                        <button onclick="removeItem(${item.id})" title="Remove">×</button>
+                    </span>`;
+                });
+
+                // Custom item chips (edit textarea to remove)
+                customLines.forEach(line => {
+                    html += `<span class="sel-chip sel-chip-custom" title="Custom item">
+                        <span>✏️ ${line}</span>
+                    </span>`;
+                });
+
+                html += `</div></div>`;
+            });
+
+            if (totalVisible === 0) {
+                preview.innerHTML = '<div class="sel-empty">No items selected yet</div>';
+                if(clearBtn) clearBtn.style.display = 'none';
+            } else {
+                preview.innerHTML = html;
+                if(clearBtn) clearBtn.style.display = 'inline';
+            }
         }
 
         // --- 4. PDF GENERATION ---
@@ -504,8 +649,16 @@
 
                 categories.forEach(cat => {
                     const catItems = allItems.filter(i => i.category === cat.id && selectedItems.has(i.id));
-                    const customText = document.getElementById(`custom-${cat.id}`) ? document.getElementById(`custom-${cat.id}`).value : "";
-                    if(catItems.length === 0 && !customText.trim()) return;
+                    const customTextEl = document.getElementById(`custom-${cat.id}`);
+                    const customText = customTextEl ? customTextEl.value : "";
+
+                    // Split custom textarea: each non-empty line = one item
+                    const customLines = customText
+                        .split('\n')
+                        .map(l => l.trim())
+                        .filter(l => l.length > 0);
+
+                    if(catItems.length === 0 && customLines.length === 0) return;
 
                     const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
 
@@ -514,6 +667,7 @@
                         else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
                     }
 
+                    // Category header bar
                     doc.setFillColor(198, 153, 79); 
                     doc.roundedRect(currentX, currentY-6, 80, 8, 3, 3, 'F');
                     doc.setTextColor(0,0,0); doc.setFontSize(11);
@@ -521,20 +675,34 @@
                     doc.text(catName, currentX+5, currentY-1);
                     currentY += 8;
 
+                    // Regular items
                     if(lang !== 'gu') doc.setFont("helvetica", "normal");
                     doc.setFontSize(10);
+                    doc.setTextColor(30, 30, 30);
                     catItems.forEach(item => {
+                        if(currentY > 270) {
+                            if(currentX === 15) { currentX = midX; currentY = 68; }
+                            else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
+                        }
                         const iName = (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
                         doc.text(iName, currentX+5, currentY);
                         currentY += 6;
                     });
 
-                    if(customText) {
-                        const lines = doc.splitTextToSize(customText, 80);
-                        doc.setTextColor(50,50,50);
-                        doc.text(lines, currentX+5, currentY);
-                        currentY += (lines.length * 6);
+                    // Custom items — each line is a separate item
+                    if(customLines.length > 0) {
+                        doc.setTextColor(50, 50, 50);
+                        customLines.forEach(line => {
+                            if(currentY > 270) {
+                                if(currentX === 15) { currentX = midX; currentY = 68; }
+                                else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
+                            }
+                            const wrapped = doc.splitTextToSize(line, 75);
+                            doc.text(wrapped, currentX+5, currentY);
+                            currentY += (wrapped.length * 6);
+                        });
                     }
+
                     currentY += 4; 
                 });
 
@@ -552,7 +720,24 @@
                 const fName = `${safeName}_${lang.toUpperCase()}_Menu.pdf`;
 
                 if(isPreview) window.open(doc.output('bloburl'), '_blank');
-                else doc.save(fName);
+                else {
+                    doc.save(fName);
+                    // Log PDF generation
+                    try {
+                        const itemNames = Array.from(selectedItems).map(id => {
+                            const item = allItems.find(x => x.id === id);
+                            return item ? item.name : '';
+                        }).filter(Boolean).join(', ');
+                        
+                        const detailsString = `Menu PDF Generated\n---\nClient: ${clientName || 'Direct Menu'}\nDate: ${eventDate}\nGuests: ${guests}\nVenue: ${venue || '-'}\nPhone: ${phone || '-'}\n\nSelected Items: ${itemNames}\nNote: ${note || '-'}\nLanguage: ${lang === 'gu' ? 'Gujarati' : 'English'}`;
+
+                        fetch('/api/log-pdf/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                            body: JSON.stringify({ event_details: detailsString })
+                        });
+                    } catch(e) { console.log('PDF Log notify:', e); }
+                }
 
             } catch(e) { console.error(e); Swal.fire("Error", "PDF Generation failed: " + e.message, "error"); }
         }
@@ -561,12 +746,26 @@
         async function saveToDatabase() {
             if(!eventId) return; 
             
+            // Collect custom items from all category textareas
+            const customItemsData = {};
+            categories.forEach(cat => {
+                const textarea = document.getElementById(`custom-${cat.id}`);
+                if (textarea && textarea.value.trim()) {
+                    const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length > 0) {
+                        customItemsData[cat.id] = lines;
+                    }
+                }
+            });
+            
             const payload = {
                 event: eventId,
                 title: "Menu " + new Date().toLocaleDateString(),
                 items: Array.from(selectedItems),
                 note: document.getElementById('menu-note').value,
-                is_selected: true
+                custom_items_text: JSON.stringify(customItemsData),
+                is_selected: true,
+                created_by: window.currentUsername || ''
             };
 
             const url = menuId ? `/api/menu/menus/${menuId}/` : `/api/menu/menus/`;

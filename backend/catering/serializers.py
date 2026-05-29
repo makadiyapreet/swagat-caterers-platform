@@ -5,13 +5,13 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
 from django.core.mail import send_mail
 from django.conf import settings
-from django.core.signing import Signer
+from django.core.signing import TimestampSigner
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from .models import Category, Menu_item, CateringEvent, Member, MemberLog 
 from .models import *
 
 User = get_user_model()
-signer = Signer()
+signer = TimestampSigner()
 
 # 1. Custom Registration Serializer
 class UserCreateSerializer(BaseUserCreateSerializer):
@@ -20,41 +20,46 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         fields = ('id', 'username', 'email', 'password', 'phone_number')
 
     def create(self, validated_data):
-        # A. Create the user normally (handled by Djoser)
+        # Djoser overrides username with email when LOGIN_FIELD is 'email'.
+        # We grab the original username from the raw request data and force it in.
+        raw_username = self.initial_data.get('username', '').strip()
+        if raw_username:
+            validated_data['username'] = raw_username
+
         user = super().create(validated_data)
-        
-        # B. FORCE LOCK THE ACCOUNT
+
+        # Double-check: ensure username is what the user typed, not auto-generated
+        if raw_username and user.username != raw_username:
+            user.username = raw_username
+
+        # Lock account until admin approval
         user.is_active = False
         user.save()
         
-        # C. Generate Approval Link for Admin
-        token = signer.sign(user.pk)
-        # NOTE: Change 127.0.0.1 to your live domain when you deploy
-        activation_link = f"/api/menu/activate/{token}/"
-
-        # D. Email YOU (The Admin)
-        print(f"Sending Admin Approval Email for {user.username}...")
+        # Send email to admin with all signup details
         try:
+            from django.utils import timezone
+            now = timezone.now().strftime('%d/%m/%Y %I:%M %p')
             send_mail(
-                subject=f'APPROVAL NEEDED: New User "{user.username}"',
+                subject=f'New Signup: {user.username} — Swagat Caterers',
                 message=f"""
-                A new user has registered.
-                
-                Username: {user.username}
-                Email: {user.email}
-                Phone: {user.phone_number}
-                
-                -----------------------------------------
-                CLICK BELOW TO APPROVE IMMEDIATELY:
-                {activation_link}
-                -----------------------------------------
+New User Registration
+=====================
+Username: {user.username}
+Email: {user.email}
+Phone: {user.phone_number or 'Not provided'}
+Registered At: {now}
+
+--- Action Required ---
+Approve this user from the admin panel or use the link below:
+/api/menu/activate/{signer.sign(user.pk)}/
                 """,
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=['swagatcaterersofficial@gmail.com'], # Your email
-                fail_silently=False,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['swagatcaterersofficial@gmail.com'],
+                fail_silently=True,
             )
         except Exception as e:
-            print(f"Error sending email: {e}")
+            print(f"Signup email error: {e}")
 
         return user
 # 2. Custom User Serializer for Dashboard View

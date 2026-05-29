@@ -21,9 +21,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from catering.views import frontend_home
 from catering import views
+from catering import exports as export_views
 from django.contrib.auth import views as auth_views
 from django.views.static import serve
-from catering.views import activate_user # <-- USE THIS
+from catering.views import activate_user
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -58,6 +59,38 @@ urlpatterns = [
 
     path('dashboard/booking/', views.booking, name='booking'),
 
+    # --- PLATFORM UPGRADE URLs ---
+    path('booking/track/<uuid:token>/', views.booking_status, name='booking_status'),
+    path('calendar/', views.calendar_public, name='calendar_public'),
+    path('dashboard/gallery/', views.gallery_manage, name='gallery_manage'),
+    path('my-tasks/', views.my_tasks_page, name='my_tasks_page'),
+    path('activity-review/', views.activity_review_page, name='activity_review_page'),
+    path('assign-tasks/', views.assign_tasks_page, name='assign_tasks_page'),
+    path('view-menu/', views.view_menu_page, name='view_menu_page'),
+
+    # Section 22: PWA
+    path('manifest.json', views.manifest_json, name='manifest_json'),
+    path('offline/', views.offline_page, name='offline_page'),
+
+    # Section 12: Exports
+    path('export/events/excel/', export_views.export_events_excel, name='export_events_excel'),
+    path('export/events/csv/', export_views.export_events_csv, name='export_events_csv'),
+    path('export/members/excel/', export_views.export_members_excel, name='export_members_excel'),
+    path('export/bookings/excel/', export_views.export_bookings_excel, name='export_bookings_excel'),
+    
+    # Export Preview Pages
+    path('export/events/preview/', export_views.export_events_preview, name='export_events_preview'),
+    path('export/bookings/preview/', export_views.export_bookings_preview, name='export_bookings_preview'),
+    
+    # Export Preview APIs (JSON)
+    path('api/export/events/', export_views.export_events_api, name='export_events_api'),
+    path('api/export/bookings/', export_views.export_bookings_api, name='export_bookings_api'),
+
+    # Section 21: Blog
+    path('blog/', include('blog.urls')),
+
+    # Section 19: Login History Page
+    path('login-history/', views.login_history_page, name='login_history_page'),
 
     path('api/', include('catering.urls'))
 ]
@@ -67,3 +100,6 @@ urlpatterns += [
 # This allows images to load
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Custom error handlers (work when DEBUG=False)
+handler404 = 'catering.views.custom_404_view'

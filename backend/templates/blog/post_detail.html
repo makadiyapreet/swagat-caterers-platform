@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.meta_title|default:post.title }} — Swagat Caterers Blog</title>
+    <meta name="description" content="{{ post.meta_description|default:post.excerpt }}">
+    <meta property="og:title" content="{{ post.meta_title|default:post.title }}">
+    <meta property="og:description" content="{{ post.meta_description|default:post.excerpt }}">
+    {% if post.og_image %}<meta property="og:image" content="{{ post.og_image.url }}">{% endif %}
+    <meta property="og:type" content="article">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "{{ post.title|escapejs }}",
+        "description": "{{ post.meta_description|default:post.excerpt|escapejs }}",
+        "datePublished": "{{ post.created_at|date:'c' }}",
+        "dateModified": "{{ post.updated_at|date:'c' }}",
+        {% if post.author %}"author": {"@type": "Person", "name": "{{ post.author.username|escapejs }}"},{% endif %}
+        "publisher": {
+            "@type": "Organization",
+            "name": "Swagat Caterers",
+            "logo": {"@type": "ImageObject", "url": "{{ request.scheme }}://{{ request.get_host }}/static/images/logo/logo.png"}
+        }
+    }
+    </script>
+
+    <style>
+        .blog-detail { padding: 120px 0 60px; background: #0d0d0d; min-height: 100vh; }
+        
+        .article-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border-radius: 20px;
+            border: 1px solid rgba(212,175,55,0.1);
+            padding: 50px 40px;
+        }
+        
+        .article-container h1 {
+            font-family: 'Playfair Display', serif;
+            color: #d4af37;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+        
+        .article-meta {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(212,175,55,0.1);
+        }
+        .article-meta span { color: #d4af37; }
+        
+        .article-content {
+            color: #ccc;
+            font-size: 1.05rem;
+            line-height: 1.9;
+        }
+        
+        .article-content h2, .article-content h3 {
+            color: #d4af37;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .article-content p { margin-bottom: 1.2rem; }
+        
+        .article-content img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .article-tags {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(212,175,55,0.1);
+        }
+        
+        .article-tag {
+            display: inline-block;
+            background: rgba(212,175,55,0.1);
+            color: #d4af37;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 3px;
+            text-decoration: none;
+        }
+        .article-tag:hover { background: rgba(212,175,55,0.2); color: #d4af37; }
+        
+        .related-section {
+            max-width: 800px;
+            margin: 40px auto 0;
+        }
+        
+        .related-section h3 {
+            color: #d4af37;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 20px;
+        }
+        
+        .related-card {
+            background: #1a1a1a;
+            border: 1px solid rgba(212,175,55,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.3s;
+        }
+        .related-card:hover { border-color: rgba(212,175,55,0.3); }
+        .related-card h4 { font-size: 1rem; margin-bottom: 5px; }
+        .related-card h4 a { color: #f0f0f0; text-decoration: none; }
+        .related-card h4 a:hover { color: #d4af37; }
+        .related-card small { color: #666; }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            color: #d4af37;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { color: #b4901e; }
+        
+        @media (max-width: 768px) {
+            .article-container { padding: 30px 20px; border-radius: 15px; }
+            .article-container h1 { font-size: 1.7rem; }
+        }
+    </style>
+</head>
+<body>
+    {% include 'components/navbar.html' %}
+
+    <section class="blog-detail">
+        <div class="container">
+            <div class="article-container">
+                <h1>{{ post.title }}</h1>
+                
+                <div class="article-meta">
+                    <span>{{ post.created_at|date:"d M Y" }}</span>
+                    {% if post.author %} • By {{ post.author.username }}{% endif %}
+                    {% if post.updated_at != post.created_at %}
+                    • Updated {{ post.updated_at|date:"d M Y" }}
+                    {% endif %}
+                </div>
+                
+                {% if post.og_image %}
+                <img src="{{ post.og_image.url }}" alt="{{ post.title }}" 
+                     style="width:100%; border-radius:15px; margin-bottom:25px; max-height:400px; object-fit:cover;">
+                {% endif %}
+                
+                <div class="article-content">
+                    {{ post.content|safe|linebreaks }}
+                </div>
+                
+                {% if post.tag_list %}
+                <div class="article-tags">
+                    {% for tag in post.tag_list %}
+                    <a href="{% url 'blog:post_list' %}?tag={{ tag }}" class="article-tag">{{ tag }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if related %}
+            <div class="related-section">
+                <h3>Related Posts</h3>
+                <div class="row g-3">
+                    {% for r in related %}
+                    <div class="col-md-4">
+                        <div class="related-card">
+                            <h4><a href="{% url 'blog:post_detail' r.slug %}">{{ r.title }}</a></h4>
+                            <small>{{ r.created_at|date:"d M Y" }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <a href="{% url 'blog:post_list' %}" class="back-link">← Back to Blog</a>
+        </div>
+    </section>
+
+    {% include 'components/footer.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
