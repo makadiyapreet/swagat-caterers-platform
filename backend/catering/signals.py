@@ -93,7 +93,7 @@ def track_user_login(sender, request, user, **kwargs):
         city = ''
         country = ''
         try:
-            if ip not in ('127.0.0.1', 'localhost', '::1'):
+            if ip not in ('127.0.0.1', 'localhost', '::1', '13.207.76.139'):
                 geo_resp = http_requests.get(
                     f'http://ip-api.com/json/{ip}?fields=city,country',
                     timeout=3

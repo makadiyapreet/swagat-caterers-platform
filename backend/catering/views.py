@@ -41,7 +41,7 @@ from django.http import HttpResponse
 from django.contrib.auth import get_user_model
 from django.core.signing import Signer, BadSignature
 
-domin = "https://swagat-caterers-platform-production.up.railway.app"
+domin = "https://swagatcaterers.in"
 User = get_user_model()
 signer = Signer()
 
@@ -951,7 +951,7 @@ def task_api(request):
 
   <!-- CTA Button -->
   <tr><td style="padding:10px 30px 25px;text-align:center;">
-    <a href="https://swagat-caterers-platform-production.up.railway.app/my-tasks/" style="display:inline-block;background:linear-gradient(135deg,#D4AF37,#c5a028);color:#1a1a1a;padding:13px 35px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 3px 12px rgba(212,175,55,0.3);">View My Tasks →</a>
+    <a href="https://swagatcaterers.in/my-tasks/" style="display:inline-block;background:linear-gradient(135deg,#D4AF37,#c5a028);color:#1a1a1a;padding:13px 35px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 3px 12px rgba(212,175,55,0.3);">View My Tasks →</a>
   </td></tr>
 
   <!-- Footer -->
@@ -973,7 +973,7 @@ def task_api(request):
                 f"Description: {task.description or 'N/A'}\n"
                 f"Deadline: {deadline_str}\n"
                 f"Priority: {task.priority}\n\n"
-                f"Log in to view: https://swagat-caterers-platform-production.up.railway.app/my-tasks/"
+                f"Log in to view: https://swagatcaterers.in/my-tasks/"
             )
 
             msg = EmailMultiAlternatives(
