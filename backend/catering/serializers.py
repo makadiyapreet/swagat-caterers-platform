@@ -21,20 +21,23 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
     def create(self, validated_data):
         # Djoser overrides username with email when LOGIN_FIELD is 'email'.
-        # We grab the original username from the raw request data and force it in.
+        # Capture the original username BEFORE Djoser mutates validated_data.
         raw_username = self.initial_data.get('username', '').strip()
+
+        # Force the username into validated_data before super().create()
         if raw_username:
             validated_data['username'] = raw_username
 
         user = super().create(validated_data)
 
-        # Double-check: ensure username is what the user typed, not auto-generated
+        # Double-check: Djoser may have overwritten it again during create()
         if raw_username and user.username != raw_username:
-            user.username = raw_username
+            User.objects.filter(pk=user.pk).update(username=raw_username)
+            user.username = raw_username  # Update in-memory object too
 
         # Lock account until admin approval
         user.is_active = False
-        user.save()
+        user.save(update_fields=['is_active'])
         
         # Send email to admin with all signup details
         try:
