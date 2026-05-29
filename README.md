@@ -99,9 +99,10 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | **Event Management** | Full CRUD for catering events with status tracking (Pending / Confirmed / Completed / Cancelled) |
 | **Interactive Calendar** | Monthly calendar view with event dots, click-to-view details, and upcoming events list |
 | **Menu Creator** | Create event-specific menus with per-plate pricing, category assignment, and bilingual names |
+| **Team Management** | View and remove staff or manager accounts directly with automatic cascading data cleanup |
 | **Task Management** | Dedicated `/assign-tasks/` page to assign, track, and manage team tasks with priority and deadlines |
 | **Notes System** | Internal notes with role-based visibility — auto-deleted after 60 days, CSV download for admins |
-| **Activity Logs** | Audit trail for manager actions with deep links to Calendar, Menu, or Booking entries |
+| **Activity Logs** | Audit trail for manager actions with deep links to Calendar or Booking entries for quick review and approval |
 | **Staff Tracker** | Track staff members, daily wages, advances, settlements, and generate financial graphs |
 | **Bill Generator** | Printable invoices with cost breakdown, GST, and professional formatting |
 | **Export System** | Export events and bookings as CSV/PDF with preview pages in light theme |
@@ -114,7 +115,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | Feature | Description |
 |---------|-------------|
 | **Event Coordination** | Create and edit events and bookings (financial data like staff wages is hidden) |
-| **Menu Management** | Create and manage menus — all actions are auto-logged for admin review |
+| **Menu Management** | Create and manage menus (unlocked only after admin approves the booking) — actions are auto-logged |
 | **Assigned Tasks** | View tasks assigned by admin with accept/reject/complete workflow |
 | **Personal Analytics** | Work summary chart showing personal activity over time |
 
@@ -123,7 +124,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | Feature | Description |
 |---------|-------------|
 | **Assigned Tasks** | View and respond to tasks (✓ complete / ✕ reject) assigned by admin |
-| **Menu Viewer** | Read-only `/view-menu/` page with English/Gujarati toggle — no download |
+| **Menu Viewer** | Preview menu PDFs in English and Gujarati (prices masked, download disabled, view-only in new tab) |
 | **Calendar** | View events without pricing data (rates, costs masked as `**`) |
 | **Personal Notes** | Create private notes visible only to themselves and admins |
 
