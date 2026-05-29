@@ -214,6 +214,7 @@ DJOSER = {
     'SEND_ACTIVATION_EMAIL': False,
     'SERIALIZERS': {
         'user_create': 'catering.serializers.UserCreateSerializer',
+        'user_create_password_retype': 'catering.serializers.UserCreateSerializer',
         'user': 'catering.serializers.UserSerializer',
         'current_user': 'catering.serializers.UserSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer',
