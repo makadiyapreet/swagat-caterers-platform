@@ -55,5 +55,8 @@ Thumbs.db
 # ========================
 # Misc
 # ========================
-q
+
 node_modules/
+
+
+catering_db.dump

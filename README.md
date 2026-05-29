@@ -8,11 +8,11 @@
 ![DRF](https://img.shields.io/badge/DRF-3.16-red?style=for-the-badge)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Railway](https://img.shields.io/badge/Deployed-Railway-0B0D0E?style=for-the-badge&logo=railway)
+![AWS](https://img.shields.io/badge/Deployed-AWS_EC2-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Production-success?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
 
-[🌐 Live Website](https://swagat-caterers-platform-production.up.railway.app) · [📧 Contact](#-contact--author) · [🚀 Features](#-features)
+[🌐 Live Website](https://swagatcaterers.in) · [📧 Contact](#-contact--author) · [🚀 Features](#-features)
 
 </div>
 
@@ -53,7 +53,7 @@ The platform is not a portfolio demo. It is a **live, production system** active
 | **Real Business** | Actively serving a catering operation in Rajkot, Gujarat |
 | **4-Tier Roles** | Admin → Manager → Staff → Customer, each with precise permissions |
 | **Bilingual** | Complete English & Gujarati support across menus and UI |
-| **Cloud-Native** | Railway hosting, Cloudinary CDN, Brevo transactional email |
+| **Cloud-Native** | AWS EC2 hosting, Cloudinary CDN, Brevo transactional email |
 | **20+ Models** | Comprehensive schema covering users, events, menus, bookings, tasks, notes, analytics |
 | **30+ Pages** | Full-featured web application with SSR templates and REST APIs |
 
@@ -198,7 +198,9 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 
 | Service | Purpose |
 |---------|---------|
-| Railway | Production hosting (backend + PostgreSQL) |
+| AWS EC2 (Ubuntu) | Production server hosting |
+| PostgreSQL | Database (self-hosted on EC2) |
+| Nginx | Reverse proxy and SSL termination |
 | Cloudinary | Media file CDN and image storage |
 | Brevo (Sendinblue) | Transactional email delivery |
 | GitHub | Version control and repository hosting |
@@ -212,7 +214,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 │                         CLIENT (Browser)                         │
 │  HTML / CSS / JS / Bootstrap · Django Templates · Fetch API      │
 └──────────────────────────────┬───────────────────────────────────┘
-                               │  HTTPS (Railway SSL)
+                               │  HTTPS (Nginx + SSL)
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                     DJANGO 6.0 APPLICATION                       │
@@ -238,7 +240,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
        ▼                         ▼                     ▼
 ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
 │  PostgreSQL  │       │  Cloudinary  │       │  Brevo SMTP  │
-│  (Railway)   │       │  (Media CDN) │       │  (Email API) │
+│  (AWS EC2)   │       │  (Media CDN) │       │  (Email API) │
 │              │       │              │       │              │
 │  20+ models  │       │  Profile     │       │  Admin       │
 │  24 migra-   │       │  Category    │       │  alerts      │
@@ -590,26 +592,30 @@ The application will be available at `http://127.0.0.1:8000/`.
 
 ## 🚀 Deployment
 
-### Railway (Production)
+### AWS EC2 (Production)
 
-The project is configured for Railway deployment:
+The project is deployed on an **AWS EC2 Ubuntu instance** with Nginx + Gunicorn:
 
-- **Procfile:** `web: gunicorn backend_site.wsgi`
-- **Static files:** Served via WhiteNoise
-- **Database:** Railway-managed PostgreSQL
+- **Server:** Ubuntu 24.04 LTS on AWS EC2
+- **Reverse Proxy:** Nginx with SSL
+- **WSGI Server:** Gunicorn (`gunicorn backend_site.wsgi`)
+- **Static files:** Served via WhiteNoise + Nginx
+- **Database:** PostgreSQL (self-hosted on EC2)
 - **Media:** Cloudinary CDN
-- **Environment:** All secrets via Railway environment variables
+- **Deployment:** `deploy.sh` script — pulls from GitHub, runs migrations, collects static, restarts Gunicorn
+- **Environment:** All secrets via `.env` file on the server
 
 ### Production Checklist
 
 - [x] `DEBUG = False`
 - [x] `ALLOWED_HOSTS` configured
-- [x] `SECURE_SSL_REDIRECT` enabled
-- [x] Static files collected and served via WhiteNoise
+- [x] Nginx SSL with HTTPS redirect
+- [x] Static files collected and served via WhiteNoise + Nginx
 - [x] PostgreSQL as primary database
 - [x] Cloudinary for media storage
 - [x] Brevo for transactional email
 - [x] CSRF and CORS properly configured
+- [x] Gunicorn systemd service for auto-restart
 
 ---
 
