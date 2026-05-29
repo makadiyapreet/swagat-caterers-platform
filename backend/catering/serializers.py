@@ -20,37 +20,40 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         fields = ('id', 'username', 'email', 'password', 'phone_number')
 
     def create(self, validated_data):
-        # Djoser overrides username with email when LOGIN_FIELD is 'email'.
-        # Capture the original username BEFORE Djoser mutates validated_data.
+        # ---- BYPASS DJOSER COMPLETELY ----
+        # Djoser's LOGIN_FIELD='email' causes it to overwrite username.
+        # We create the User object directly to prevent any interference.
+
         raw_username = self.initial_data.get('username', '').strip()
+        email = validated_data.get('email', '')
+        phone_number = validated_data.get('phone_number', '')
+        password = validated_data.get('password')
 
-        # Force the username into validated_data before super().create()
-        if raw_username:
-            validated_data['username'] = raw_username
+        # Use the exact username the user typed; fallback to email prefix
+        username = raw_username if raw_username else email.split('@')[0]
 
-        user = super().create(validated_data)
+        # Create user directly — no Djoser, no CustomUserManager override
+        user = User(
+            username=username,
+            email=email,
+            phone_number=phone_number,
+            is_active=False,  # Lock until admin approval
+        )
+        user.set_password(password)
+        user.save()
 
-        # Double-check: Djoser may have overwritten it again during create()
-        if raw_username and user.username != raw_username:
-            User.objects.filter(pk=user.pk).update(username=raw_username)
-            user.username = raw_username  # Update in-memory object too
-
-        # Lock account until admin approval
-        user.is_active = False
-        user.save(update_fields=['is_active'])
-        
-        # Send email to admin with all signup details
+        # Send email to admin with signup details
         try:
             from django.utils import timezone
             now = timezone.now().strftime('%d/%m/%Y %I:%M %p')
             send_mail(
-                subject=f'New Signup: {user.username} — Swagat Caterers',
+                subject=f'New Signup: {username} — Swagat Caterers',
                 message=f"""
 New User Registration
 =====================
-Username: {user.username}
-Email: {user.email}
-Phone: {user.phone_number or 'Not provided'}
+Username: {username}
+Email: {email}
+Phone: {phone_number or 'Not provided'}
 Registered At: {now}
 
 --- Action Required ---
