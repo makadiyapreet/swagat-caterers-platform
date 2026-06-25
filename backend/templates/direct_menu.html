@@ -11,6 +11,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -160,6 +161,10 @@
                     <input type="text" id="client-name" placeholder="Enter Name">
                 </div>
                 <div class="input-group">
+                    <label style="color:#856404; font-size:11px;" class="font-guj">ગ્રાહકનું નામ (ગુજરાતી)</label>
+                    <input type="text" id="client-name-gu" placeholder="ગુજરાતીમાં નામ" class="font-guj" style="border-color:#ffe082; background:#fffcf5;">
+                </div>
+                <div class="input-group">
                     <label>Date</label>
                     <input type="date" id="event-date">
                 </div>
@@ -170,6 +175,10 @@
                 <div class="input-group">
                     <label>Venue</label>
                     <input type="text" id="venue-name" placeholder="Optional">
+                </div>
+                <div class="input-group">
+                    <label style="color:#856404; font-size:11px;" class="font-guj">સ્થળ (ગુજરાતી)</label>
+                    <input type="text" id="venue-name-gu" placeholder="ગુજરાતીમાં સ્થળ" class="font-guj" style="border-color:#ffe082; background:#fffcf5;">
                 </div>
                 <div class="input-group">
                     <label>Phone</label>
@@ -576,9 +585,6 @@
 
         // --- 4. PDF GENERATION ---
         async function generatePDF(lang, isPreview) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
             let clientName, eventDate, guests, venue, phone;
             
             if (eventId) {
@@ -587,6 +593,10 @@
                 guests = currentEventData.guests;
                 venue = currentEventData.venue;
                 phone = currentEventData.contact_number;
+                if (lang === 'gu') {
+                    if (currentEventData.title_gu) clientName = currentEventData.title_gu;
+                    if (currentEventData.venue_gu) venue = currentEventData.venue_gu;
+                }
             } else {
                 clientName = document.getElementById('client-name').value;
                 if(!clientName) { Swal.fire("Missing Info", "Please enter a Client Name", "warning"); return; }
@@ -594,9 +604,147 @@
                 guests = document.getElementById('guest-count').value;
                 venue = document.getElementById('venue-name').value;
                 phone = document.getElementById('client-phone').value;
+                if (lang === 'gu') {
+                    const clientNameGu = document.getElementById('client-name-gu').value;
+                    const venueGu = document.getElementById('venue-name-gu').value;
+                    if (clientNameGu) clientName = clientNameGu;
+                    if (venueGu) venue = venueGu;
+                }
             }
 
             const note = document.getElementById('menu-note').value;
+
+            // Build menu data
+            const menuGroups = [];
+            categories.forEach(cat => {
+                const catItems = allItems.filter(i => i.category === cat.id && selectedItems.has(i.id));
+                const customTextEl = document.getElementById(`custom-${cat.id}`);
+                const customText = customTextEl ? customTextEl.value : "";
+                const customLines = customText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                if(catItems.length === 0 && customLines.length === 0) return;
+                const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+                const items = [
+                    ...catItems.map(item => (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name),
+                    ...customLines
+                ];
+                menuGroups.push({ catName, items });
+            });
+
+            if (lang === 'gu') {
+                await generateGujaratiPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview);
+            } else {
+                await generateEnglishPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview);
+            }
+        }
+
+        // --- GUJARATI PDF for Direct Menu: html2canvas approach ---
+        async function generateGujaratiPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
+            const bgUrl = '{% static "images/background.png" %}';
+            const coverUrl = '{% static "images/cover.png" %}';
+            const backUrl = '{% static "images/last.png" %}';
+            const fontFamily = "'Noto Sans Gujarati', sans-serif";
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            let firstPage = true;
+
+            async function capturePageDiv(pageDiv) {
+                document.body.appendChild(pageDiv);
+                await new Promise(r => setTimeout(r, 300));
+                const canvas = await html2canvas(pageDiv, {
+                    scale: 3, useCORS: true, allowTaint: true,
+                    width: 794, height: 1123, logging: false
+                });
+                document.body.removeChild(pageDiv);
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                if (!firstPage) doc.addPage();
+                doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                firstPage = false;
+            }
+
+            // --- Cover page ---
+            const coverDiv = document.createElement('div');
+            coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${coverUrl}'); background-size:cover; background-position:center; font-family:${fontFamily}; overflow:hidden;`;
+            coverDiv.innerHTML = `<div style="position:absolute; bottom:320px; width:100%; text-align:center; color:#D4AF37; font-size:28px; font-weight:700; font-family:${fontFamily};">${clientName} - ${formatDate(eventDate)}</div>`;
+            await capturePageDiv(coverDiv);
+
+            // --- Menu content page ---
+            const menuDiv = document.createElement('div');
+            menuDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; background-position:center; font-family:${fontFamily}; overflow:hidden;`;
+
+            // Header
+            const header = document.createElement('div');
+            header.style.cssText = 'padding: 155px 60px 0 60px;';
+            header.innerHTML = `
+                <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
+                    <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">નામ :</span>
+                        <span style="color:#000; font-weight:600; flex:1;">${clientName || "-"}</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">વ્યક્તિ :</span>
+                        <span style="color:#000; font-weight:600; flex:1;">${guests || "-"}</span>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">તારીખ :</span>
+                        <span style="color:#000; font-weight:600; flex:1;">${formatDate(eventDate)}</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">સ્થળ :</span>
+                        <span style="color:#000; font-weight:600; flex:1;">${venue || "-"}</span>
+                    </div>
+                    ${phone ? `<div style="display:flex; gap:10px; font-size:15px;">
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">ફોન :</span>
+                        <span style="color:#000; font-weight:600;">${phone}</span>
+                    </div>` : ''}
+                </div>
+            `;
+            menuDiv.appendChild(header);
+
+            // Content (2-column)
+            const contentArea = document.createElement('div');
+            contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 680px;';
+            menuGroups.forEach(group => {
+                const catDiv = document.createElement('div');
+                catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
+                catDiv.innerHTML = `
+                    <div style="background:#C6994F; color:#000; padding:6px 15px; border-radius:5px; font-weight:700; font-size:16px; margin-bottom:6px; font-family:${fontFamily};">${group.catName}</div>
+                    ${group.items.map(name => `<div style="font-size:15px; padding:2px 15px; color:#1e1e1e; font-family:${fontFamily};">${name}</div>`).join('')}
+                `;
+                contentArea.appendChild(catDiv);
+            });
+
+            // Note
+            if (note) {
+                const noteDiv = document.createElement('div');
+                noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
+                noteDiv.innerHTML = `
+                    <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
+                        <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">નોંધ</div>
+                        <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${note}</div>
+                    </div>
+                `;
+                contentArea.appendChild(noteDiv);
+            }
+
+            menuDiv.appendChild(contentArea);
+            await capturePageDiv(menuDiv);
+
+            // --- Back cover ---
+            const backDiv = document.createElement('div');
+            backDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${backUrl}'); background-size:cover; background-position:center;`;
+            await capturePageDiv(backDiv);
+
+            const safeName = clientName.replace(/[^a-z0-9\u0A80-\u0AFF]/gi, '_').toLowerCase();
+            const fName = `${safeName}_GU_Menu.pdf`;
+
+            if(isPreview) window.open(doc.output('bloburl'), '_blank');
+            else {
+                doc.save(fName);
+                logPdfGeneration(clientName, eventDate, guests, venue, phone, note, lang);
+            }
+        }
+
+        // --- ENGLISH PDF for Direct Menu: jsPDF native text ---
+        async function generateEnglishPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
             async function loadImage(url) {
                 try {
@@ -606,43 +754,21 @@
             }
 
             try {
-                const promises = [
+                const [bg, cover, back] = await Promise.all([
                     loadImage('{% static "images/background.png" %}'),
                     loadImage('{% static "images/cover.png" %}'),
                     loadImage('{% static "images/last.png" %}')
-                ];
-                
-                if (lang === 'gu') {
-                    promises.push(
-                        fetch('{% static "Gujarati.ttf" %}').then(r => r.blob()).then(blob => new Promise(resolve => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                            reader.readAsDataURL(blob);
-                        }))
-                    );
-                }
+                ]);
 
-                const results = await Promise.all(promises);
-                const bg = results[0];
-                const cover = results[1];
-                const back = results[2];
-                
-                if (lang === 'gu') {
-                    const fontBase64 = results[3];
-                    doc.addFileToVFS('Gujarati.ttf', fontBase64);
-                    doc.addFont('Gujarati.ttf', 'Gujarati', 'normal');
-                    doc.setFont('Gujarati');
-                } else {
-                    doc.setFont("helvetica", "normal");
-                }
+                doc.setFont("helvetica", "normal");
 
                 if(cover) {
                     doc.addImage(cover, 'PNG', 0, 0, 210, 297);
-                    doc.setTextColor(212, 175, 55); 
-                    if(lang !== 'gu') doc.setFont("times", "bold"); 
-                    doc.setFontSize(20); 
-                    doc.text(`${clientName} - ${formatDate(eventDate)}`, 105, 200, { align: 'center' }); 
-                    if(lang === 'gu') doc.setFont('Gujarati'); else doc.setFont("helvetica", "normal");
+                    doc.setTextColor(212, 175, 55);
+                    doc.setFont("times", "bold");
+                    doc.setFontSize(20);
+                    doc.text(`${clientName} - ${formatDate(eventDate)}`, 105, 200, { align: 'center' });
+                    doc.setFont("helvetica", "normal");
                     doc.addPage();
                 }
 
@@ -650,16 +776,16 @@
                     if(bg) doc.addImage(bg, 'PNG', 0, 0, 210, 297);
                     doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
                     doc.line(15, 43, 195, 43);
-                    doc.setFontSize(10); 
-                    if(lang !== 'gu') doc.setFont("helvetica", "bold");
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "bold");
                     const y = 48;
-                    doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "નામ :" : "Name :", 20, y);
+                    doc.setTextColor(212, 175, 55); doc.text("Name :", 20, y);
                     doc.setTextColor(0,0,0); doc.text(clientName || "-", 35, y);
-                    doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "વ્યક્તિ :" : "Guests :", 90, y);
+                    doc.setTextColor(212, 175, 55); doc.text("Guests :", 90, y);
                     doc.setTextColor(0,0,0); doc.text(String(guests || "-"), 105, y);
-                    doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "તારીખ :" : "Date :", 20, y+6);
+                    doc.setTextColor(212, 175, 55); doc.text("Date :", 20, y+6);
                     doc.setTextColor(0,0,0); doc.text(formatDate(eventDate), 35, y+6);
-                    doc.setTextColor(212, 175, 55); doc.text(lang === 'gu' ? "સ્થળ :" : "Venue :", 90, y+6);
+                    doc.setTextColor(212, 175, 55); doc.text("Venue :", 90, y+6);
                     doc.setTextColor(0,0,0); doc.text(venue || "-", 105, y+6);
                     if(phone) {
                         doc.setTextColor(212, 175, 55); doc.text("Phone :", 150, y);
@@ -673,63 +799,33 @@
                 let currentX = 15;
                 const midX = 110;
 
-                categories.forEach(cat => {
-                    const catItems = allItems.filter(i => i.category === cat.id && selectedItems.has(i.id));
-                    const customTextEl = document.getElementById(`custom-${cat.id}`);
-                    const customText = customTextEl ? customTextEl.value : "";
-
-                    // Split custom textarea: each non-empty line = one item
-                    const customLines = customText
-                        .split('\n')
-                        .map(l => l.trim())
-                        .filter(l => l.length > 0);
-
-                    if(catItems.length === 0 && customLines.length === 0) return;
-
-                    const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
-
+                menuGroups.forEach(group => {
                     if(currentY > 260) {
                         if(currentX === 15) { currentX = midX; currentY = 68; }
                         else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
                     }
 
                     // Category header bar
-                    doc.setFillColor(198, 153, 79); 
+                    doc.setFillColor(198, 153, 79);
                     doc.roundedRect(currentX, currentY-6, 80, 8, 3, 3, 'F');
                     doc.setTextColor(0,0,0); doc.setFontSize(11);
-                    if(lang !== 'gu') doc.setFont("helvetica", "bold");
-                    doc.text(catName, currentX+5, currentY-1);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(group.catName, currentX+5, currentY-1);
                     currentY += 8;
 
-                    // Regular items
-                    if(lang !== 'gu') doc.setFont("helvetica", "normal");
+                    doc.setFont("helvetica", "normal");
                     doc.setFontSize(10);
                     doc.setTextColor(30, 30, 30);
-                    catItems.forEach(item => {
+                    group.items.forEach(itemName => {
                         if(currentY > 270) {
                             if(currentX === 15) { currentX = midX; currentY = 68; }
                             else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
                         }
-                        const iName = (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
-                        doc.text(iName, currentX+5, currentY);
+                        doc.text(itemName, currentX+5, currentY);
                         currentY += 6;
                     });
 
-                    // Custom items — each line is a separate item
-                    if(customLines.length > 0) {
-                        doc.setTextColor(50, 50, 50);
-                        customLines.forEach(line => {
-                            if(currentY > 270) {
-                                if(currentX === 15) { currentX = midX; currentY = 68; }
-                                else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
-                            }
-                            const wrapped = doc.splitTextToSize(line, 75);
-                            doc.text(wrapped, currentX+5, currentY);
-                            currentY += (wrapped.length * 6);
-                        });
-                    }
-
-                    currentY += 4; 
+                    currentY += 4;
                 });
 
                 if(note) {
@@ -737,35 +833,39 @@
                     doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79);
                     doc.roundedRect(15, 250, 180, 30, 3, 3, 'FD');
                     doc.setFontSize(10); doc.setTextColor(0,0,0);
-                    doc.text((lang==='gu'?"નોંધ: ":"NOTE: ") + note, 20, 258, { maxWidth: 170 });
+                    doc.text("NOTE: " + note, 20, 258, { maxWidth: 170 });
                 }
 
                 if(back) { doc.addPage(); doc.addImage(back, 'PNG', 0, 0, 210, 297); }
 
                 const safeName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                const fName = `${safeName}_${lang.toUpperCase()}_Menu.pdf`;
+                const fName = `${safeName}_EN_Menu.pdf`;
 
                 if(isPreview) window.open(doc.output('bloburl'), '_blank');
                 else {
                     doc.save(fName);
-                    // Log PDF generation
-                    try {
-                        const itemNames = Array.from(selectedItems).map(id => {
-                            const item = allItems.find(x => x.id === id);
-                            return item ? item.name : '';
-                        }).filter(Boolean).join(', ');
-                        
-                        const detailsString = `Menu PDF Generated\n---\nClient: ${clientName || 'Direct Menu'}\nDate: ${eventDate}\nGuests: ${guests}\nVenue: ${venue || '-'}\nPhone: ${phone || '-'}\n\nSelected Items: ${itemNames}\nNote: ${note || '-'}\nLanguage: ${lang === 'gu' ? 'Gujarati' : 'English'}`;
-
-                        fetch('/api/log-pdf/', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                            body: JSON.stringify({ event_details: detailsString })
-                        });
-                    } catch(e) { console.log('PDF Log notify:', e); }
+                    logPdfGeneration(clientName, eventDate, guests, venue, phone, note, lang);
                 }
 
             } catch(e) { console.error(e); Swal.fire("Error", "PDF Generation failed: " + e.message, "error"); }
+        }
+
+        // --- PDF log helper ---
+        function logPdfGeneration(clientName, eventDate, guests, venue, phone, note, lang) {
+            try {
+                const itemNames = Array.from(selectedItems).map(id => {
+                    const item = allItems.find(x => x.id === id);
+                    return item ? item.name : '';
+                }).filter(Boolean).join(', ');
+
+                const detailsString = `Menu PDF Generated\n---\nClient: ${clientName || 'Direct Menu'}\nDate: ${eventDate}\nGuests: ${guests}\nVenue: ${venue || '-'}\nPhone: ${phone || '-'}\n\nSelected Items: ${itemNames}\nNote: ${note || '-'}\nLanguage: ${lang === 'gu' ? 'Gujarati' : 'English'}`;
+
+                fetch('/api/log-pdf/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ event_details: detailsString })
+                });
+            } catch(e) { console.log('PDF Log notify:', e); }
         }
 
         // --- 5. SAVE TO DB ---

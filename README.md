@@ -52,9 +52,9 @@ The platform is not a portfolio demo. It is a **live, production system** active
 |--------|---------|
 | **Real Business** | Actively serving a catering operation in Rajkot, Gujarat |
 | **4-Tier Roles** | Admin → Manager → Staff → Customer, each with precise permissions |
-| **Bilingual** | Complete English & Gujarati support across menus and UI |
+| **Bilingual** | Complete English & Gujarati support across menus, PDFs, and customer details |
 | **Cloud-Native** | AWS EC2 hosting, Cloudinary CDN, Brevo transactional email |
-| **20+ Models** | Comprehensive schema covering users, events, menus, bookings, tasks, notes, analytics |
+| **20+ Models** | Comprehensive schema covering users, events, menus, bookings, tasks, notes, analytics (with bilingual fields) |
 | **30+ Pages** | Full-featured web application with SSR templates and REST APIs |
 
 ---
@@ -88,9 +88,8 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | **Availability Calendar** | Real-time event calendar with FullCalendar.js integration |
 | **Gallery** | Event photography showcase with admin-managed uploads |
 | **Contact** | Multi-channel contact (form, WhatsApp, email, phone) with embedded Google Maps |
-| **Menu PDFs** | Downloadable English and Gujarati menu cards |
+| **Menu PDFs** | Downloadable English and Gujarati menu cards with proper Gujarati text shaping via html2canvas |
 | **AI Chatbot** | Conversational assistant for menu queries and booking guidance |
-| **PWA** | Installable Progressive Web App with offline-capable manifest |
 
 ### 🔒 Admin Dashboard
 
@@ -98,7 +97,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 |---------|-------------|
 | **Event Management** | Full CRUD for catering events with status tracking (Pending / Confirmed / Completed / Cancelled) |
 | **Interactive Calendar** | Monthly calendar view with event dots, click-to-view details, and upcoming events list |
-| **Menu Creator** | Create event-specific menus with per-plate pricing, category assignment, and bilingual names |
+| **Menu Creator** | Create event-specific menus with per-plate pricing, category assignment, and bilingual names (English + Gujarati) |
 | **Team Management** | View and remove staff or manager accounts directly with automatic cascading data cleanup |
 | **Task Management** | Dedicated `/assign-tasks/` page to assign, track, and manage team tasks with priority and deadlines |
 | **Notes System** | Internal notes with role-based visibility — auto-deleted after 60 days, CSV download for admins |
@@ -192,6 +191,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | Django Templates | Server-side rendering with template inheritance |
 | FullCalendar.js | Interactive calendar with event rendering |
 | Chart.js | Analytics charts and financial graphs |
+| jsPDF + html2canvas | Client-side PDF generation with proper Gujarati text shaping |
 | Google Fonts | Playfair Display, Inter, Noto Sans Gujarati |
 
 ### Infrastructure
@@ -243,7 +243,7 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 │  (AWS EC2)   │       │  (Media CDN) │       │  (Email API) │
 │              │       │              │       │              │
 │  20+ models  │       │  Profile     │       │  Admin       │
-│  24 migra-   │       │  Category    │       │  alerts      │
+│  27 migra-   │       │  Category    │       │  alerts      │
 │  tions       │       │  Food images │       │  Welcome     │
 │              │       │              │       │  emails      │
 └──────────────┘       └──────────────┘       └──────────────┘
@@ -262,9 +262,9 @@ The platform uses **20 Django models** across the `catering` app:
 | 3 | `Menu_item` | Individual menu items with English/Gujarati names and category FK |
 | 4 | `Member` | Staff members for wage tracking |
 | 5 | `MemberLog` | Daily wage/advance/settlement entries per member |
-| 6 | `CateringEvent` | Full event records with date, guests, pricing, status, notes |
+| 6 | `CateringEvent` | Full event records with date, guests, pricing, status, notes + bilingual fields (`title_gu`, `venue_gu`, `description_gu`) |
 | 7 | `Menu` | Event-specific menus with selected items and per-plate rate |
-| 8 | `Booking` | Customer booking submissions (name, phone, date, guests, type) |
+| 8 | `Booking` | Customer booking submissions with bilingual name/venue (`name_gu`, `venue_gu`) |
 | 9 | `GalleryItem` | Gallery images with title, ordering, and Cloudinary URLs |
 | 10 | `MenuItemStats` | Usage statistics for menu items (for recommendations) |
 | 11 | `ItemCoOccurrence` | Co-occurrence data for "Also Selected" recommendations |
@@ -380,7 +380,7 @@ Swagat_caterers/
     │   └── asgi.py                   # ASGI config
     │
     ├── catering/                     # Main Django app
-    │   ├── models.py                 # 20 database models (512 lines)
+    │   ├── models.py                 # 20 database models with bilingual fields
     │   ├── views.py                  # 50+ views (1,225 lines)
     │   ├── serializers.py            # 15 DRF serializers
     │   ├── urls.py                   # App-level routing with DRF Router
@@ -392,7 +392,7 @@ Swagat_caterers/
     │   ├── decorators.py             # Custom permission decorators
     │   ├── validators.py             # Custom validation logic
     │   ├── context_processors.py     # Template context injection
-    │   └── migrations/               # 24 migration files
+    │   └── migrations/               # 27 migration files
     │
     ├── templates/                    # 30+ HTML templates
     │   ├── index.html                # Home page
@@ -440,8 +440,11 @@ Swagat_caterers/
     │   ├── images/
     │   │   ├── logo/                 # Brand logo & favicon
     │   │   ├── food/                 # Food photography
+    │   │   ├── background.png        # PDF background template
+    │   │   ├── cover.png             # PDF cover page
+    │   │   ├── last.png              # PDF back cover
     │   │   └── img/                  # General images
-    │   └── Noto_Sans_Gujarati/       # Gujarati font family
+    │   └── Noto_Sans_Gujarati/       # Gujarati font family (static + variable weights)
     │
     ├── media/                        # User uploads (Cloudinary in prod)
     └── staticfiles/                  # Collected static (auto-generated)

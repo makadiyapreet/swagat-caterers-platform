@@ -126,6 +126,11 @@ class CateringEvent(models.Model):
     description = models.TextField(blank=True)
     event_city = models.CharField(max_length=100, blank=True, default='')
     
+    # Gujarati / Bilingual Fields
+    title_gu = models.CharField(max_length=200, blank=True, default='', help_text='Client name in Gujarati')
+    venue_gu = models.CharField(max_length=200, blank=True, default='', help_text='Venue in Gujarati')
+    description_gu = models.TextField(blank=True, default='', help_text='Notes in Gujarati')
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='received')
     
     # --- SECTION 3: Booking Tracking ---
@@ -210,6 +215,10 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.event_date}"
+
+    # Gujarati / Bilingual Fields
+    name_gu = models.CharField(max_length=100, blank=True, default='', help_text='Customer name in Gujarati')
+    venue_gu = models.CharField(max_length=200, blank=True, default='', help_text='Venue in Gujarati')
 
 
 # =========================================

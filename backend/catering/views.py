@@ -275,7 +275,10 @@ def book_event_api(request):
                 meal_time=data.get('meal_time'),
                 package_type=data.get('package_type'),
                 venue=data.get('venue'),
-                message=data.get('message')
+                message=data.get('message'),
+                # Gujarati / Bilingual fields
+                name_gu=data.get('name_gu', ''),
+                venue_gu=data.get('venue_gu', ''),
             )
             booking.save()
 
@@ -1257,11 +1260,11 @@ def activity_logs_api(request):
         return Response({'error': 'Log ID required'}, status=400)
 
 
-# --- SECTION 4: Menu Items List API (for offline/calendar) ---
+# --- SECTION 4: Menu Items List API (for calendar/recommendations) ---
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def menu_items_public(request):
-    """Public API for menu items (used by offline sync + recommendations)."""
+    """Public API for menu items (used by calendar + recommendations)."""
     items = Menu_item.objects.select_related('category').all()
     data = [{
         'id': item.id,
@@ -1274,11 +1277,11 @@ def menu_items_public(request):
     return Response(data)
 
 
-# --- SECTION 4: Events List API (for offline sync) ---
+# --- SECTION 4: Events List API (for calendar) ---
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def events_list_public(request):
-    """Public API listing events (minimal info for calendar/offline)."""
+    """Public API listing events (minimal info for calendar)."""
     events = CateringEvent.objects.all()
     data = [{
         'id': e.id,
@@ -1289,38 +1292,7 @@ def events_list_public(request):
     return Response(data)
 
 
-# --- SECTION 22: PWA Manifest & Offline ---
-def manifest_json(request):
-    """Serve manifest.json for PWA."""
-    manifest = {
-        "name": "Swagat Caterers",
-        "short_name": "Swagat",
-        "description": "Premium Gujarati Catering Service — Book events, track bookings, manage menus.",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#0d0d0d",
-        "theme_color": "#d4af37",
-        "orientation": "portrait",
-        "icons": [
-            {
-                "src": "/static/images/logo/logo.png",
-                "sizes": "192x192",
-                "type": "image/png",
-                "purpose": "any maskable"
-            },
-            {
-                "src": "/static/images/logo/logo.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    }
-    return JsonResponse(manifest, content_type='application/manifest+json')
 
-
-def offline_page(request):
-    """Offline fallback page."""
-    return render(request, "offline.html")
 
 
 # --- SECTION 9: AI Menu Recommendation Engine ---

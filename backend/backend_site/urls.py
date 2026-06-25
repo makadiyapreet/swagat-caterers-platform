@@ -68,9 +68,6 @@ urlpatterns = [
     path('assign-tasks/', views.assign_tasks_page, name='assign_tasks_page'),
     path('view-menu/', views.view_menu_page, name='view_menu_page'),
 
-    # Section 22: PWA
-    path('manifest.json', views.manifest_json, name='manifest_json'),
-    path('offline/', views.offline_page, name='offline_page'),
 
     # Section 12: Exports
     path('export/events/excel/', export_views.export_events_excel, name='export_events_excel'),

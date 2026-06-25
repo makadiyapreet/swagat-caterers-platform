@@ -7,10 +7,11 @@
     <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Menu Builder - Swagat Caterers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600;700&family=Noto+Sans+Gujarati:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root { --gold: #D4AF37; --bg: #f4f7f6; --text: #2c3e50; --sidebar-w: 240px; --right-w: 320px; }
@@ -695,14 +696,200 @@
             } catch(e) { console.error(e); alert("Network Error"); }
         }
 
-        // --- PDF GENERATOR (FIXED) ---
+        // --- PDF GENERATOR ---
         async function downloadPDF(lang) {
             if (selectedIds.size === 0 && customItems.length === 0) return alert("Select items first.");
-            
+
+            let dName = document.getElementById('ev-name').value || "-";
+            const dDateRaw = document.getElementById('ev-date').value || "";
+            const dDish = document.getElementById('ev-guests').value || "-";
+            let dVenue = document.getElementById('ev-venue').value || "-";
+            const dContact = document.getElementById('ev-contact').value || "-";
+            const dMenuType = document.getElementById('menu-title').value || "Menu";
+            let dPrice = isAdmin ? (document.getElementById('menu-price').value || "0") : "**";
+            const noteText = document.getElementById('menu-note').value;
+
+            // Use Gujarati values for Gujarati PDF if available
+            if (lang === 'gu' && eventData) {
+                if (eventData.title_gu) dName = eventData.title_gu;
+                if (eventData.venue_gu) dVenue = eventData.venue_gu;
+            }
+
+            // Build menu data grouped by category
+            const menuGroups = [];
+            for (let cat of categories) {
+                const dbItems = allItems.filter(item => item.category == cat.id && selectedIds.has(item.id));
+                const custItems = customItems.filter(item => String(item.categoryId) === String(cat.id));
+                const totalItems = [...dbItems, ...custItems];
+                if (totalItems.length === 0) continue;
+                const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+                const items = totalItems.map(item => {
+                    if (item.categoryId !== undefined) return item.name; // custom item
+                    return (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
+                });
+                menuGroups.push({ catName, items });
+            }
+
+            if (lang === 'gu') {
+                await generateGujaratiPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang);
+            } else {
+                await generateEnglishPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang);
+            }
+
+            // Send email to admin on PDF download
+            try {
+                fetch('/send-email/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({
+                        name: dName,
+                        phone: dContact || '',
+                        subject: `PDF Downloaded: ${dName} Menu`,
+                        message: `Menu PDF Generated\n---\nClient: ${dName}\nDate: ${dDateRaw}\nGuests: ${dDish}\nVenue: ${dVenue || '-'}\nPhone: ${dContact || '-'}\nMenu Type: ${dMenuType}\nPrice: ${dPrice}\nLanguage: ${lang === 'gu' ? 'Gujarati' : 'English'}\nGenerated At: ${new Date().toLocaleString()}`
+                    })
+                });
+            } catch(e) { console.log('Email notify:', e); }
+        }
+
+        // --- GUJARATI PDF: Uses html2canvas for proper text shaping ---
+        async function generateGujaratiPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang) {
+            // Build HTML pages
+            const bgUrl = '{% static "images/background.png" %}';
+            const pages = buildMenuHTML(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, bgUrl, lang);
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            for (let i = 0; i < pages.length; i++) {
+                const pageDiv = pages[i];
+                document.body.appendChild(pageDiv);
+
+                // Wait for background image to load
+                await new Promise(r => setTimeout(r, 200));
+
+                const canvas = await html2canvas(pageDiv, {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: 794,
+                    height: 1123,
+                    logging: false
+                });
+
+                document.body.removeChild(pageDiv);
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                if (i > 0) doc.addPage();
+                doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            }
+
+            const safeTitle = dName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF ]/g, "").trim() || "Menu";
+            doc.save(`${safeTitle}_Menu.pdf`);
+        }
+
+        // --- Build HTML pages for Gujarati PDF ---
+        function buildMenuHTML(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, bgUrl, lang) {
+            const isGu = lang === 'gu';
+            const fontFamily = isGu ? "'Noto Sans Gujarati', sans-serif" : "'Segoe UI', Helvetica, sans-serif";
+            const pages = [];
+
+            function createPage() {
+                const page = document.createElement('div');
+                page.style.cssText = `
+                    position: fixed; left: -9999px; top: 0;
+                    width: 794px; height: 1123px;
+                    background: white;
+                    background-image: url('${bgUrl}');
+                    background-size: cover;
+                    background-position: center;
+                    font-family: ${fontFamily};
+                    box-sizing: border-box;
+                    overflow: hidden;
+                `;
+                return page;
+            }
+
+            function createHeader(page) {
+                const header = document.createElement('div');
+                header.style.cssText = 'padding: 155px 60px 0 60px;';
+                header.innerHTML = `
+                    <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 30px;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: 15px;">
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 65px;">${isGu ? 'નામ :' : 'Name :'}</span>
+                            <span style="color: #000; font-weight: 600; flex: 1;">${dName}</span>
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 55px;">${isGu ? 'ડીશ :' : 'Dish :'}</span>
+                            <span style="color: #000; font-weight: 600; flex: 1;">${dDish}</span>
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 55px;">${isGu ? 'ભાવ :' : 'Rate :'}</span>
+                            <span style="color: #000; font-weight: 600;">${dPrice}</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: 15px;">
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 65px;">${isGu ? 'તારીખ :' : 'Date :'}</span>
+                            <span style="color: #000; font-weight: 600; flex: 1;">${dDateRaw}</span>
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 75px;">${isGu ? 'મોબાઈલ :' : 'Contact :'}</span>
+                            <span style="color: #000; font-weight: 600; flex: 1;">${dContact}</span>
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 65px;">${isGu ? 'પ્રસંગ :' : 'Event :'}</span>
+                            <span style="color: #000; font-weight: 600;">${dMenuType}</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; font-size: 15px;">
+                            <span style="color: #D4AF37; font-weight: 700; min-width: 65px;">${isGu ? 'સ્થળ :' : 'Venue :'}</span>
+                            <span style="color: #000; font-weight: 600;">${dVenue}</span>
+                        </div>
+                    </div>
+                `;
+                page.appendChild(header);
+                return header.offsetTop + header.offsetHeight;
+            }
+
+            // Layout: 2-column
+            let currentPage = createPage();
+            document.body.appendChild(currentPage);
+            createHeader(currentPage);
+
+            const contentArea = document.createElement('div');
+            contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 700px;';
+            currentPage.appendChild(contentArea);
+
+            menuGroups.forEach(group => {
+                // Category header
+                const catDiv = document.createElement('div');
+                catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
+                catDiv.innerHTML = `
+                    <div style="background: #C6994F; color: #000; padding: 6px 15px; border-radius: 5px; font-weight: 700; font-size: 16px; margin-bottom: 6px; font-family: ${fontFamily};">
+                        ${group.catName}
+                    </div>
+                    ${group.items.map(name => `<div style="font-size: 15px; padding: 2px 15px; color: #1e1e1e; font-family: ${fontFamily};">${name}</div>`).join('')}
+                `;
+                contentArea.appendChild(catDiv);
+            });
+
+            // Add note if present
+            if (noteText) {
+                const noteDiv = document.createElement('div');
+                noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
+                noteDiv.innerHTML = `
+                    <div style="background: #FFFCF5; border: 1px solid #C6994F; border-radius: 5px; padding: 0; overflow: hidden;">
+                        <div style="background: #C6994F; color: #fff; padding: 5px 15px; font-weight: 700; font-size: 14px; text-align: center;">${isGu ? 'વિશેષ નોંધ' : 'SPECIAL NOTE'}</div>
+                        <div style="padding: 8px 15px; font-size: 14px; font-family: ${fontFamily};">${noteText}</div>
+                    </div>
+                `;
+                contentArea.appendChild(noteDiv);
+            }
+
+            document.body.removeChild(currentPage);
+            pages.push(currentPage);
+
+            // Check if content overflows and needs multiple pages
+            // For now, single page handles most menus. Multi-page logic can be extended.
+
+            return pages;
+        }
+
+        // --- ENGLISH PDF: Uses jsPDF native text (works fine for English) ---
+        async function generateEnglishPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
-            let fontBase64 = null, bgBase64 = null;
+
+            let bgBase64 = null;
             async function getBase64Asset(url) {
                 try {
                     const r = await fetch(url);
@@ -717,103 +904,75 @@
                 } catch (e) {} return null;
             }
 
-            try {
-                bgBase64 = await getBase64Asset('{% static "images/background.png" %}');
-                if (lang === 'gu') {
-                    const response = await fetch('{% static "Gujarati.ttf" %}');
-                    const blob = await response.blob();
-                    const reader = new FileReader();
-                    await new Promise(resolve => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(blob); });
-                    fontBase64 = reader.result.split(',')[1];
-                    doc.addFileToVFS('Gujarati.ttf', fontBase64);
-                    doc.addFont('Gujarati.ttf', 'Gujarati', 'normal');
-                    doc.setFont('Gujarati');
-                } else { doc.setFont("helvetica", "normal"); }
-            } catch (e) { console.error(e); }
-
-            const dName = document.getElementById('ev-name').value || "-";
-            const dDateRaw = document.getElementById('ev-date').value || ""; 
-            const dDish = document.getElementById('ev-guests').value || "-";
-            const dVenue = document.getElementById('ev-venue').value || "-";
-            const dContact = document.getElementById('ev-contact').value || "-";
-            const dMenuType = document.getElementById('menu-title').value || "Menu";
-            let dPrice = isAdmin ? (document.getElementById('menu-price').value || "0") : "**";
+            try { bgBase64 = await getBase64Asset('{% static "images/background.png" %}'); } catch(e) {}
+            doc.setFont("helvetica", "normal");
 
             function drawLayoutAndGrid() {
                 if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
-                const startY = 43; 
+                const startY = 43;
                 doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
                 doc.line(15, startY, 195, startY);
-                if(lang !== 'gu') doc.setFont("helvetica", "bold");
+                doc.setFont("helvetica", "bold");
                 doc.setFontSize(10);
                 const row1Y = startY + 5;
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"નામ :":"Name :", 20, row1Y);
+                doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
                 doc.setTextColor(0, 0, 0); doc.text(dName, 35, row1Y);
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"ડીશ :":"Dish :", 90, row1Y);
+                doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
                 doc.setTextColor(0, 0, 0); doc.text(dDish, 105, row1Y);
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"ભાવ :":"Rate :", 150, row1Y);
+                doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
                 doc.setTextColor(0, 0, 0); doc.text(String(dPrice), 165, row1Y);
                 const row2Y = row1Y + 6;
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"તારીખ :":"Date :", 20, row2Y);
+                doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
                 doc.setTextColor(0, 0, 0); doc.text(dDateRaw, 35, row2Y);
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"મોબાઈલ :":"Contact :", 90, row2Y);
+                doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
                 doc.setTextColor(0, 0, 0); doc.text(dContact, 112, row2Y);
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"પ્રસંગ :":"Event :", 150, row2Y);
+                doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
                 doc.setTextColor(0, 0, 0); doc.text(dMenuType, 165, row2Y);
                 const row3Y = row2Y + 6;
-                doc.setTextColor(212, 175, 55); doc.text(lang==='gu'?"સ્થળ :":"Venue :", 20, row3Y);
+                doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
                 doc.setTextColor(0, 0, 0); doc.text(dVenue, 35, row3Y);
-                const endY = row3Y + 3; 
+                const endY = row3Y + 3;
                 doc.setDrawColor(212, 175, 55); doc.line(15, endY, 195, endY);
-                if(lang !== 'gu') doc.setFont("helvetica", "normal"); 
-                return endY + 12; 
+                doc.setFont("helvetica", "normal");
+                return endY + 12;
             }
 
             function drawHeaderBlock(text, x, y) {
-                doc.setFillColor(198, 153, 79); 
+                doc.setFillColor(198, 153, 79);
                 doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
                 doc.setTextColor(0,0,0); doc.setFontSize(11);
-                if(lang !== 'gu') doc.setFont("helvetica", "bold");
+                doc.setFont("helvetica", "bold");
                 doc.text(text, x + 5, y - 1);
             }
 
             let startContentY = drawLayoutAndGrid();
             let currentX = 15;
             let currentY = startContentY;
-            let maxY = 265; 
+            let maxY = 265;
 
-            for (let cat of categories) {
-                const dbItems = allItems.filter(item => item.category == cat.id && selectedIds.has(item.id));
-                const custItems = customItems.filter(item => String(item.categoryId) === String(cat.id));
-                const totalItems = [...dbItems, ...custItems];
-                if (totalItems.length === 0) continue;
-
-                const needed = 10 + (totalItems.length * 6) + 5;
+            for (let group of menuGroups) {
+                const needed = 10 + (group.items.length * 6) + 5;
                 if (currentY + needed > maxY) {
                     if (currentX === 15) { currentX = 110; currentY = startContentY; }
                     else { doc.addPage(); startContentY = drawLayoutAndGrid(); currentX = 15; currentY = startContentY; }
                 }
 
-                let catName = (lang==='gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
-                drawHeaderBlock(catName, currentX, currentY);
+                drawHeaderBlock(group.catName, currentX, currentY);
                 currentY += 10;
 
                 doc.setTextColor(0,0,0); doc.setFontSize(10);
-                if(lang !== 'gu') doc.setFont("helvetica", "normal");
-                totalItems.forEach(item => {
+                doc.setFont("helvetica", "normal");
+                group.items.forEach(itemName => {
                     if(currentY > maxY) {
                         if (currentX === 15) { currentX = 110; currentY = startContentY; }
                         else { doc.addPage(); startContentY = drawLayoutAndGrid(); currentX = 15; currentY = startContentY; }
                     }
-                    let itemName = item.categoryId !== undefined ? item.name : ((lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name);
                     doc.text(String(itemName), currentX + 5, currentY);
                     currentY += 6;
                 });
                 currentY += 5;
             }
-            console.log('[PDF Debug] customItems:', JSON.stringify(customItems), 'selectedIds:', Array.from(selectedIds));
 
-            const noteText = document.getElementById('menu-note').value;
             if (noteText) {
                 const noteLines = doc.splitTextToSize(noteText, 170);
                 const boxH = 10 + (noteLines.length * 6) + 5;
@@ -823,27 +982,13 @@
                 doc.roundedRect(15, footerY, 180, boxH, 3, 3, 'FD');
                 doc.setFillColor(198, 153, 79); doc.roundedRect(15, footerY, 180, 8, 2, 2, 'F');
                 doc.setTextColor(255,255,255); doc.setFontSize(11);
-                doc.text(lang==='gu'?'વિશેષ નોંધ':'SPECIAL NOTE', 105, footerY + 5.5, { align: 'center' }); 
+                doc.text('SPECIAL NOTE', 105, footerY + 5.5, { align: 'center' });
                 doc.setTextColor(0,0,0); doc.setFontSize(10);
-                doc.text(noteLines, 20, footerY + 14); 
+                doc.text(noteLines, 20, footerY + 14);
             }
 
-            const safeTitle = dName.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            const safeTitle = dName.replace(/[^a-zA-Z0-9 ]/g, "").trim() || "Menu";
             doc.save(`${safeTitle}_Menu.pdf`);
-            
-            // Send email to admin on PDF download
-            try {
-                fetch('/send-email/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                    body: JSON.stringify({
-                        name: dName,
-                        phone: dContact || '',
-                        subject: `PDF Downloaded: ${dName} Menu`,
-                        message: `Menu PDF Generated\n---\nClient: ${dName}\nDate: ${dDateRaw}\nGuests: ${dDish}\nVenue: ${dVenue || '-'}\nPhone: ${dContact || '-'}\nMenu Type: ${dMenuType}\nPrice: ${dPrice}\nLanguage: ${lang === 'gu' ? 'Gujarati' : 'English'}\nGenerated At: ${new Date().toLocaleString()}`
-                    })
-                });
-            } catch(e) { console.log('Email notify:', e); }
         }
 
         // --- Section 10: Menu Popularity Stats ---

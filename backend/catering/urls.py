@@ -67,7 +67,7 @@ urlpatterns = [
     # Section 18: Activity Logs (Manager Actions)
     path('api/activity-logs/', views.activity_logs_api, name='activity_logs_api'),
 
-    # Section 4/24: Public APIs (for offline sync)
+    # Section 4: Public APIs (for calendar/recommendations)
     path('api/menu/items/', views.menu_items_public, name='menu_items_public'),
     path('api/events/list/', views.events_list_public, name='events_list_public'),
 

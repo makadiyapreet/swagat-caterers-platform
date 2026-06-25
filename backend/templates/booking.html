@@ -7,7 +7,7 @@
     <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Manage Booking - Swagat Caterers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #D4AF37; --bg: #f8f9fa; --text: #2c3e50; }
         body { background: var(--bg); font-family: 'Segoe UI', sans-serif; padding: 20px; }
@@ -22,6 +22,15 @@
         
         /* Helper to hide elements */
         .hidden { display: none; }
+
+        /* Gujarati field styling */
+        .gu-field { font-family: 'Noto Sans Gujarati', sans-serif; }
+        .gu-label { color: #856404; font-size: 13px; }
+        .gu-input { border-color: #ffe082; background: #fffcf5; font-family: 'Noto Sans Gujarati', sans-serif; }
+        .gu-input:focus { border-color: var(--gold); outline: none; }
+        .lang-divider { display: flex; align-items: center; gap: 8px; margin: 20px 0 15px; }
+        .lang-divider hr { flex: 1; border: none; border-top: 1px dashed #ffe082; }
+        .lang-divider span { font-size: 12px; font-weight: 700; color: #856404; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -34,12 +43,20 @@
                 <input type="text" id="title" required>
             </div>
             <div class="form-group">
+                <label class="gu-label gu-field">ગ્રાહકનું નામ (ગુજરાતી)</label>
+                <input type="text" id="title_gu" class="gu-input gu-field" placeholder="ગુજરાતીમાં નામ લખો">
+            </div>
+            <div class="form-group">
                 <label>Date</label>
                 <input type="date" id="date" required>
             </div>
             <div class="form-group">
                 <label>Venue</label>
                 <input type="text" id="venue" placeholder="e.g. Swagat Hall">
+            </div>
+            <div class="form-group">
+                <label class="gu-label gu-field">સ્થળ (ગુજરાતી)</label>
+                <input type="text" id="venue_gu" class="gu-input gu-field" placeholder="ગુજરાતીમાં સ્થળ લખો">
             </div>
             <div class="form-group">
                 <label>Event Type</label>
@@ -80,6 +97,10 @@
             <div class="form-group">
                 <label>Notes</label>
                 <textarea id="description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="gu-label gu-field">નોંધ (ગુજરાતી)</label>
+                <textarea id="description_gu" rows="3" class="gu-input gu-field" placeholder="ગુજરાતીમાં નોંધ લખો"></textarea>
             </div>
             
             <button type="submit" class="btn btn-save" id="btn-submit">Save</button>
@@ -171,6 +192,11 @@
                     document.getElementById('description').value = data.description || "";
                 }
 
+                // Gujarati / Bilingual fields
+                document.getElementById('title_gu').value = data.title_gu || "";
+                document.getElementById('venue_gu').value = data.venue_gu || "";
+                document.getElementById('description_gu').value = data.description_gu || "";
+
             } catch(e) { 
                 console.error("Debug Info:", e);
                 alert("Error loading event details."); 
@@ -189,7 +215,11 @@
                 guests: parseInt(document.getElementById('guests').value),
                 contact_number: document.getElementById('contact_number').value,
                 status: (isAdmin || document.getElementById('status-group').classList.contains('hidden') === false) ? document.getElementById('status').value : 'pending',
-                description: document.getElementById('description').value
+                description: document.getElementById('description').value,
+                // Gujarati / Bilingual fields
+                title_gu: document.getElementById('title_gu').value,
+                venue_gu: document.getElementById('venue_gu').value,
+                description_gu: document.getElementById('description_gu').value
             };
 
             const url = eventId ? `/api/menu/events/${eventId}/` : `/api/menu/events/`;

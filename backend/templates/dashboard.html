@@ -7,10 +7,11 @@
     <title>Admin Dashboard - Swagat Caterers</title>
     <link rel="icon" href="{% static 'images/logo/favicon.png' %}" type="image/png">
     <link rel="apple-touch-icon" href="{% static 'images/logo/favicon.png' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root { --gold: #D4AF37; --dark-gold: #aa8c2c; --bg: #f8f9fa; --text: #2c3e50; }
@@ -1464,14 +1465,176 @@
         
         if(!res.ok) throw new Error("Could not fetch menu items");
         const menu = await res.json();
-        
+
+        // Parse custom items
+        let customItemsMap = {};
+        if (menu.custom_items_text) {
+            try {
+                const parsed = JSON.parse(menu.custom_items_text);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(ci => {
+                        const cid = String(ci.categoryId);
+                        if (!customItemsMap[cid]) customItemsMap[cid] = [];
+                        customItemsMap[cid].push(ci.name);
+                    });
+                } else if (typeof parsed === 'object') {
+                    Object.keys(parsed).forEach(cid => {
+                        customItemsMap[String(cid)] = parsed[cid];
+                    });
+                }
+            } catch(e) { console.log('Could not parse custom_items_text for PDF:', e); }
+        }
+
+        const menuItems = allItems.filter(i => menu.items.includes(i.id));
+
+        // Build menu groups
+        const menuGroups = [];
+        for (let cat of categories) {
+            const itemsInCat = menuItems.filter(item => item.category == cat.id);
+            const custLines = customItemsMap[String(cat.id)] || [];
+            if (itemsInCat.length === 0 && custLines.length === 0) continue;
+            const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+            const items = [
+                ...itemsInCat.map(item => (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name),
+                ...custLines.map(l => String(l))
+            ];
+            menuGroups.push({ catName, items });
+        }
+
+        let isUserAdmin = (typeof isAdmin !== 'undefined') ? isAdmin : false;
+        let priceDisplay = isUserAdmin ? (menu.price_per_plate || "0") : "**";
+
+        if (lang === 'gu') {
+            await dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview);
+        } else {
+            await dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang);
+        }
+
+    } catch(e) { 
+        console.error(e); 
+        alert("Error generating PDF: " + e.message); 
+    } finally {
+        if(btn && btn.tagName === 'BUTTON') {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+}
+
+    // --- DASHBOARD GUJARATI PDF: html2canvas approach ---
+    async function dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview) {
+        const bgUrl = '{% static "images/background.png" %}';
+        const coverUrl = '{% static "images/cover.png" %}';
+        const backUrl = '{% static "images/last.png" %}';
+        const fontFamily = "'Noto Sans Gujarati', sans-serif";
+        const noteText = menu.note;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        let firstPage = true;
+
+        async function capturePageDiv(pageDiv) {
+            document.body.appendChild(pageDiv);
+            await new Promise(r => setTimeout(r, 300));
+            const canvas = await html2canvas(pageDiv, {
+                scale: 3, useCORS: true, allowTaint: true,
+                width: 794, height: 1123, logging: false
+            });
+            document.body.removeChild(pageDiv);
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            if (!firstPage) doc.addPage();
+            doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            firstPage = false;
+        }
+
+        // Cover page
+        if (!isPreview) {
+            const coverDiv = document.createElement('div');
+            coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${coverUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
+            coverDiv.innerHTML = `<div style="position:absolute; bottom:320px; width:100%; text-align:center; color:#D4AF37; font-size:28px; font-weight:700; font-family:${fontFamily};">${eventTitle || ''} - ${formatDateDisplay(eventDate)}</div>`;
+            await capturePageDiv(coverDiv);
+        }
+
+        // Menu content page
+        const menuDiv = document.createElement('div');
+        menuDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
+
+        const header = document.createElement('div');
+        header.style.cssText = 'padding: 155px 60px 0 60px;';
+        header.innerHTML = `
+            <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
+                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">નામ :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${eventTitle || '-'}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">ડીશ :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${eventGuests || '-'}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">ભાવ :</span>
+                    <span style="color:#000; font-weight:600;">${priceDisplay}</span>
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">તારીખ :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${formatDateDisplay(eventDate)}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:75px;">મોબાઈલ :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${eventContact || '-'}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">પ્રસંગ :</span>
+                    <span style="color:#000; font-weight:600;">${menu.title || '-'}</span>
+                </div>
+                <div style="display:flex; gap:10px; font-size:15px;">
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">સ્થળ :</span>
+                    <span style="color:#000; font-weight:600;">${eventVenue || '-'}</span>
+                </div>
+            </div>
+        `;
+        menuDiv.appendChild(header);
+
+        const contentArea = document.createElement('div');
+        contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 680px;';
+        menuGroups.forEach(group => {
+            const catDiv = document.createElement('div');
+            catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
+            catDiv.innerHTML = `
+                <div style="background:#C6994F; color:#000; padding:6px 15px; border-radius:5px; font-weight:700; font-size:16px; margin-bottom:6px; font-family:${fontFamily};">${group.catName}</div>
+                ${group.items.map(name => `<div style="font-size:15px; padding:2px 15px; color:#1e1e1e; font-family:${fontFamily};">${name}</div>`).join('')}
+            `;
+            contentArea.appendChild(catDiv);
+        });
+
+        if (noteText) {
+            const noteDiv = document.createElement('div');
+            noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
+            noteDiv.innerHTML = `
+                <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
+                    <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">વિશેષ નોંધ</div>
+                    <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
+                </div>
+            `;
+            contentArea.appendChild(noteDiv);
+        }
+
+        menuDiv.appendChild(contentArea);
+        await capturePageDiv(menuDiv);
+
+        // Back cover
+        if (!isPreview) {
+            const backDiv = document.createElement('div');
+            backDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${backUrl}'); background-size:cover;`;
+            await capturePageDiv(backDiv);
+        }
+
+        if (isPreview) { window.open(doc.output('bloburl'), '_blank'); }
+        else {
+            const safeTitle = (eventTitle || 'Menu').replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5);
+            doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
+        }
+    }
+
+    // --- DASHBOARD ENGLISH PDF: jsPDF native text ---
+    async function dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // --- LOAD ASSETS ---
-        let fontBase64 = null, bgBase64 = null, coverBase64 = null, backBase64 = null;
-        
-        // Helper to safely load images without crashing
+        let bgBase64 = null, coverBase64 = null, backBase64 = null;
         async function loadImage(url) {
             try {
                 const r = await fetch(url);
@@ -1487,124 +1650,71 @@
             return null;
         }
 
-        try {
-            // Load images in parallel
-            [bgBase64, coverBase64, backBase64] = await Promise.all([
-                loadImage('{% static "images/background.png" %}'),
-                loadImage('{% static "images/cover.png" %}'),
-                loadImage('{% static "images/last.png" %}')
-            ]);
+        [bgBase64, coverBase64, backBase64] = await Promise.all([
+            loadImage('{% static "images/background.png" %}'),
+            loadImage('{% static "images/cover.png" %}'),
+            loadImage('{% static "images/last.png" %}')
+        ]);
 
-            // --- CRITICAL FIX: FONT LOADING LOGIC ---
-            if (lang === 'gu') {
-                const response = await fetch("{% static 'Gujarati.ttf' %}");
-                if (!response.ok) throw new Error("Missing Gujarati.ttf");
-                const blob = await response.blob();
-                const reader = new FileReader();
-                await new Promise(resolve => { reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(blob); });
-                
-                fontBase64 = reader.result.split(',')[1];
-                doc.addFileToVFS('Gujarati.ttf', fontBase64);
-                
-                // FIX: Register as 'normal' to prevent lookup errors
-                doc.addFont('Gujarati.ttf', 'Gujarati', 'normal'); 
-                doc.setFont('Gujarati', 'normal'); 
-            } else { 
-                // OPTIMIZATION: Use built-in font for speed if not Gujarati
-                doc.setFont("helvetica", "normal"); 
-            }
-        } catch (e) { 
-            console.error("Asset Error:", e);
-            alert("Asset Loading Error: " + e.message); 
-            return; 
-        }
+        doc.setFont("helvetica", "normal");
 
-        // --- HELPER: HANDLE FONT STYLES SAFELY ---
-        // This function prevents the "lookup failed" error by avoiding bold in Gujarati
         function setFontStyle(type) {
-            if (lang === 'gu') {
-                doc.setFont('Gujarati', 'normal'); // Always normal for Custom Font
-            } else {
-                if (type === 'bold') doc.setFont("helvetica", "bold");
-                else if (type === 'title') doc.setFont("times", "bold");
-                else doc.setFont("helvetica", "normal");
-            }
+            if (type === 'bold') doc.setFont("helvetica", "bold");
+            else if (type === 'title') doc.setFont("times", "bold");
+            else doc.setFont("helvetica", "normal");
         }
 
-        // --- 1. COVER PAGE ---
+        // Cover page
         if (coverBase64 && !isPreview) {
             doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
             const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
-            
-            doc.setTextColor(212, 175, 55); 
-            setFontStyle('title'); // Safe Font Set
-            doc.setFontSize(20); 
-            doc.text(combinedText, 105, 200, { align: 'center' }); 
-            
+            doc.setTextColor(212, 175, 55);
+            setFontStyle('title');
+            doc.setFontSize(20);
+            doc.text(combinedText, 105, 200, { align: 'center' });
             doc.addPage();
         }
 
-        // --- LAYOUT & GRID ---
         function drawLayoutAndGrid() {
             if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
-            
-            // Reset font for new page
             setFontStyle('normal');
-
-            const startY = 43; 
-            const rowHeight = 6; 
-            doc.setDrawColor(212, 175, 55); 
-            doc.setLineWidth(0.5);
+            const startY = 43;
+            doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
             doc.line(15, startY, 195, startY);
-
-            setFontStyle('bold'); // Bold for headers (if English)
+            setFontStyle('bold');
             doc.setFontSize(10);
-            
-            // Row 1
             const row1Y = startY + 5;
             doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
-            doc.setTextColor(0, 0, 0);      doc.text(eventTitle || "-", 35, row1Y);
+            doc.setTextColor(0, 0, 0); doc.text(eventTitle || "-", 35, row1Y);
             doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
-            doc.setTextColor(0, 0, 0);      doc.text(String(eventGuests || "-"), 105, row1Y);
+            doc.setTextColor(0, 0, 0); doc.text(String(eventGuests || "-"), 105, row1Y);
             doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
-            
-            // Check if isAdmin exists safely
-            let isUserAdmin = (typeof isAdmin !== 'undefined') ? isAdmin : false;
-            let priceDisplay = isUserAdmin ? (menu.price_per_plate || "0") : "**";
-            doc.setTextColor(0, 0, 0);      doc.text(String(priceDisplay), 165, row1Y);
-
-            // Row 2 & 3
-            const row2Y = row1Y + rowHeight;
+            doc.setTextColor(0, 0, 0); doc.text(String(priceDisplay), 165, row1Y);
+            const row2Y = row1Y + 6;
             doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
-            doc.setTextColor(0, 0, 0);      doc.text(formatDateDisplay(eventDate), 35, row2Y);
+            doc.setTextColor(0, 0, 0); doc.text(formatDateDisplay(eventDate), 35, row2Y);
             doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
-            doc.setTextColor(0, 0, 0);      doc.text(eventContact || "-", 112, row2Y);
+            doc.setTextColor(0, 0, 0); doc.text(eventContact || "-", 112, row2Y);
             doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
-            doc.setTextColor(0, 0, 0);      doc.text(menu.title || "-", 165, row2Y);
-
-            const row3Y = row2Y + rowHeight;
+            doc.setTextColor(0, 0, 0); doc.text(menu.title || "-", 165, row2Y);
+            const row3Y = row2Y + 6;
             doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
-            doc.setTextColor(0, 0, 0);      doc.text(eventVenue || "-", 35, row3Y);
-
-            const endY = row3Y + 3; 
-            doc.setDrawColor(212, 175, 55); 
-            doc.line(15, endY, 195, endY);
-
-            setFontStyle('normal'); // Reset to normal
-            return endY + 12; 
+            doc.setTextColor(0, 0, 0); doc.text(eventVenue || "-", 35, row3Y);
+            const endY = row3Y + 3;
+            doc.setDrawColor(212, 175, 55); doc.line(15, endY, 195, endY);
+            setFontStyle('normal');
+            return endY + 12;
         }
 
         function drawHeader(text, x, y) {
-            doc.setFillColor(198, 153, 79); 
+            doc.setFillColor(198, 153, 79);
             doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
             doc.setTextColor(0,0,0); doc.setFontSize(11);
-            
-            setFontStyle('bold'); // Safe Bold
+            setFontStyle('bold');
             doc.text(text, x + 5, y - 1);
-            setFontStyle('normal'); // Reset
+            setFontStyle('normal');
         }
 
-        // --- FILL CONTENT ---
         let startContentY = drawLayoutAndGrid();
         let xLeft = 15; let xRight = 110;
         let currentX = xLeft; let currentY = startContentY;
@@ -1612,115 +1722,62 @@
 
         function checkPageBreak(heightNeeded) {
             if (currentY + heightNeeded > maxY) {
-                if (currentX === xLeft) { currentX = xRight; currentY = startContentY; } 
+                if (currentX === xLeft) { currentX = xRight; currentY = startContentY; }
                 else { doc.addPage(); let newStartY = drawLayoutAndGrid(); currentX = xLeft; currentY = newStartY; }
             }
         }
 
-        // Parse custom items from DB
-        let customItemsMap = {}; // { catId: ['item1', 'item2'] }
-        if (menu.custom_items_text) {
-            try {
-                const parsed = JSON.parse(menu.custom_items_text);
-                if (Array.isArray(parsed)) {
-                    // Format: [{name, categoryId}, ...]
-                    parsed.forEach(ci => {
-                        const cid = String(ci.categoryId);
-                        if (!customItemsMap[cid]) customItemsMap[cid] = [];
-                        customItemsMap[cid].push(ci.name);
-                    });
-                } else if (typeof parsed === 'object') {
-                    // Format: { catId: ['item1', 'item2'] }
-                    Object.keys(parsed).forEach(cid => {
-                        customItemsMap[String(cid)] = parsed[cid];
-                    });
-                }
-            } catch(e) { console.log('Could not parse custom_items_text for PDF:', e); }
-        }
-
-        const menuItems = allItems.filter(i => menu.items.includes(i.id));
-
-        for (let i = 0; i < categories.length; i++) {
-            const cat = categories[i];
-            const itemsInCat = menuItems.filter(item => item.category == cat.id);
-            const custLines = customItemsMap[String(cat.id)] || [];
-            if (itemsInCat.length === 0 && custLines.length === 0) continue;
-
-            const totalCount = itemsInCat.length + custLines.length;
-            const blockHeight = headerHeight + (totalCount * itemLineHeight) + 5;
+        for (let group of menuGroups) {
+            const blockHeight = headerHeight + (group.items.length * itemLineHeight) + 5;
             checkPageBreak(blockHeight);
 
-            let catName = (lang==='gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
-            drawHeader(catName, currentX, currentY);
+            drawHeader(group.catName, currentX, currentY);
             currentY += headerHeight;
 
             doc.setTextColor(0,0,0); doc.setFontSize(10);
-            setFontStyle('normal'); // Ensure normal font for items
+            setFontStyle('normal');
 
-            itemsInCat.forEach(item => {
+            group.items.forEach(itemName => {
                 if (currentY > maxY) checkPageBreak(itemLineHeight);
-                let itemName = (lang==='gu' && item.gujarati_name) ? item.gujarati_name : item.name;
                 doc.text(itemName, currentX + 5, currentY);
-                currentY += itemLineHeight;
-            });
-
-            // Custom items
-            custLines.forEach(line => {
-                if (currentY > maxY) checkPageBreak(itemLineHeight);
-                doc.text(String(line), currentX + 5, currentY);
                 currentY += itemLineHeight;
             });
 
             currentY += 5;
         }
 
-        // --- NOTE & BACK COVER ---
-        const noteText = menu.note; 
+        // Note
+        const noteText = menu.note;
         if (noteText) {
-            const noteHeader = lang === 'gu' ? 'વિશેષ નોંધ' : 'SPECIAL NOTE';
-            const noteLines = doc.splitTextToSize(noteText, 170); 
+            const noteLines = doc.splitTextToSize(noteText, 170);
             const headerH = 8; const padding = 6;
             const textBlockH = (noteLines.length * 6);
             const boxHeight = headerH + textBlockH + padding;
-            const pageHeight = 297; const bottomMargin = 15; 
+            const pageHeight = 297; const bottomMargin = 15;
             let footerY = pageHeight - bottomMargin - boxHeight;
-
             if (currentY > footerY) { doc.addPage(); drawLayoutAndGrid(); footerY = pageHeight - bottomMargin - boxHeight; }
-
             doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79); doc.setLineWidth(0.5);
             doc.roundedRect(15, footerY, 180, boxHeight, 3, 3, 'FD');
-            doc.setFillColor(198, 153, 79); 
+            doc.setFillColor(198, 153, 79);
             doc.roundedRect(15, footerY, 180, headerH, 2, 2, 'F');
-            doc.rect(15, footerY + headerH - 2, 180, 2, 'F'); 
-            
+            doc.rect(15, footerY + headerH - 2, 180, 2, 'F');
             doc.setTextColor(255,255,255); doc.setFontSize(11);
             setFontStyle('bold');
-            doc.text(noteHeader, 105, footerY + 5.5, { align: 'center' }); 
-            
+            doc.text('SPECIAL NOTE', 105, footerY + 5.5, { align: 'center' });
             doc.setTextColor(0,0,0); doc.setFontSize(10);
             setFontStyle('normal');
-            doc.text(noteLines, 20, footerY + headerH + 6); 
+            doc.text(noteLines, 20, footerY + headerH + 6);
         }
 
         if (backBase64 && !isPreview) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
 
-        if (isPreview) { window.open(doc.output('bloburl'), '_blank'); } 
+        if (isPreview) { window.open(doc.output('bloburl'), '_blank'); }
         else {
-            const safeTitle = eventTitle.replace(/[^a-zA-Z0-9 ]/g, "").trim();
-            const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5); 
+            const safeTitle = (eventTitle || 'Menu').replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5);
             doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
         }
-    } catch(e) { 
-        console.error(e); 
-        alert("Error generating PDF: " + e.message); 
-    } finally {
-        // RESTORE BUTTON STATE
-        if(btn && btn.tagName === 'BUTTON') {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
     }
-}
 
     init();
 </script>
