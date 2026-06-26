@@ -1141,11 +1141,38 @@
     }
 
     // --- RENDER DETAILS (Main Modal) ---
+    // Store current event globally for PDF download
+    let _currentPdfEvent = null;
+
+    function _pdfDownload(menuId, lang, isPreview) {
+        const ev = _currentPdfEvent;
+        if (!ev) return;
+        // Pass full event data — each PDF function decides which language fields to use
+        const eventData = {
+            title: ev.title || '',
+            title_gu: ev.title_gu || '',
+            venue: ev.venue || 'N/A',
+            venue_gu: ev.venue_gu || '',
+            date: ev.date,
+            guests: ev.guests,
+            contact: ev.contact_number || ''
+        };
+        downloadMenuPDF(menuId, lang, eventData, isPreview);
+    }
+
     function renderEventDetails(event) {
+        _currentPdfEvent = event;
         const modalContent = document.getElementById('event-details-content');
         const adminActions = document.getElementById('admin-menu-actions');
         modalContent.style.display = 'block';
-        document.getElementById('modal-title').innerText = event.title;
+        // Show bilingual title: prefer Gujarati if exists, show both
+        const displayTitle = event.title_gu ? `${event.title_gu}` : event.title;
+        document.getElementById('modal-title').innerText = displayTitle;
+        if (event.title_gu) {
+            document.getElementById('modal-title').style.fontFamily = "'Noto Sans Gujarati', 'Playfair Display', serif";
+        } else {
+            document.getElementById('modal-title').style.fontFamily = "'Playfair Display', serif";
+        }
 
         // Process Contact Info
         let contactInfo = event.contact_number || "N/A";
@@ -1156,7 +1183,16 @@
         if (event.contact_number && contactInfo !== event.contact_number) {
             alternateInfo = `<div style="font-size:13px; color:#666; margin-top:3px;">Alt: ${event.contact_number}</div>`;
         }
-        let noteInfo = event.description ? event.description : "No notes.";
+        let noteInfo = event.description_gu || event.description || "No notes.";
+
+        // Bilingual display helpers
+        const guFont = "font-family:'Noto Sans Gujarati',sans-serif;";
+        function bilingualValue(en, gu) {
+            if (gu && en && gu !== en) return `<span style="${guFont}">${gu}</span> <span style="font-size:11px;color:#999;">(${en})</span>`;
+            if (gu) return `<span style="${guFont}">${gu}</span>`;
+            return en || 'N/A';
+        }
+        const displayVenue = bilingualValue(event.venue, event.venue_gu);
 
         // Process Menu List
         let menuListHtml = '<p style="color:#999; font-style:italic; font-size:13px; margin:0;">No menus created yet.</p>';
@@ -1170,11 +1206,6 @@
                 let createdByDisplay = (isAdmin && m.created_by) ? `<br><span style='font-size:10px; color:#999;'>Created by: ${m.created_by}</span>` : "";
                 let actionsHtml = "";
                 
-                // DATA CLEANUP FOR PDF FUNCTION
-                const safeTitle = event.title.replace(/'/g, "\\'");
-                const safeVenue = (event.venue || 'N/A').replace(/'/g, "\\'");
-                const safeContact = (event.contact_number || '').replace(/'/g, "\\'");
-                
                 if (isAdmin) {
                     // ADMIN: Download & Edit
                     let editBtn = `
@@ -1184,15 +1215,15 @@
                         ✏️
                     </button>`;
                     actionsHtml = `
-                        <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ ENG</button>
-                        <button class="btn-dl" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ GUJ</button>
+                        <button class="btn-dl" onclick="_pdfDownload(${m.id}, 'en', false)">⬇ ENG</button>
+                        <button class="btn-dl" onclick="_pdfDownload(${m.id}, 'gu', false)">⬇ GUJ</button>
                         ${editBtn}
                     `;
                 } else if (isManager) {
                     // MANAGER: Download PDF without price, Edit menu
                     actionsHtml = `
-                        <button class="btn-dl" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ ENG (No Price)</button>
-                        <button class="btn-dl" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', false)">⬇ GUJ (No Price)</button>
+                        <button class="btn-dl" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="_pdfDownload(${m.id}, 'en', false)">⬇ ENG (No Price)</button>
+                        <button class="btn-dl" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="_pdfDownload(${m.id}, 'gu', false)">⬇ GUJ (No Price)</button>
                         <button class="btn-dl btn-edit-menu"
                             onclick="window.location.href=\`${CREATE_MENU_URL}?event_id=${event.id}&menu_id=${m.id}\`"
                             title="Edit Menu">
@@ -1202,8 +1233,8 @@
                 } else {
                     // STAFF: View Only — PDF preview in both languages (no price, no download)
                     actionsHtml = `
-                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'en', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 ENG</button>
-                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="downloadMenuPDF(${m.id}, 'gu', '${safeTitle}', '${event.date}', '${event.guests}', '${safeVenue}', '${safeContact}', true)">👁 GUJ</button>
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="_pdfDownload(${m.id}, 'en', true)">👁 ENG</button>
+                        <button class="btn-dl" style="background:#e3f2fd; border-color:#2196f3; color:#1565c0;" onclick="_pdfDownload(${m.id}, 'gu', true)">👁 GUJ</button>
                     `;
                 }
 
@@ -1212,7 +1243,7 @@
             menuListHtml += `</table>`;
         }
 
-        modalContent.innerHTML = `<div class="event-details-grid"><div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${formatDateDisplay(event.date)}</span></div><div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${event.venue || 'N/A'}</span></div><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div><div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div><div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px;">${contactInfo}</span>${alternateInfo}</div><div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div><div class="detail-item detail-note"><span class="detail-label">Notes</span><span class="detail-value">${noteInfo}</span></div></div>`;
+        modalContent.innerHTML = `<div class="event-details-grid"><div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${formatDateDisplay(event.date)}</span></div><div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${displayVenue}</span></div><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div><div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div><div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px;">${contactInfo}</span>${alternateInfo}</div><div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div><div class="detail-item detail-note"><span class="detail-label">Notes</span><span class="detail-value" style="${guFont}">${noteInfo}</span></div></div>`;
 
         // VISIBILITY: Admin & Manager see actions (Print Bill is Admin Only)
         if (isAdmin || isManager) {
@@ -1438,7 +1469,7 @@
         }
     }
 
-    async function downloadMenuPDF(menuId, lang, eventTitle, eventDate, eventGuests, eventVenue, eventContact, isPreview) {
+    async function downloadMenuPDF(menuId, lang, eventData, isPreview) {
     
     // 1. SET UI LOADING STATE
     const btn = document.activeElement; 
@@ -1487,6 +1518,14 @@
 
         const menuItems = allItems.filter(i => menu.items.includes(i.id));
 
+        // Resolve event info per language — print as saved
+        // Gujarati PDF: use Gujarati title/venue if saved, else fall back to English
+        // English PDF: use English title/venue
+        const guTitle = eventData.title_gu || eventData.title;
+        const guVenue = eventData.venue_gu || eventData.venue;
+        const enTitle = eventData.title || eventData.title_gu;
+        const enVenue = eventData.venue || eventData.venue_gu;
+
         // Build menu groups
         const menuGroups = [];
         for (let cat of categories) {
@@ -1505,9 +1544,9 @@
         let priceDisplay = isUserAdmin ? (menu.price_per_plate || "0") : "**";
 
         if (lang === 'gu') {
-            await dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview);
+            await dashboardGujaratiPDF(guTitle, eventData.date, eventData.guests, guVenue, eventData.contact, menu, menuGroups, priceDisplay, isPreview, enTitle, guTitle);
         } else {
-            await dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang);
+            await dashboardEnglishPDF(enTitle, eventData.date, eventData.guests, enVenue, eventData.contact, menu, menuGroups, priceDisplay, isPreview, lang, enTitle, guTitle);
         }
 
     } catch(e) { 
@@ -1522,7 +1561,7 @@
 }
 
     // --- DASHBOARD GUJARATI PDF: html2canvas approach ---
-    async function dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview) {
+    async function dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, enTitle, guTitle) {
         const bgUrl = '{% static "images/background.png" %}';
         const coverUrl = '{% static "images/cover.png" %}';
         const backUrl = '{% static "images/last.png" %}';
@@ -1535,10 +1574,15 @@
 
         async function capturePageDiv(pageDiv) {
             document.body.appendChild(pageDiv);
-            await new Promise(r => setTimeout(r, 300));
+            // Wait for fonts to load fully before capturing
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+            await new Promise(r => setTimeout(r, 600));
             const canvas = await html2canvas(pageDiv, {
                 scale: 3, useCORS: true, allowTaint: true,
-                width: 794, height: 1123, logging: false
+                width: 794, height: 1123, logging: false,
+                backgroundColor: null
             });
             document.body.removeChild(pageDiv);
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -1547,11 +1591,54 @@
             firstPage = false;
         }
 
+        // Pre-load cover image as actual img element for reliable html2canvas rendering
+        async function preloadImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
+        }
+
         // Cover page
         if (!isPreview) {
+            const coverImg = await preloadImage(coverUrl);
             const coverDiv = document.createElement('div');
-            coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${coverUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
-            coverDiv.innerHTML = `<div style="position:absolute; bottom:320px; width:100%; text-align:center; color:#D4AF37; font-size:28px; font-weight:700; font-family:${fontFamily};">${eventTitle || ''} - ${formatDateDisplay(eventDate)}</div>`;
+            coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; overflow:hidden; background:#000;`;
+
+            // Use actual img element instead of CSS background (more reliable with html2canvas)
+            if (coverImg) {
+                const imgEl = document.createElement('img');
+                imgEl.src = coverUrl;
+                imgEl.crossOrigin = 'anonymous';
+                imgEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;';
+                coverDiv.appendChild(imgEl);
+            }
+
+            // Text overlay — positioned in the golden ornamental frame area
+            const textOverlay = document.createElement('div');
+            textOverlay.style.cssText = `
+                position: absolute;
+                bottom: 330px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                padding: 12px 40px;
+                z-index: 10;
+            `;
+            textOverlay.innerHTML = `<span style="
+                color: #D4AF37;
+                font-size: 30px;
+                font-weight: 700;
+                font-family: ${fontFamily};
+                letter-spacing: 1px;
+                text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+                line-height: 1.4;
+            ">${eventTitle || ''} - ${formatDateDisplay(eventDate)}</span>`;
+            coverDiv.appendChild(textOverlay);
+
             await capturePageDiv(coverDiv);
         }
 
@@ -1623,159 +1710,163 @@
 
         if (isPreview) { window.open(doc.output('bloburl'), '_blank'); }
         else {
-            const safeTitle = (eventTitle || 'Menu').replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            // Filename: <CustomerName>-<DD-MM>-GUJ-Swagat_Caterers.pdf
+            // Use customer name as-is (supports Unicode). Strip only filesystem-unsafe chars.
+            const customerName = (guTitle || enTitle || eventTitle || 'Menu').replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
             const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5);
-            doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
+            doc.save(`${customerName}-${filenameDate}-GUJ-Swagat_Caterers.pdf`);
         }
     }
 
     // --- DASHBOARD ENGLISH PDF: jsPDF native text ---
-    async function dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+    async function dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang, enTitle, guTitle) {
+        const bgUrl = '{% static "images/background.png" %}';
+        const coverUrl = '{% static "images/cover.png" %}';
+        const backUrl = '{% static "images/last.png" %}';
+        const fontFamily = "'Noto Sans Gujarati', 'Segoe UI', Helvetica, sans-serif";
+        const noteText = menu.note;
 
-        let bgBase64 = null, coverBase64 = null, backBase64 = null;
-        async function loadImage(url) {
-            try {
-                const r = await fetch(url);
-                if (r.ok) {
-                    const b = await r.blob();
-                    return new Promise(res => {
-                        const read = new FileReader();
-                        read.onloadend = () => res(read.result);
-                        read.readAsDataURL(b);
-                    });
-                }
-            } catch (e) { console.warn("Fetch failed for: " + url); }
-            return null;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        let firstPage = true;
+
+        async function capturePageDiv(pageDiv) {
+            document.body.appendChild(pageDiv);
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+            await new Promise(r => setTimeout(r, 600));
+            const canvas = await html2canvas(pageDiv, {
+                scale: 3, useCORS: true, allowTaint: true,
+                width: 794, height: 1123, logging: false,
+                backgroundColor: null
+            });
+            document.body.removeChild(pageDiv);
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            if (!firstPage) doc.addPage();
+            doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            firstPage = false;
         }
 
-        [bgBase64, coverBase64, backBase64] = await Promise.all([
-            loadImage('{% static "images/background.png" %}'),
-            loadImage('{% static "images/cover.png" %}'),
-            loadImage('{% static "images/last.png" %}')
-        ]);
-
-        doc.setFont("helvetica", "normal");
-
-        function setFontStyle(type) {
-            if (type === 'bold') doc.setFont("helvetica", "bold");
-            else if (type === 'title') doc.setFont("times", "bold");
-            else doc.setFont("helvetica", "normal");
+        async function preloadImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
         }
 
         // Cover page
-        if (coverBase64 && !isPreview) {
-            doc.addImage(coverBase64, 'PNG', 0, 0, 210, 297);
-            const combinedText = `${eventTitle || ""} - ${formatDateDisplay(eventDate)}`;
-            doc.setTextColor(212, 175, 55);
-            setFontStyle('title');
-            doc.setFontSize(20);
-            doc.text(combinedText, 105, 200, { align: 'center' });
-            doc.addPage();
-        }
+        if (!isPreview) {
+            const coverImg = await preloadImage(coverUrl);
+            const coverDiv = document.createElement('div');
+            coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; overflow:hidden; background:#000;`;
 
-        function drawLayoutAndGrid() {
-            if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
-            setFontStyle('normal');
-            const startY = 43;
-            doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
-            doc.line(15, startY, 195, startY);
-            setFontStyle('bold');
-            doc.setFontSize(10);
-            const row1Y = startY + 5;
-            doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
-            doc.setTextColor(0, 0, 0); doc.text(eventTitle || "-", 35, row1Y);
-            doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
-            doc.setTextColor(0, 0, 0); doc.text(String(eventGuests || "-"), 105, row1Y);
-            doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
-            doc.setTextColor(0, 0, 0); doc.text(String(priceDisplay), 165, row1Y);
-            const row2Y = row1Y + 6;
-            doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
-            doc.setTextColor(0, 0, 0); doc.text(formatDateDisplay(eventDate), 35, row2Y);
-            doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
-            doc.setTextColor(0, 0, 0); doc.text(eventContact || "-", 112, row2Y);
-            doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
-            doc.setTextColor(0, 0, 0); doc.text(menu.title || "-", 165, row2Y);
-            const row3Y = row2Y + 6;
-            doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
-            doc.setTextColor(0, 0, 0); doc.text(eventVenue || "-", 35, row3Y);
-            const endY = row3Y + 3;
-            doc.setDrawColor(212, 175, 55); doc.line(15, endY, 195, endY);
-            setFontStyle('normal');
-            return endY + 12;
-        }
-
-        function drawHeader(text, x, y) {
-            doc.setFillColor(198, 153, 79);
-            doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
-            doc.setTextColor(0,0,0); doc.setFontSize(11);
-            setFontStyle('bold');
-            doc.text(text, x + 5, y - 1);
-            setFontStyle('normal');
-        }
-
-        let startContentY = drawLayoutAndGrid();
-        let xLeft = 15; let xRight = 110;
-        let currentX = xLeft; let currentY = startContentY;
-        let maxY = 275; let itemLineHeight = 6; let headerHeight = 10;
-
-        function checkPageBreak(heightNeeded) {
-            if (currentY + heightNeeded > maxY) {
-                if (currentX === xLeft) { currentX = xRight; currentY = startContentY; }
-                else { doc.addPage(); let newStartY = drawLayoutAndGrid(); currentX = xLeft; currentY = newStartY; }
+            if (coverImg) {
+                const imgEl = document.createElement('img');
+                imgEl.src = coverUrl;
+                imgEl.crossOrigin = 'anonymous';
+                imgEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;';
+                coverDiv.appendChild(imgEl);
             }
+
+            const textOverlay = document.createElement('div');
+            textOverlay.style.cssText = `
+                position: absolute;
+                bottom: 330px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                padding: 12px 40px;
+                z-index: 10;
+            `;
+            textOverlay.innerHTML = `<span style="
+                color: #D4AF37;
+                font-size: 30px;
+                font-weight: 700;
+                font-family: ${fontFamily};
+                letter-spacing: 1px;
+                text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+                line-height: 1.4;
+            ">${eventTitle || ''} - ${formatDateDisplay(eventDate)}</span>`;
+            coverDiv.appendChild(textOverlay);
+
+            await capturePageDiv(coverDiv);
         }
 
-        for (let group of menuGroups) {
-            const blockHeight = headerHeight + (group.items.length * itemLineHeight) + 5;
-            checkPageBreak(blockHeight);
+        // Menu content page
+        const menuDiv = document.createElement('div');
+        menuDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
 
-            drawHeader(group.catName, currentX, currentY);
-            currentY += headerHeight;
+        const header = document.createElement('div');
+        header.style.cssText = 'padding: 155px 60px 0 60px;';
+        header.innerHTML = `
+            <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
+                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Name :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${eventTitle || '-'}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">Dish :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${eventGuests || '-'}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">Rate :</span>
+                    <span style="color:#000; font-weight:600;">${priceDisplay}</span>
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Date :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${formatDateDisplay(eventDate)}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:75px;">Contact :</span>
+                    <span style="color:#000; font-weight:600; flex:1;">${eventContact || '-'}</span>
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Event :</span>
+                    <span style="color:#000; font-weight:600;">${menu.title || '-'}</span>
+                </div>
+                <div style="display:flex; gap:10px; font-size:15px;">
+                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Venue :</span>
+                    <span style="color:#000; font-weight:600;">${eventVenue || '-'}</span>
+                </div>
+            </div>
+        `;
+        menuDiv.appendChild(header);
 
-            doc.setTextColor(0,0,0); doc.setFontSize(10);
-            setFontStyle('normal');
+        const contentArea = document.createElement('div');
+        contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 680px;';
+        menuGroups.forEach(group => {
+            const catDiv = document.createElement('div');
+            catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
+            catDiv.innerHTML = `
+                <div style="background:#C6994F; color:#000; padding:6px 15px; border-radius:5px; font-weight:700; font-size:16px; margin-bottom:6px; font-family:${fontFamily};">${group.catName}</div>
+                ${group.items.map(name => `<div style="font-size:15px; padding:2px 15px; color:#1e1e1e; font-family:${fontFamily};">${name}</div>`).join('')}
+            `;
+            contentArea.appendChild(catDiv);
+        });
 
-            group.items.forEach(itemName => {
-                if (currentY > maxY) checkPageBreak(itemLineHeight);
-                doc.text(itemName, currentX + 5, currentY);
-                currentY += itemLineHeight;
-            });
-
-            currentY += 5;
-        }
-
-        // Note
-        const noteText = menu.note;
         if (noteText) {
-            const noteLines = doc.splitTextToSize(noteText, 170);
-            const headerH = 8; const padding = 6;
-            const textBlockH = (noteLines.length * 6);
-            const boxHeight = headerH + textBlockH + padding;
-            const pageHeight = 297; const bottomMargin = 15;
-            let footerY = pageHeight - bottomMargin - boxHeight;
-            if (currentY > footerY) { doc.addPage(); drawLayoutAndGrid(); footerY = pageHeight - bottomMargin - boxHeight; }
-            doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79); doc.setLineWidth(0.5);
-            doc.roundedRect(15, footerY, 180, boxHeight, 3, 3, 'FD');
-            doc.setFillColor(198, 153, 79);
-            doc.roundedRect(15, footerY, 180, headerH, 2, 2, 'F');
-            doc.rect(15, footerY + headerH - 2, 180, 2, 'F');
-            doc.setTextColor(255,255,255); doc.setFontSize(11);
-            setFontStyle('bold');
-            doc.text('SPECIAL NOTE', 105, footerY + 5.5, { align: 'center' });
-            doc.setTextColor(0,0,0); doc.setFontSize(10);
-            setFontStyle('normal');
-            doc.text(noteLines, 20, footerY + headerH + 6);
+            const noteDiv = document.createElement('div');
+            noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
+            noteDiv.innerHTML = `
+                <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
+                    <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">SPECIAL NOTE</div>
+                    <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
+                </div>
+            `;
+            contentArea.appendChild(noteDiv);
         }
 
-        if (backBase64 && !isPreview) { doc.addPage(); doc.addImage(backBase64, 'PNG', 0, 0, 210, 297); }
+        menuDiv.appendChild(contentArea);
+        await capturePageDiv(menuDiv);
+
+        // Back cover
+        if (!isPreview) {
+            const backDiv = document.createElement('div');
+            backDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${backUrl}'); background-size:cover;`;
+            await capturePageDiv(backDiv);
+        }
 
         if (isPreview) { window.open(doc.output('bloburl'), '_blank'); }
         else {
-            const safeTitle = (eventTitle || 'Menu').replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            const customerName = (enTitle || guTitle || eventTitle || 'Menu').replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
             const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5);
-            doc.save(`${safeTitle} - ${filenameDate} - SwagatCaterers.pdf`);
+            doc.save(`${customerName}-${filenameDate}-ENG-Swagat_Caterers.pdf`);
         }
     }
 

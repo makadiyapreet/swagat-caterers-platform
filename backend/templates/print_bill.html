@@ -7,10 +7,11 @@
     <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Print Bill - Swagat Caterers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root { --gold: #D4AF37; --dark: #1a1a1a; --light: #f8f9fa; --border: #e9ecef; }
@@ -280,7 +281,12 @@
                 if (!res.ok) throw new Error("Could not fetch main event");
                 const mainEvent = await res.json();
                 
-                document.getElementById('client-name').innerText = mainEvent.title;
+                // Show Gujarati name if available, with English fallback
+                const clientName = mainEvent.title_gu || mainEvent.title;
+                document.getElementById('client-name').innerText = clientName;
+                if (mainEvent.title_gu) {
+                    document.getElementById('client-name').style.fontFamily = "'Noto Sans Gujarati', 'Inter', sans-serif";
+                }
                 
                 let contact = mainEvent.contact_number || "No contact";
                 if(mainEvent.description && mainEvent.description.includes("Contact:")) {
@@ -288,7 +294,12 @@
                 }
                 document.getElementById('client-contact').innerText = `Mo: ${contact}`;
                 document.getElementById('event-details').innerText = formatDate(mainEvent.date);
-                document.getElementById('event-venue').innerText = mainEvent.venue;
+                // Show Gujarati venue if available
+                const venueDisplay = mainEvent.venue_gu || mainEvent.venue;
+                document.getElementById('event-venue').innerText = venueDisplay;
+                if (mainEvent.venue_gu) {
+                    document.getElementById('event-venue').style.fontFamily = "'Noto Sans Gujarati', 'Inter', sans-serif";
+                }
 
                 addEventRowsToTable(mainEvent);
 
@@ -400,135 +411,104 @@
         }
 
         async function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait' });
-
-            const addWatermark = (pdfDoc) => {
-                pdfDoc.saveGraphicsState();
-                pdfDoc.setGState(new pdfDoc.GState({opacity: 0.1})); // Reduced opacity for professional look
-                pdfDoc.setTextColor(200, 200, 200); 
-                pdfDoc.setFontSize(18); 
-                pdfDoc.setFont("helvetica", "bold italic");
-                const watermarkText = "SWAGAT CATERERS";
-                const pageWidth = pdfDoc.internal.pageSize.getWidth();
-                const pageHeight = pdfDoc.internal.pageSize.getHeight();
-                const xStep = 60; const yStep = 60; const rotationAngle = 35;
-                for (let y = 30; y < pageHeight; y += yStep) {
-                    for (let x = 30; x < pageWidth; x += xStep) {
-                        pdfDoc.text(watermarkText, x, y, { align: 'center', angle: rotationAngle, baseline: 'middle' });
-                    }
-                }
-                pdfDoc.restoreGraphicsState();
-            };
-
-            addWatermark(doc);
-
-            // Header Background
-            doc.setFillColor(212, 175, 55); 
-            doc.rect(0, 0, 210, 40, 'F');
-
-            const logoImg = document.getElementById("invoice-logo");
-            if (logoImg && logoImg.complete && logoImg.naturalHeight !== 0) {
-                try {
-                    const imgData = getBase64Image(logoImg);
-                    doc.addImage(imgData, 'PNG', 15, 5, 30, 30);
-                } catch(e) {}
+            const printBtn = document.querySelector('.btn-pdf');
+            const originalText = printBtn ? printBtn.innerText : "Download Invoice";
+            if (printBtn) {
+                printBtn.innerText = "⏳ Generating...";
+                printBtn.disabled = true;
             }
 
-            doc.setFont("times", "bold"); 
-            doc.setTextColor(255, 255, 255); 
-            doc.setFontSize(26);
-            doc.text("SWAGAT CATERERS", 50, 20); 
-            
-            doc.setFont("helvetica", "normal"); 
-            doc.setFontSize(10);
-            doc.text("Rajkot, Gujarat | +91 94282 51083", 50, 28);
-
-            doc.setFont("helvetica", "bold"); 
-            doc.setFontSize(22);
-            doc.setTextColor(44, 62, 80); 
-            doc.text("INVOICE", 195, 20, {align:'right'});
-            
-            doc.setFontSize(10); 
-            doc.setFont("helvetica", "normal");
-            doc.text(`Date: ${document.getElementById('bill-date').innerText}`, 195, 28, {align:'right'});
-            doc.text(`Invoice #: ${document.getElementById('inv-num').innerText}`, 195, 34, {align:'right'});
-
-            const startY = 55;
-            doc.setDrawColor(200); 
-            doc.line(15, startY, 195, startY);
-            
-            doc.setFont("helvetica", "bold"); 
-            doc.setTextColor(212, 175, 55);
-            doc.text("BILL TO", 15, startY + 10);
-            doc.text("EVENT DETAILS", 120, startY + 10);
-            
-            doc.setTextColor(44, 62, 80); 
-            doc.setFontSize(14);
-            doc.text(document.getElementById('client-name').innerText, 15, startY + 20);
-            
-            doc.setFontSize(11); 
-            doc.setFont("helvetica", "normal");
-            doc.text(document.getElementById('client-contact').innerText, 15, startY + 27);
-
-            doc.setFontSize(12);
-            doc.text(document.getElementById('event-details').innerText, 120, startY + 20);
-            doc.setFontSize(11);
-            doc.text(document.getElementById('event-venue').innerText, 120, startY + 27);
-
-            const rows = [];
-            document.querySelectorAll('#bill-body tr').forEach(tr => {
-                if(tr.innerText.includes("MERGED EVENT")) {
-                    rows.push([{content: tr.innerText.trim(), colSpan: 4, styles: {fillColor: [255, 248, 225], fontStyle: 'bold', textColor: [181, 144, 32]}}]);
-                } else {
-                    const descInp = tr.querySelector('.inp-desc');
-                    const priceInp = tr.querySelector('.p-inp');
-                    const qtyInp = tr.querySelector('.q-inp');
-                    const totSpan = tr.querySelector('.row-total');
-                    
-                    if(descInp && priceInp && qtyInp && totSpan) {
-                        rows.push([descInp.value, priceInp.value, qtyInp.value, totSpan.innerText]);
-                    }
-                }
-            });
-
-            doc.autoTable({
-                startY: startY + 35,
-                head: [['Description', 'Price', 'Qty', 'Total']],
-                body: rows,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 62, 80], textColor: 255 },
-                columnStyles: { 1: {halign:'right'}, 2: {halign:'right'}, 3: {halign:'right', fontStyle:'bold'} },
-                didDrawPage: function (data) { if (data.pageNumber > 1) addWatermark(doc); }
-            });
-
-            let finalY = doc.lastAutoTable.finalY + 15;
-            doc.setFont("helvetica", "bold"); 
-            doc.setFontSize(14); 
-            doc.setTextColor(0, 0, 0); 
-            doc.text(`Grand Total:   Rs. ${document.getElementById('grand-total').innerText}`, 195, finalY, {align:'right'});
-
-            doc.setDrawColor(212, 175, 55); 
-            doc.setLineWidth(1); 
-            doc.line(15, 275, 195, 275);
-            
-            doc.setFontSize(9); 
-            doc.setTextColor(100); 
-            doc.setFont("helvetica", "italic");
-            doc.text("Thank you for choosing Swagat Caterers! We look forward to serving you again.", 105, 282, {align:'center'});
-
-            doc.save(`Invoice_${document.getElementById('client-name').innerText}.pdf`);
-            
-            // Log PDF generation to DB and Email Admin
             try {
-                fetch('/api/log-pdf/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                    body: JSON.stringify({
-                        event_details: `Invoice PDF Generated\n---\nClient: ${document.getElementById('client-name').innerText}\nInvoice #: ${document.getElementById('inv-num').innerText}\nGrand Total: Rs. ${document.getElementById('grand-total').innerText}`
-                    })
+                const printArea = document.getElementById('print-area');
+                
+                // Clone print area to modify it for clean capture without actions
+                const clone = printArea.cloneNode(true);
+                clone.style.position = 'fixed';
+                clone.style.left = '-9999px';
+                clone.style.top = '0';
+                clone.style.width = '800px'; 
+                clone.style.padding = '45px';
+                clone.style.background = 'white';
+                document.body.appendChild(clone);
+
+                // Hide elements not desired in the final PDF
+                const addEventBar = clone.querySelector('.add-event-bar');
+                if (addEventBar) addEventBar.style.display = 'none';
+
+                const addRowBtn = clone.querySelector('.btn-add-row');
+                if (addRowBtn) addRowBtn.style.display = 'none';
+
+                clone.querySelectorAll('.btn-del').forEach(btn => btn.style.display = 'none');
+
+                // Map original input values to clone spans so typed values render
+                const originalInputs = printArea.querySelectorAll('input');
+                const cloneInputs = clone.querySelectorAll('input');
+                originalInputs.forEach((originalInput, index) => {
+                    const cloneInput = cloneInputs[index];
+                    if (cloneInput) {
+                        const span = document.createElement('span');
+                        span.innerText = originalInput.value;
+                        
+                        // Inherit font details and alignments
+                        const computed = getComputedStyle(originalInput);
+                        span.style.fontFamily = computed.fontFamily;
+                        span.style.fontSize = computed.fontSize;
+                        span.style.fontWeight = computed.fontWeight;
+                        span.style.color = computed.color;
+                        span.style.textAlign = computed.textAlign;
+                        span.style.display = 'inline-block';
+                        span.style.width = '100%';
+                        if (originalInput.classList.contains('inp-num')) {
+                            span.style.textAlign = 'right';
+                        }
+                        
+                        cloneInput.parentNode.replaceChild(span, cloneInput);
+                    }
                 });
-            } catch(e) { console.log('PDF Log notify:', e); }
+
+                // Wait for styles and logo to fully draw
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const canvas = await html2canvas(clone, {
+                    scale: 3, // High-res capture
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false
+                });
+
+                document.body.removeChild(clone);
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                // Add captured image to cover standard page dimensions
+                doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+
+                const clientNameForFile = document.getElementById('client-name').innerText.replace(/[\\/:*?"<>|]/g, '').trim() || 'Invoice';
+                doc.save(`Invoice_${clientNameForFile}.pdf`);
+
+                // Log PDF generation to DB
+                try {
+                    fetch('/api/log-pdf/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                        body: JSON.stringify({
+                            event_details: `Invoice PDF Generated\n---\nClient: ${document.getElementById('client-name').innerText}\nInvoice #: ${document.getElementById('inv-num').innerText}\nGrand Total: Rs. ${document.getElementById('grand-total').innerText}`
+                        })
+                    });
+                } catch(e) { console.log('PDF Log notify:', e); }
+
+            } catch(error) {
+                console.error("PDF Gen Error:", error);
+                alert("Could not generate PDF: " + error.message);
+            } finally {
+                if (printBtn) {
+                    printBtn.innerText = originalText;
+                    printBtn.disabled = false;
+                }
+            }
         }
 
         init();

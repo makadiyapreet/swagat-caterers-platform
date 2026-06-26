@@ -7,104 +7,244 @@
     <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
     <title>Manage Booking - Swagat Caterers</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Segoe+UI:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --gold: #D4AF37; --bg: #f8f9fa; --text: #2c3e50; }
+        :root { --gold: #D4AF37; --gold-dark: #aa8c2c; --bg: #f8f9fa; --text: #2c3e50; }
         body { background: var(--bg); font-family: 'Segoe UI', sans-serif; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border-top: 5px solid var(--gold); }
-        h2 { color: var(--gold); font-family: 'Playfair Display', serif; margin-top: 0; }
+        h2 { color: var(--gold); font-family: 'Playfair Display', serif; margin-top: 0; transition: all 0.3s ease; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; transition: all 0.3s ease; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; transition: all 0.3s ease; font-size: 14px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: all 0.3s ease; }
         .btn-save { background: var(--gold); color: white; }
         .btn-cancel { background: #eee; color: #333; margin-top: 10px; }
-        
-        /* Helper to hide elements */
         .hidden { display: none; }
 
-        /* Gujarati field styling */
-        .gu-field { font-family: 'Noto Sans Gujarati', sans-serif; }
-        .gu-label { color: #856404; font-size: 13px; }
-        .gu-input { border-color: #ffe082; background: #fffcf5; font-family: 'Noto Sans Gujarati', sans-serif; }
-        .gu-input:focus { border-color: var(--gold); outline: none; }
-        .lang-divider { display: flex; align-items: center; gap: 8px; margin: 20px 0 15px; }
-        .lang-divider hr { flex: 1; border: none; border-top: 1px dashed #ffe082; }
-        .lang-divider span { font-size: 12px; font-weight: 700; color: #856404; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+        /* ===== Language Toggle ===== */
+        .lang-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f8f6f0, #f0ece4);
+            border-radius: 12px;
+            padding: 5px;
+            border: 1px solid #e8e0d0;
+        }
+        .lang-toggle-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #999;
+            border-radius: 8px;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 2;
+            letter-spacing: 0.5px;
+        }
+        .lang-toggle-btn.active {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(212,175,55,0.35);
+        }
+        .lang-toggle-btn:not(.active):hover {
+            color: var(--gold-dark);
+            background: rgba(212,175,55,0.08);
+        }
+        .lang-indicator {
+            font-size: 11px;
+            text-align: center;
+            color: #b59020;
+            margin-bottom: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            min-height: 16px;
+            transition: all 0.3s ease;
+        }
+
+        /* Gujarati mode */
+        body.gu-active .form-group label {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            color: #856404;
+        }
+        body.gu-active .form-group input,
+        body.gu-active .form-group textarea,
+        body.gu-active .form-group select {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            border-color: #ffe082;
+            background: #fffcf5;
+        }
+        body.gu-active .form-group input:focus,
+        body.gu-active .form-group textarea:focus,
+        body.gu-active .form-group select:focus {
+            border-color: var(--gold);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(212,175,55,0.15);
+        }
+        body.gu-active h2 {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        body.gu-active .btn {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 18px; }
+            .lang-toggle-btn { padding: 9px 12px; font-size: 13px; }
+        }
+
+        /* ===== Translate Button ===== */
+        .translate-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .translate-row input,
+        .translate-row textarea {
+            flex: 1;
+        }
+        .btn-translate {
+            flex-shrink: 0;
+            padding: 8px 12px;
+            border: 2px solid var(--gold);
+            background: linear-gradient(135deg, #fefcea, #f8f0d8);
+            color: var(--gold-dark);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-translate:hover {
+            background: var(--gold);
+            color: white;
+            transform: scale(1.05);
+        }
+        .btn-translate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-translate .spinner {
+            display: none;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-top-color: var(--gold-dark);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        .btn-translate.loading .spinner { display: inline-block; }
+        .btn-translate.loading .btn-icon { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h2 id="page-title">Loading...</h2>
+
+        <!-- Language Toggle -->
+        <div class="lang-toggle-wrapper">
+            <button type="button" class="lang-toggle-btn active" id="btn-lang-en" onclick="switchLang('en')">🇬🇧 English</button>
+            <button type="button" class="lang-toggle-btn" id="btn-lang-gu" onclick="switchLang('gu')" style="font-family:'Noto Sans Gujarati',sans-serif;">🇮🇳 ગુજરાતી</button>
+        </div>
+        <div class="lang-indicator" id="lang-indicator">
+            <span>🇬🇧</span> Editing in English — data saves in both languages
+        </div>
+
         <form id="bookingForm">
+            <!-- Hidden stores for both language values -->
+            <input type="hidden" id="title_store_en" value="">
+            <input type="hidden" id="title_store_gu" value="">
+            <input type="hidden" id="venue_store_en" value="">
+            <input type="hidden" id="venue_store_gu" value="">
+            <input type="hidden" id="desc_store_en" value="">
+            <input type="hidden" id="desc_store_gu" value="">
+
             <div class="form-group">
-                <label>Client Name</label>
-                <input type="text" id="title" required>
+                <label id="lbl-title">Client Name</label>
+                <div class="translate-row">
+                    <input type="text" id="title" required>
+                    <button type="button" class="btn-translate" id="btn-tr-title" onclick="translateField('title')" title="Translate to other language">
+                        <span class="btn-icon">🔄</span><span class="spinner"></span>
+                    </button>
+                </div>
             </div>
             <div class="form-group">
-                <label class="gu-label gu-field">ગ્રાહકનું નામ (ગુજરાતી)</label>
-                <input type="text" id="title_gu" class="gu-input gu-field" placeholder="ગુજરાતીમાં નામ લખો">
-            </div>
-            <div class="form-group">
-                <label>Date</label>
+                <label id="lbl-date">Date</label>
                 <input type="date" id="date" required>
             </div>
             <div class="form-group">
-                <label>Venue</label>
-                <input type="text" id="venue" placeholder="e.g. Swagat Hall">
+                <label id="lbl-venue">Venue</label>
+                <div class="translate-row">
+                    <input type="text" id="venue" placeholder="e.g. Swagat Hall">
+                    <button type="button" class="btn-translate" id="btn-tr-venue" onclick="translateField('venue')" title="Translate to other language">
+                        <span class="btn-icon">🔄</span><span class="spinner"></span>
+                    </button>
+                </div>
             </div>
             <div class="form-group">
-                <label class="gu-label gu-field">સ્થળ (ગુજરાતી)</label>
-                <input type="text" id="venue_gu" class="gu-input gu-field" placeholder="ગુજરાતીમાં સ્થળ લખો">
-            </div>
-            <div class="form-group">
-                <label>Event Type</label>
+                <label id="lbl-event-type">Event Type</label>
                 <select id="event_type">
-                    <option value="Wedding">Wedding (Shaadi)</option>
-                    <option value="Reception">Reception</option>
-                    <option value="Engagement">Engagement (Ring Ceremony)</option>
-                    <option value="Sangeet">Sangeet / Garba Night</option>
-                    <option value="Haldi">Haldi / Mehndi</option>
-                    <option value="House Warming">House Warming (Vastu)</option>
-                    <option value="Baby Shower">Baby Shower (Shrimant)</option>
-                    <option value="Birthday">Birthday Party</option>
-                    <option value="Anniversary">Anniversary</option>
-                    <option value="Corporate">Corporate Event</option>
-                    <option value="Social Gathering">Social Gathering</option>
-                    <option value="Religious">Religious Function</option>
-                    <option value="Other">Other Gathering</option>
+                    <option value="Wedding" data-en="Wedding (Shaadi)" data-gu="લગ્ન (શાદી)">Wedding (Shaadi)</option>
+                    <option value="Reception" data-en="Reception" data-gu="રિસેપ્શન">Reception</option>
+                    <option value="Engagement" data-en="Engagement (Ring Ceremony)" data-gu="સગાઈ (રિંગ સેરેમની)">Engagement (Ring Ceremony)</option>
+                    <option value="Sangeet" data-en="Sangeet / Garba Night" data-gu="સંગીત / ગરબા નાઈટ">Sangeet / Garba Night</option>
+                    <option value="Haldi" data-en="Haldi / Mehndi" data-gu="હળદી / મેંહદી">Haldi / Mehndi</option>
+                    <option value="House Warming" data-en="House Warming (Vastu)" data-gu="ગૃહ પ્રવેશ (વાસ્તુ)">House Warming (Vastu)</option>
+                    <option value="Baby Shower" data-en="Baby Shower (Shrimant)" data-gu="બેબી શાવર (શ્રીમંત)">Baby Shower (Shrimant)</option>
+                    <option value="Birthday" data-en="Birthday Party" data-gu="જન્મદિવસ પાર્ટી">Birthday Party</option>
+                    <option value="Anniversary" data-en="Anniversary" data-gu="વર્ષગાંઠ">Anniversary</option>
+                    <option value="Corporate" data-en="Corporate Event" data-gu="કોર્પોરેટ ઈવેન્ટ">Corporate Event</option>
+                    <option value="Social Gathering" data-en="Social Gathering" data-gu="સામાજિક મેળાવડો">Social Gathering</option>
+                    <option value="Religious" data-en="Religious Function" data-gu="ધાર્મિક કાર્ય">Religious Function</option>
+                    <option value="Other" data-en="Other Gathering" data-gu="અન્ય મેળાવડો">Other Gathering</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Guests</label>
+                <label id="lbl-guests">Guests</label>
                 <input type="number" id="guests" required>
             </div>
             <div class="form-group">
-                <label>Contact Number</label>
+                <label id="lbl-contact">Contact Number</label>
                 <input type="text" id="contact_number" required>
             </div>
             
             <div class="form-group" id="status-group">
-                <label>Status</label>
+                <label id="lbl-status">Status</label>
                 <select id="status">
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="pending" data-en="Pending" data-gu="બાકી">Pending</option>
+                    <option value="confirmed" data-en="Confirmed" data-gu="કન્ફર્મ">Confirmed</option>
+                    <option value="cancelled" data-en="Cancelled" data-gu="રદ">Cancelled</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Notes</label>
-                <textarea id="description" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="gu-label gu-field">નોંધ (ગુજરાતી)</label>
-                <textarea id="description_gu" rows="3" class="gu-input gu-field" placeholder="ગુજરાતીમાં નોંધ લખો"></textarea>
+                <label id="lbl-desc">Notes</label>
+                <div class="translate-row">
+                    <textarea id="description" rows="3"></textarea>
+                    <button type="button" class="btn-translate" id="btn-tr-desc" onclick="translateField('description')" title="Translate to other language">
+                        <span class="btn-icon">🔄</span><span class="spinner"></span>
+                    </button>
+                </div>
             </div>
             
             <button type="submit" class="btn btn-save" id="btn-submit">Save</button>
-            <button type="button" class="btn btn-cancel" onclick="window.location.href='/dashboard/'">Cancel</button>
+            <button type="button" class="btn btn-cancel" id="btn-cancel" onclick="window.location.href='/dashboard/'">Cancel</button>
         </form>
     </div>
 
@@ -116,6 +256,280 @@
         const eventId = urlParams.get('event_id');
         const dateParam = urlParams.get('date');
         let isAdmin = false;
+        let isManagerRole = false;
+        let currentLang = 'en';
+
+        // ===== LABEL TRANSLATIONS =====
+        const labels = {
+            en: {
+                pageNew: 'New Booking',
+                pageEdit: 'Edit Booking',
+                pageRequest: 'Request Booking',
+                pageEditRequest: 'Edit Request',
+                title: 'Client Name',
+                date: 'Date',
+                venue: 'Venue',
+                eventType: 'Event Type',
+                guests: 'Guests',
+                contact: 'Contact Number',
+                status: 'Status',
+                notes: 'Notes',
+                btnCreate: 'Create Booking',
+                btnUpdate: 'Update Booking',
+                btnRequest: 'Send Request',
+                btnCancel: 'Cancel',
+                placeholderVenue: 'e.g. Swagat Hall',
+                placeholderTitle: '',
+                indicator: '🇬🇧 Editing in English — data saves in both languages'
+            },
+            gu: {
+                pageNew: 'નવું બુકિંગ',
+                pageEdit: 'બુકિંગ એડિટ કરો',
+                pageRequest: 'બુકિંગ વિનંતી',
+                pageEditRequest: 'વિનંતી એડિટ કરો',
+                title: 'ગ્રાહકનું નામ',
+                date: 'તારીખ',
+                venue: 'સ્થળ',
+                eventType: 'પ્રસંગ પ્રકાર',
+                guests: 'મહેમાન',
+                contact: 'સંપર્ક નંબર',
+                status: 'સ્થિતિ',
+                notes: 'નોંધ',
+                btnCreate: 'બુકિંગ બનાવો',
+                btnUpdate: 'બુકિંગ અપડેટ કરો',
+                btnRequest: 'વિનંતી મોકલો',
+                btnCancel: 'રદ કરો',
+                placeholderVenue: 'ગુજરાતીમાં સ્થળ લખો',
+                placeholderTitle: 'ગુજરાતીમાં નામ લખો',
+                indicator: '🇮🇳 ગુજરાતીમાં એડિટ કરી રહ્યા છો — બંને ભાષામાં સેવ થશે'
+            }
+        };
+
+        // Bilingual text fields config
+        const bilingualFields = [
+            { id: 'title', storeEn: 'title_store_en', storeGu: 'title_store_gu' },
+            { id: 'venue', storeEn: 'venue_store_en', storeGu: 'venue_store_gu' },
+            { id: 'description', storeEn: 'desc_store_en', storeGu: 'desc_store_gu' },
+        ];
+
+        function saveCurrentValues() {
+            bilingualFields.forEach(f => {
+                const input = document.getElementById(f.id);
+                if (currentLang === 'en') {
+                    document.getElementById(f.storeEn).value = input.value;
+                } else {
+                    document.getElementById(f.storeGu).value = input.value;
+                }
+            });
+        }
+
+        function switchLang(lang) {
+            // Save current field values before switching
+            saveCurrentValues();
+            currentLang = lang;
+
+            // Toggle button active state
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            document.getElementById('btn-lang-gu').classList.toggle('active', lang === 'gu');
+
+            // Body class for global Gujarati styling
+            document.body.classList.toggle('gu-active', lang === 'gu');
+
+            const L = labels[lang];
+
+            // Update indicator
+            const indicator = document.getElementById('lang-indicator');
+            indicator.innerHTML = L.indicator;
+            indicator.style.fontFamily = lang === 'gu' ? "'Noto Sans Gujarati', sans-serif" : "'Segoe UI', sans-serif";
+
+            // Update ALL labels
+            document.getElementById('lbl-title').textContent = L.title;
+            document.getElementById('lbl-date').textContent = L.date;
+            document.getElementById('lbl-venue').textContent = L.venue;
+            document.getElementById('lbl-event-type').textContent = L.eventType;
+            document.getElementById('lbl-guests').textContent = L.guests;
+            document.getElementById('lbl-contact').textContent = L.contact;
+            document.getElementById('lbl-status').textContent = L.status;
+            document.getElementById('lbl-desc').textContent = L.notes;
+
+            // Update placeholders
+            document.getElementById('title').placeholder = lang === 'gu' ? L.placeholderTitle : L.placeholderTitle;
+            document.getElementById('venue').placeholder = lang === 'gu' ? L.placeholderVenue : labels.en.placeholderVenue;
+
+            // Update page title
+            updatePageTitle();
+
+            // Update button text
+            updateButtonText();
+
+            // Update dropdown options text
+            updateDropdownLang('event_type', lang);
+            updateDropdownLang('status', lang);
+
+            // Update cancel button
+            document.getElementById('btn-cancel').textContent = L.btnCancel;
+
+            // Switch visible input values
+            bilingualFields.forEach(f => {
+                const input = document.getElementById(f.id);
+                if (lang === 'en') {
+                    input.value = document.getElementById(f.storeEn).value;
+                } else {
+                    input.value = document.getElementById(f.storeGu).value;
+                }
+            });
+
+            // Auto-translate empty fields when switching
+            autoTranslateEmptyFields(lang);
+        }
+
+        // ===== MyMemory Translation API =====
+        async function translateText(text, fromLang, toLang) {
+            if (!text || !text.trim()) return '';
+            const langPair = fromLang === 'en' ? 'en|gu' : 'gu|en';
+            try {
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=${langPair}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Translation API error');
+                const data = await res.json();
+                if (data.responseStatus === 200 && data.responseData && data.responseData.translatedText) {
+                    const translated = data.responseData.translatedText;
+                    // If primary translation is empty, try matches
+                    if (!translated && data.matches && data.matches.length > 0) {
+                        return data.matches[0].translation || '';
+                    }
+                    return translated;
+                }
+                // Fallback to first match
+                if (data.matches && data.matches.length > 0) {
+                    return data.matches[0].translation || '';
+                }
+                return '';
+            } catch(e) {
+                console.warn('Translation failed:', e);
+                return '';
+            }
+        }
+
+        // Translate a specific field
+        async function translateField(fieldId) {
+            const fieldConfig = bilingualFields.find(f => f.id === fieldId);
+            if (!fieldConfig) return;
+
+            const input = document.getElementById(fieldId);
+            const currentText = input.value.trim();
+            if (!currentText) {
+                const msg = currentLang === 'gu' ? 'કૃપા કરીને પહેલા ટેક્સ્ટ ભરો' : 'Please enter text first';
+                alert(msg);
+                return;
+            }
+
+            // Determine source/target
+            const fromLang = currentLang;
+            const toLang = currentLang === 'en' ? 'gu' : 'en';
+            const targetStoreId = toLang === 'en' ? fieldConfig.storeEn : fieldConfig.storeGu;
+
+            // Show loading
+            const btn = document.getElementById(`btn-tr-${fieldId === 'description' ? 'desc' : fieldId}`);
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                const translated = await translateText(currentText, fromLang, toLang);
+                if (translated) {
+                    document.getElementById(targetStoreId).value = translated;
+                    const langLabel = toLang === 'gu' ? 'ગુજરાતી' : 'English';
+                    const msg = currentLang === 'gu'
+                        ? `✅ English માં ટ્રાન્સલેટ થયું: "${translated}"`
+                        : `✅ Translated to ${langLabel}: "${translated}"`;
+                    // Show brief toast instead of alert
+                    showTranslateToast(msg);
+                } else {
+                    const msg = currentLang === 'gu' ? '⚠️ ટ્રાન્સલેશન ઉપલબ્ધ નથી' : '⚠️ Translation not available';
+                    showTranslateToast(msg);
+                }
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        // Auto-translate empty fields when switching languages
+        async function autoTranslateEmptyFields(targetLang) {
+            const sourceLang = targetLang === 'en' ? 'gu' : 'en';
+
+            for (const f of bilingualFields) {
+                const targetStoreId = targetLang === 'en' ? f.storeEn : f.storeGu;
+                const sourceStoreId = sourceLang === 'en' ? f.storeEn : f.storeGu;
+                const targetValue = document.getElementById(targetStoreId).value.trim();
+                const sourceValue = document.getElementById(sourceStoreId).value.trim();
+
+                // Only translate if target is empty and source has value
+                if (!targetValue && sourceValue) {
+                    const translated = await translateText(sourceValue, sourceLang, targetLang);
+                    if (translated) {
+                        document.getElementById(targetStoreId).value = translated;
+                        // Update visible input if it's showing the target language
+                        if (currentLang === targetLang) {
+                            document.getElementById(f.id).value = translated;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Toast notification for translation
+        function showTranslateToast(msg) {
+            let toast = document.getElementById('translate-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'translate-toast';
+                toast.style.cssText = `
+                    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+                    background: #1a1a1a; color: #D4AF37; padding: 12px 24px;
+                    border-radius: 10px; font-size: 14px; font-weight: 600;
+                    box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 10000;
+                    transition: opacity 0.4s ease; font-family: 'Noto Sans Gujarati', 'Segoe UI', sans-serif;
+                    max-width: 90%; text-align: center;
+                `;
+                document.body.appendChild(toast);
+            }
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+
+        function updatePageTitle() {
+            const L = labels[currentLang];
+            const titleEl = document.getElementById('page-title');
+            if (isAdmin || isManagerRole) {
+                titleEl.textContent = eventId ? L.pageEdit : L.pageNew;
+            } else {
+                titleEl.textContent = eventId ? L.pageEditRequest : L.pageRequest;
+            }
+        }
+
+        function updateButtonText() {
+            const L = labels[currentLang];
+            const btnEl = document.getElementById('btn-submit');
+            if (isAdmin || isManagerRole) {
+                btnEl.textContent = eventId ? L.btnUpdate : L.btnCreate;
+            } else {
+                btnEl.textContent = L.btnRequest;
+            }
+        }
+
+        function updateDropdownLang(selectId, lang) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            const attr = lang === 'gu' ? 'data-gu' : 'data-en';
+            Array.from(sel.options).forEach(opt => {
+                const text = opt.getAttribute(attr);
+                if (text) opt.textContent = text;
+            });
+        }
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -130,31 +544,26 @@
             }
             return cookieValue;
         }
+
         async function init() {
             try {
-                // 1. Check User Role
                 const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
                 if(!uRes.ok) throw new Error("Auth failed");
                 const user = await uRes.json();
                 
                 isAdmin = user.is_staff || user.is_superuser || user.user_type === 'admin';
-                const isManager = user.user_type === 'manager';
+                isManagerRole = user.user_type === 'manager';
 
-                // 2. Adjust UI based on Role
-                if (isAdmin || isManager) {
+                if (isAdmin || isManagerRole) {
                     document.getElementById('status-group').classList.remove('hidden');
-                    document.getElementById('page-title').innerText = eventId ? "Edit Booking" : "New Booking";
-                    document.getElementById('btn-submit').innerText = eventId ? "Update Booking" : "Create Booking";
                 } else {
-                    // Regular User
                     document.getElementById('status-group').classList.add('hidden');
-                    document.getElementById('page-title').innerText = "Request Booking";
-                    document.getElementById('btn-submit').innerText = "Send Request";
-                    // If editing, regular user logic (optional, usually they can't edit once requested)
-                    if(eventId) document.getElementById('page-title').innerText = "Edit Request";
                 }
 
-                // 3. Load Data if Editing
+                // Set page title and button text in current language
+                updatePageTitle();
+                updateButtonText();
+
                 if (eventId) {
                     loadEventData(eventId);
                 } else if (dateParam) {
@@ -176,26 +585,35 @@
                 if (!res.ok) throw new Error("Event not found");
                 const data = await res.json();
                 
-                // These IDs now match your HTML exactly
-                document.getElementById('title').value = data.title || ""; 
+                // Store English values
+                document.getElementById('title_store_en').value = data.title || "";
+                document.getElementById('venue_store_en').value = data.venue || "";
+                document.getElementById('desc_store_en').value = data.description || "";
+
+                // Store Gujarati values
+                document.getElementById('title_store_gu').value = data.title_gu || "";
+                document.getElementById('venue_store_gu').value = data.venue_gu || "";
+                document.getElementById('desc_store_gu').value = data.description_gu || "";
+
+                // Load into visible inputs based on current language
+                if (currentLang === 'en') {
+                    document.getElementById('title').value = data.title || "";
+                    document.getElementById('venue').value = data.venue || "";
+                    document.getElementById('description').value = data.description || "";
+                } else {
+                    document.getElementById('title').value = data.title_gu || "";
+                    document.getElementById('venue').value = data.venue_gu || "";
+                    document.getElementById('description').value = data.description_gu || "";
+                }
+
                 document.getElementById('date').value = data.date || ""; 
-                document.getElementById('venue').value = data.venue || "";
                 document.getElementById('event_type').value = data.event_type || "Wedding";
                 document.getElementById('guests').value = data.guests || ""; 
                 document.getElementById('contact_number').value = data.contact_number || ""; 
                 
-                // Status and Description also match your HTML
                 if (document.getElementById('status')) {
                     document.getElementById('status').value = data.status || "pending";
                 }
-                if (document.getElementById('description')) {
-                    document.getElementById('description').value = data.description || "";
-                }
-
-                // Gujarati / Bilingual fields
-                document.getElementById('title_gu').value = data.title_gu || "";
-                document.getElementById('venue_gu').value = data.venue_gu || "";
-                document.getElementById('description_gu').value = data.description_gu || "";
 
             } catch(e) { 
                 console.error("Debug Info:", e);
@@ -206,20 +624,46 @@
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Payload keys match your CateringEvent model in models.py
+            // Save current visible values
+            saveCurrentValues();
+
+            // Get stored values
+            let titleEn = document.getElementById('title_store_en').value.trim();
+            let titleGu = document.getElementById('title_store_gu').value.trim();
+            let venueEn = document.getElementById('venue_store_en').value.trim();
+            let venueGu = document.getElementById('venue_store_gu').value.trim();
+            let descEn = document.getElementById('desc_store_en').value.trim();
+            let descGu = document.getElementById('desc_store_gu').value.trim();
+
+            // IMPORTANT: If English title is empty but Gujarati exists, copy Gujarati → English
+            // The 'title' field is REQUIRED by the backend model
+            if (!titleEn && titleGu) titleEn = titleGu;
+            if (!titleGu && titleEn) titleGu = titleEn;
+            // Same fallback for venue/description
+            if (!venueEn && venueGu) venueEn = venueGu;
+            if (!venueGu && venueEn) venueGu = venueEn;
+            if (!descEn && descGu) descEn = descGu;
+            if (!descGu && descEn) descGu = descEn;
+
+            // Validate that we have at least a title
+            if (!titleEn) {
+                alert(currentLang === 'gu' ? 'કૃપા કરીને ગ્રાહકનું નામ ભરો' : 'Please enter Client Name');
+                return;
+            }
+
             const payload = {
-                title: document.getElementById('title').value,
+                title: titleEn,
                 date: document.getElementById('date').value,
-                venue: document.getElementById('venue').value,
+                venue: venueEn || 'Not Specified',
                 event_type: document.getElementById('event_type').value,
-                guests: parseInt(document.getElementById('guests').value),
+                guests: parseInt(document.getElementById('guests').value) || 0,
                 contact_number: document.getElementById('contact_number').value,
-                status: (isAdmin || document.getElementById('status-group').classList.contains('hidden') === false) ? document.getElementById('status').value : 'pending',
-                description: document.getElementById('description').value,
-                // Gujarati / Bilingual fields
-                title_gu: document.getElementById('title_gu').value,
-                venue_gu: document.getElementById('venue_gu').value,
-                description_gu: document.getElementById('description_gu').value
+                status: (isAdmin || !document.getElementById('status-group').classList.contains('hidden')) 
+                    ? document.getElementById('status').value : 'pending',
+                description: descEn,
+                title_gu: titleGu,
+                venue_gu: venueGu,
+                description_gu: descGu
             };
 
             const url = eventId ? `/api/menu/events/${eventId}/` : `/api/menu/events/`;
@@ -230,17 +674,26 @@
                     method: method,
                     headers: { 
                         'Authorization': `Token ${token}`, 
-                        'Content-Type': 'application/json' ,
+                        'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken')
                     },
                     body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    alert("Booking Saved Successfully!");
+                    const msg = currentLang === 'gu' ? 'બુકિંગ સફળતાપૂર્વક સેવ થયું!' : 'Booking Saved Successfully!';
+                    alert(msg);
                     window.location.href = "/dashboard/";
                 } else {
-                    alert("Error saving booking. Check the console for details.");
+                    const errData = await res.json().catch(() => ({}));
+                    console.error("Server error:", errData);
+                    let errMsg = currentLang === 'gu' ? 'બુકિંગ સેવ કરવામાં ભૂલ.' : 'Error saving booking.';
+                    // Show specific field errors
+                    if (errData && typeof errData === 'object') {
+                        const fieldErrors = Object.entries(errData).map(([k,v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
+                        if (fieldErrors) errMsg += '\n' + fieldErrors;
+                    }
+                    alert(errMsg);
                 }
             } catch(e) { console.error(e); }
         });

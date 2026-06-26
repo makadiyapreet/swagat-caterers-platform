@@ -731,8 +731,9 @@
             backDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${backUrl}'); background-size:cover; background-position:center;`;
             await capturePageDiv(backDiv);
 
-            const safeName = clientName.replace(/[^a-z0-9\u0A80-\u0AFF]/gi, '_').toLowerCase();
-            const fName = `${safeName}_GU_Menu.pdf`;
+            const customerName = clientName.replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
+            const filenameDate = formatDate(eventDate).slice(0, 5);
+            const fName = `${customerName}-${filenameDate}-SC.pdf`;
 
             if(isPreview) window.open(doc.output('bloburl'), '_blank');
             else {
@@ -745,6 +746,45 @@
         async function generateEnglishPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+
+            // Helper: detect Gujarati Unicode chars
+            function hasGujarati(text) {
+                return /[\u0A80-\u0AFF]/.test(text || '');
+            }
+
+            // Load Gujarati font into jsPDF
+            let gujaratiFontLoaded = false;
+            try {
+                const fontUrl = '{% static "Noto_Sans_Gujarati/static/NotoSansGujarati-Regular.ttf" %}';
+                const fontBoldUrl = '{% static "Noto_Sans_Gujarati/static/NotoSansGujarati-Bold.ttf" %}';
+                const [fontResp, fontBoldResp] = await Promise.all([fetch(fontUrl), fetch(fontBoldUrl)]);
+                if (fontResp.ok && fontBoldResp.ok) {
+                    const [fontBlob, fontBoldBlob] = await Promise.all([fontResp.blob(), fontBoldResp.blob()]);
+                    const toBase64 = (blob) => new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(blob);
+                    });
+                    const [fontB64, fontBoldB64] = await Promise.all([toBase64(fontBlob), toBase64(fontBoldBlob)]);
+                    doc.addFileToVFS('NotoSansGujarati-Regular.ttf', fontB64);
+                    doc.addFont('NotoSansGujarati-Regular.ttf', 'NotoSansGujarati', 'normal');
+                    doc.addFileToVFS('NotoSansGujarati-Bold.ttf', fontBoldB64);
+                    doc.addFont('NotoSansGujarati-Bold.ttf', 'NotoSansGujarati', 'bold');
+                    gujaratiFontLoaded = true;
+                }
+            } catch(e) { console.warn('Could not load Gujarati font for PDF:', e); }
+
+            // Smart text: auto-switch font for Gujarati
+            function smartText(text, x, y, opts) {
+                if (hasGujarati(text) && gujaratiFontLoaded) {
+                    const prevFont = doc.getFont();
+                    doc.setFont('NotoSansGujarati', 'bold');
+                    doc.text(text, x, y, opts);
+                    doc.setFont(prevFont.fontName, prevFont.fontStyle);
+                } else {
+                    doc.text(text, x, y, opts);
+                }
+            }
 
             async function loadImage(url) {
                 try {
@@ -767,7 +807,7 @@
                     doc.setTextColor(212, 175, 55);
                     doc.setFont("times", "bold");
                     doc.setFontSize(20);
-                    doc.text(`${clientName} - ${formatDate(eventDate)}`, 105, 200, { align: 'center' });
+                    smartText(`${clientName} - ${formatDate(eventDate)}`, 105, 200, { align: 'center' });
                     doc.setFont("helvetica", "normal");
                     doc.addPage();
                 }
@@ -780,13 +820,13 @@
                     doc.setFont("helvetica", "bold");
                     const y = 48;
                     doc.setTextColor(212, 175, 55); doc.text("Name :", 20, y);
-                    doc.setTextColor(0,0,0); doc.text(clientName || "-", 35, y);
+                    doc.setTextColor(0,0,0); smartText(clientName || "-", 35, y);
                     doc.setTextColor(212, 175, 55); doc.text("Guests :", 90, y);
                     doc.setTextColor(0,0,0); doc.text(String(guests || "-"), 105, y);
                     doc.setTextColor(212, 175, 55); doc.text("Date :", 20, y+6);
                     doc.setTextColor(0,0,0); doc.text(formatDate(eventDate), 35, y+6);
                     doc.setTextColor(212, 175, 55); doc.text("Venue :", 90, y+6);
-                    doc.setTextColor(0,0,0); doc.text(venue || "-", 105, y+6);
+                    doc.setTextColor(0,0,0); smartText(venue || "-", 105, y+6);
                     if(phone) {
                         doc.setTextColor(212, 175, 55); doc.text("Phone :", 150, y);
                         doc.setTextColor(0,0,0); doc.text(phone, 165, y);
@@ -810,7 +850,7 @@
                     doc.roundedRect(currentX, currentY-6, 80, 8, 3, 3, 'F');
                     doc.setTextColor(0,0,0); doc.setFontSize(11);
                     doc.setFont("helvetica", "bold");
-                    doc.text(group.catName, currentX+5, currentY-1);
+                    smartText(group.catName, currentX+5, currentY-1);
                     currentY += 8;
 
                     doc.setFont("helvetica", "normal");
@@ -821,7 +861,7 @@
                             if(currentX === 15) { currentX = midX; currentY = 68; }
                             else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
                         }
-                        doc.text(itemName, currentX+5, currentY);
+                        smartText(itemName, currentX+5, currentY);
                         currentY += 6;
                     });
 
@@ -833,13 +873,14 @@
                     doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79);
                     doc.roundedRect(15, 250, 180, 30, 3, 3, 'FD');
                     doc.setFontSize(10); doc.setTextColor(0,0,0);
-                    doc.text("NOTE: " + note, 20, 258, { maxWidth: 170 });
+                    smartText("NOTE: " + note, 20, 258, { maxWidth: 170 });
                 }
 
                 if(back) { doc.addPage(); doc.addImage(back, 'PNG', 0, 0, 210, 297); }
 
-                const safeName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                const fName = `${safeName}_EN_Menu.pdf`;
+                const customerName = clientName.replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
+                const filenameDate = formatDate(eventDate).slice(0, 5);
+                const fName = `${customerName}-${filenameDate}-SC.pdf`;
 
                 if(isPreview) window.open(doc.output('bloburl'), '_blank');
                 else {

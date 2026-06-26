@@ -717,21 +717,27 @@
 
             // Build menu data grouped by category
             const menuGroups = [];
+            // Helper: detect Gujarati Unicode chars
+            function hasGujarati(text) {
+                return /[\u0A80-\u0AFF]/.test(text || '');
+            }
+            const isGuj = (lang === 'gu') || hasGujarati(dName) || hasGujarati(dVenue);
+
             for (let cat of categories) {
                 const dbItems = allItems.filter(item => item.category == cat.id && selectedIds.has(item.id));
                 const custItems = customItems.filter(item => String(item.categoryId) === String(cat.id));
                 const totalItems = [...dbItems, ...custItems];
                 if (totalItems.length === 0) continue;
-                const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+                const catName = (isGuj && cat.gujarati_name) ? cat.gujarati_name : cat.name;
                 const items = totalItems.map(item => {
                     if (item.categoryId !== undefined) return item.name; // custom item
-                    return (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name;
+                    return (isGuj && item.gujarati_name) ? item.gujarati_name : item.name;
                 });
                 menuGroups.push({ catName, items });
             }
 
-            if (lang === 'gu') {
-                await generateGujaratiPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang);
+            if (isGuj) {
+                await generateGujaratiPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, 'gu');
             } else {
                 await generateEnglishPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang);
             }
@@ -783,14 +789,15 @@
                 doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
             }
 
-            const safeTitle = dName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF ]/g, "").trim() || "Menu";
-            doc.save(`${safeTitle}_Menu.pdf`);
+            const customerName = dName.replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
+            const filenameDate = (dDateRaw || '').replace(/\//g, "-").slice(0, 5) || 'Date';
+            doc.save(`${customerName}-${filenameDate}-GUJ-Swagat_Caterers.pdf`);
         }
 
         // --- Build HTML pages for Gujarati PDF ---
         function buildMenuHTML(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, bgUrl, lang) {
             const isGu = lang === 'gu';
-            const fontFamily = isGu ? "'Noto Sans Gujarati', sans-serif" : "'Segoe UI', Helvetica, sans-serif";
+            const fontFamily = "'Noto Sans Gujarati', 'Segoe UI', Helvetica, sans-serif";
             const pages = [];
 
             function createPage() {
@@ -886,109 +893,39 @@
 
         // --- ENGLISH PDF: Uses jsPDF native text (works fine for English) ---
         async function generateEnglishPDF(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, lang) {
+            // Build HTML pages using buildMenuHTML helper
+            const bgUrl = '{% static "images/background.png" %}';
+            const pages = buildMenuHTML(dName, dDateRaw, dDish, dVenue, dContact, dMenuType, dPrice, noteText, menuGroups, bgUrl, lang);
+
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-            let bgBase64 = null;
-            async function getBase64Asset(url) {
-                try {
-                    const r = await fetch(url);
-                    if (r.ok) {
-                        const b = await r.blob();
-                        return new Promise(res => {
-                            const read = new FileReader();
-                            read.onloadend = () => res(read.result);
-                            read.readAsDataURL(b);
-                        });
-                    }
-                } catch (e) {} return null;
-            }
+            for (let i = 0; i < pages.length; i++) {
+                const pageDiv = pages[i];
+                document.body.appendChild(pageDiv);
 
-            try { bgBase64 = await getBase64Asset('{% static "images/background.png" %}'); } catch(e) {}
-            doc.setFont("helvetica", "normal");
+                // Wait for background image to load
+                await new Promise(r => setTimeout(r, 200));
 
-            function drawLayoutAndGrid() {
-                if(bgBase64) doc.addImage(bgBase64, 'PNG', 0, 0, 210, 297);
-                const startY = 43;
-                doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
-                doc.line(15, startY, 195, startY);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                const row1Y = startY + 5;
-                doc.setTextColor(212, 175, 55); doc.text("Name :", 20, row1Y);
-                doc.setTextColor(0, 0, 0); doc.text(dName, 35, row1Y);
-                doc.setTextColor(212, 175, 55); doc.text("Dish :", 90, row1Y);
-                doc.setTextColor(0, 0, 0); doc.text(dDish, 105, row1Y);
-                doc.setTextColor(212, 175, 55); doc.text("Rate :", 150, row1Y);
-                doc.setTextColor(0, 0, 0); doc.text(String(dPrice), 165, row1Y);
-                const row2Y = row1Y + 6;
-                doc.setTextColor(212, 175, 55); doc.text("Date :", 20, row2Y);
-                doc.setTextColor(0, 0, 0); doc.text(dDateRaw, 35, row2Y);
-                doc.setTextColor(212, 175, 55); doc.text("Contact :", 90, row2Y);
-                doc.setTextColor(0, 0, 0); doc.text(dContact, 112, row2Y);
-                doc.setTextColor(212, 175, 55); doc.text("Event :", 150, row2Y);
-                doc.setTextColor(0, 0, 0); doc.text(dMenuType, 165, row2Y);
-                const row3Y = row2Y + 6;
-                doc.setTextColor(212, 175, 55); doc.text("Venue :", 20, row3Y);
-                doc.setTextColor(0, 0, 0); doc.text(dVenue, 35, row3Y);
-                const endY = row3Y + 3;
-                doc.setDrawColor(212, 175, 55); doc.line(15, endY, 195, endY);
-                doc.setFont("helvetica", "normal");
-                return endY + 12;
-            }
-
-            function drawHeaderBlock(text, x, y) {
-                doc.setFillColor(198, 153, 79);
-                doc.roundedRect(x, y - 6, 80, 8, 3, 3, 'F');
-                doc.setTextColor(0,0,0); doc.setFontSize(11);
-                doc.setFont("helvetica", "bold");
-                doc.text(text, x + 5, y - 1);
-            }
-
-            let startContentY = drawLayoutAndGrid();
-            let currentX = 15;
-            let currentY = startContentY;
-            let maxY = 265;
-
-            for (let group of menuGroups) {
-                const needed = 10 + (group.items.length * 6) + 5;
-                if (currentY + needed > maxY) {
-                    if (currentX === 15) { currentX = 110; currentY = startContentY; }
-                    else { doc.addPage(); startContentY = drawLayoutAndGrid(); currentX = 15; currentY = startContentY; }
-                }
-
-                drawHeaderBlock(group.catName, currentX, currentY);
-                currentY += 10;
-
-                doc.setTextColor(0,0,0); doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                group.items.forEach(itemName => {
-                    if(currentY > maxY) {
-                        if (currentX === 15) { currentX = 110; currentY = startContentY; }
-                        else { doc.addPage(); startContentY = drawLayoutAndGrid(); currentX = 15; currentY = startContentY; }
-                    }
-                    doc.text(String(itemName), currentX + 5, currentY);
-                    currentY += 6;
+                const canvas = await html2canvas(pageDiv, {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: 794,
+                    height: 1123,
+                    logging: false
                 });
-                currentY += 5;
+
+                document.body.removeChild(pageDiv);
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                if (i > 0) doc.addPage();
+                doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
             }
 
-            if (noteText) {
-                const noteLines = doc.splitTextToSize(noteText, 170);
-                const boxH = 10 + (noteLines.length * 6) + 5;
-                if (currentY + boxH > 280) { doc.addPage(); drawLayoutAndGrid(); currentY = 70; }
-                const footerY = Math.max(currentY + 10, 297 - 20 - boxH);
-                doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79);
-                doc.roundedRect(15, footerY, 180, boxH, 3, 3, 'FD');
-                doc.setFillColor(198, 153, 79); doc.roundedRect(15, footerY, 180, 8, 2, 2, 'F');
-                doc.setTextColor(255,255,255); doc.setFontSize(11);
-                doc.text('SPECIAL NOTE', 105, footerY + 5.5, { align: 'center' });
-                doc.setTextColor(0,0,0); doc.setFontSize(10);
-                doc.text(noteLines, 20, footerY + 14);
-            }
-
-            const safeTitle = dName.replace(/[^a-zA-Z0-9 ]/g, "").trim() || "Menu";
-            doc.save(`${safeTitle}_Menu.pdf`);
+            const customerName = dName.replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
+            const filenameDate = (dDateRaw || '').replace(/\//g, "-").slice(0, 5) || 'Date';
+            doc.save(`${customerName}-${filenameDate}-ENG-Swagat_Caterers.pdf`);
         }
 
         // --- Section 10: Menu Popularity Stats ---
