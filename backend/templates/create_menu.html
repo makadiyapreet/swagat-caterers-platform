@@ -709,19 +709,13 @@
             let dPrice = isAdmin ? (document.getElementById('menu-price').value || "0") : "**";
             const noteText = document.getElementById('menu-note').value;
 
-            // Use Gujarati values for Gujarati PDF if available
-            if (lang === 'gu' && eventData) {
-                if (eventData.title_gu) dName = eventData.title_gu;
-                if (eventData.venue_gu) dVenue = eventData.venue_gu;
-            }
-
             // Build menu data grouped by category
             const menuGroups = [];
             // Helper: detect Gujarati Unicode chars
             function hasGujarati(text) {
                 return /[\u0A80-\u0AFF]/.test(text || '');
             }
-            const isGuj = (lang === 'gu') || hasGujarati(dName) || hasGujarati(dVenue);
+            const isGuj = (lang === 'gu');
 
             for (let cat of categories) {
                 const dbItems = allItems.filter(item => item.category == cat.id && selectedIds.has(item.id));

@@ -161,10 +161,6 @@
                     <input type="text" id="client-name" placeholder="Enter Name">
                 </div>
                 <div class="input-group">
-                    <label style="color:#856404; font-size:11px;" class="font-guj">ગ્રાહકનું નામ (ગુજરાતી)</label>
-                    <input type="text" id="client-name-gu" placeholder="ગુજરાતીમાં નામ" class="font-guj" style="border-color:#ffe082; background:#fffcf5;">
-                </div>
-                <div class="input-group">
                     <label>Date</label>
                     <input type="date" id="event-date">
                 </div>
@@ -175,10 +171,6 @@
                 <div class="input-group">
                     <label>Venue</label>
                     <input type="text" id="venue-name" placeholder="Optional">
-                </div>
-                <div class="input-group">
-                    <label style="color:#856404; font-size:11px;" class="font-guj">સ્થળ (ગુજરાતી)</label>
-                    <input type="text" id="venue-name-gu" placeholder="ગુજરાતીમાં સ્થળ" class="font-guj" style="border-color:#ffe082; background:#fffcf5;">
                 </div>
                 <div class="input-group">
                     <label>Phone</label>
@@ -593,10 +585,6 @@
                 guests = currentEventData.guests;
                 venue = currentEventData.venue;
                 phone = currentEventData.contact_number;
-                if (lang === 'gu') {
-                    if (currentEventData.title_gu) clientName = currentEventData.title_gu;
-                    if (currentEventData.venue_gu) venue = currentEventData.venue_gu;
-                }
             } else {
                 clientName = document.getElementById('client-name').value;
                 if(!clientName) { Swal.fire("Missing Info", "Please enter a Client Name", "warning"); return; }
@@ -604,12 +592,6 @@
                 guests = document.getElementById('guest-count').value;
                 venue = document.getElementById('venue-name').value;
                 phone = document.getElementById('client-phone').value;
-                if (lang === 'gu') {
-                    const clientNameGu = document.getElementById('client-name-gu').value;
-                    const venueGu = document.getElementById('venue-name-gu').value;
-                    if (clientNameGu) clientName = clientNameGu;
-                    if (venueGu) venue = venueGu;
-                }
             }
 
             const note = document.getElementById('menu-note').value;
@@ -630,15 +612,11 @@
                 menuGroups.push({ catName, items });
             });
 
-            if (lang === 'gu') {
-                await generateGujaratiPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview);
-            } else {
-                await generateEnglishPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview);
-            }
+            await generatePDF_DM_HTML(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview);
         }
 
-        // --- GUJARATI PDF for Direct Menu: html2canvas approach ---
-        async function generateGujaratiPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
+        // --- HTML2CANVAS PDF for Direct Menu ---
+        async function generatePDF_DM_HTML(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
             const bgUrl = '{% static "images/background.png" %}';
             const coverUrl = '{% static "images/cover.png" %}';
             const backUrl = '{% static "images/last.png" %}';
@@ -665,7 +643,7 @@
             // --- Cover page ---
             const coverDiv = document.createElement('div');
             coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${coverUrl}'); background-size:cover; background-position:center; font-family:${fontFamily}; overflow:hidden;`;
-            coverDiv.innerHTML = `<div style="position:absolute; bottom:320px; width:100%; text-align:center; color:#D4AF37; font-size:28px; font-weight:700; font-family:${fontFamily};">${clientName} - ${formatDate(eventDate)}</div>`;
+            coverDiv.innerHTML = `<div style="position:absolute; bottom:350px; width:100%; text-align:center; color:#D4AF37; font-size:28px; font-weight:700; font-family:${fontFamily};">${clientName} - ${formatDate(eventDate)}</div>`;
             await capturePageDiv(coverDiv);
 
             // --- Menu content page ---
@@ -675,22 +653,23 @@
             // Header
             const header = document.createElement('div');
             header.style.cssText = 'padding: 155px 60px 0 60px;';
+            const isGu = lang === 'gu';
             header.innerHTML = `
                 <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
                     <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">નામ :</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'નામ :' : 'Name :'}</span>
                         <span style="color:#000; font-weight:600; flex:1;">${clientName || "-"}</span>
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">વ્યક્તિ :</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'વ્યક્તિ :' : 'Guests :'}</span>
                         <span style="color:#000; font-weight:600; flex:1;">${guests || "-"}</span>
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">તારીખ :</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'તારીખ :' : 'Date :'}</span>
                         <span style="color:#000; font-weight:600; flex:1;">${formatDate(eventDate)}</span>
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">સ્થળ :</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'સ્થળ :' : 'Venue :'}</span>
                         <span style="color:#000; font-weight:600; flex:1;">${venue || "-"}</span>
                     </div>
                     ${phone ? `<div style="display:flex; gap:10px; font-size:15px;">
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">ફોન :</span>
+                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'ફોન :' : 'Phone :'}</span>
                         <span style="color:#000; font-weight:600;">${phone}</span>
                     </div>` : ''}
                 </div>
@@ -714,9 +693,10 @@
             if (note) {
                 const noteDiv = document.createElement('div');
                 noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
+                const isGu = lang === 'gu';
                 noteDiv.innerHTML = `
                     <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
-                        <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">નોંધ</div>
+                        <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">${isGu ? 'નોંધ' : 'Note'}</div>
                         <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${note}</div>
                     </div>
                 `;
@@ -740,155 +720,6 @@
                 doc.save(fName);
                 logPdfGeneration(clientName, eventDate, guests, venue, phone, note, lang);
             }
-        }
-
-        // --- ENGLISH PDF for Direct Menu: jsPDF native text ---
-        async function generateEnglishPDF_DM(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Helper: detect Gujarati Unicode chars
-            function hasGujarati(text) {
-                return /[\u0A80-\u0AFF]/.test(text || '');
-            }
-
-            // Load Gujarati font into jsPDF
-            let gujaratiFontLoaded = false;
-            try {
-                const fontUrl = '{% static "Noto_Sans_Gujarati/static/NotoSansGujarati-Regular.ttf" %}';
-                const fontBoldUrl = '{% static "Noto_Sans_Gujarati/static/NotoSansGujarati-Bold.ttf" %}';
-                const [fontResp, fontBoldResp] = await Promise.all([fetch(fontUrl), fetch(fontBoldUrl)]);
-                if (fontResp.ok && fontBoldResp.ok) {
-                    const [fontBlob, fontBoldBlob] = await Promise.all([fontResp.blob(), fontBoldResp.blob()]);
-                    const toBase64 = (blob) => new Promise(resolve => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.readAsDataURL(blob);
-                    });
-                    const [fontB64, fontBoldB64] = await Promise.all([toBase64(fontBlob), toBase64(fontBoldBlob)]);
-                    doc.addFileToVFS('NotoSansGujarati-Regular.ttf', fontB64);
-                    doc.addFont('NotoSansGujarati-Regular.ttf', 'NotoSansGujarati', 'normal');
-                    doc.addFileToVFS('NotoSansGujarati-Bold.ttf', fontBoldB64);
-                    doc.addFont('NotoSansGujarati-Bold.ttf', 'NotoSansGujarati', 'bold');
-                    gujaratiFontLoaded = true;
-                }
-            } catch(e) { console.warn('Could not load Gujarati font for PDF:', e); }
-
-            // Smart text: auto-switch font for Gujarati
-            function smartText(text, x, y, opts) {
-                if (hasGujarati(text) && gujaratiFontLoaded) {
-                    const prevFont = doc.getFont();
-                    doc.setFont('NotoSansGujarati', 'bold');
-                    doc.text(text, x, y, opts);
-                    doc.setFont(prevFont.fontName, prevFont.fontStyle);
-                } else {
-                    doc.text(text, x, y, opts);
-                }
-            }
-
-            async function loadImage(url) {
-                try {
-                    const r = await fetch(url);
-                    if(r.ok) return await r.blob().then(b => new Promise(res => { const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(b); }));
-                } catch(e){} return null;
-            }
-
-            try {
-                const [bg, cover, back] = await Promise.all([
-                    loadImage('{% static "images/background.png" %}'),
-                    loadImage('{% static "images/cover.png" %}'),
-                    loadImage('{% static "images/last.png" %}')
-                ]);
-
-                doc.setFont("helvetica", "normal");
-
-                if(cover) {
-                    doc.addImage(cover, 'PNG', 0, 0, 210, 297);
-                    doc.setTextColor(212, 175, 55);
-                    doc.setFont("times", "bold");
-                    doc.setFontSize(20);
-                    smartText(`${clientName} - ${formatDate(eventDate)}`, 105, 200, { align: 'center' });
-                    doc.setFont("helvetica", "normal");
-                    doc.addPage();
-                }
-
-                function drawHeader() {
-                    if(bg) doc.addImage(bg, 'PNG', 0, 0, 210, 297);
-                    doc.setDrawColor(212, 175, 55); doc.setLineWidth(0.5);
-                    doc.line(15, 43, 195, 43);
-                    doc.setFontSize(10);
-                    doc.setFont("helvetica", "bold");
-                    const y = 48;
-                    doc.setTextColor(212, 175, 55); doc.text("Name :", 20, y);
-                    doc.setTextColor(0,0,0); smartText(clientName || "-", 35, y);
-                    doc.setTextColor(212, 175, 55); doc.text("Guests :", 90, y);
-                    doc.setTextColor(0,0,0); doc.text(String(guests || "-"), 105, y);
-                    doc.setTextColor(212, 175, 55); doc.text("Date :", 20, y+6);
-                    doc.setTextColor(0,0,0); doc.text(formatDate(eventDate), 35, y+6);
-                    doc.setTextColor(212, 175, 55); doc.text("Venue :", 90, y+6);
-                    doc.setTextColor(0,0,0); smartText(venue || "-", 105, y+6);
-                    if(phone) {
-                        doc.setTextColor(212, 175, 55); doc.text("Phone :", 150, y);
-                        doc.setTextColor(0,0,0); doc.text(phone, 165, y);
-                    }
-                    doc.line(15, y+10, 195, y+10);
-                    return y+20;
-                }
-
-                let currentY = drawHeader();
-                let currentX = 15;
-                const midX = 110;
-
-                menuGroups.forEach(group => {
-                    if(currentY > 260) {
-                        if(currentX === 15) { currentX = midX; currentY = 68; }
-                        else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
-                    }
-
-                    // Category header bar
-                    doc.setFillColor(198, 153, 79);
-                    doc.roundedRect(currentX, currentY-6, 80, 8, 3, 3, 'F');
-                    doc.setTextColor(0,0,0); doc.setFontSize(11);
-                    doc.setFont("helvetica", "bold");
-                    smartText(group.catName, currentX+5, currentY-1);
-                    currentY += 8;
-
-                    doc.setFont("helvetica", "normal");
-                    doc.setFontSize(10);
-                    doc.setTextColor(30, 30, 30);
-                    group.items.forEach(itemName => {
-                        if(currentY > 270) {
-                            if(currentX === 15) { currentX = midX; currentY = 68; }
-                            else { doc.addPage(); currentY = drawHeader(); currentX = 15; }
-                        }
-                        smartText(itemName, currentX+5, currentY);
-                        currentY += 6;
-                    });
-
-                    currentY += 4;
-                });
-
-                if(note) {
-                    if(currentY > 240) { doc.addPage(); currentY = drawHeader(); }
-                    doc.setFillColor(255, 252, 245); doc.setDrawColor(198, 153, 79);
-                    doc.roundedRect(15, 250, 180, 30, 3, 3, 'FD');
-                    doc.setFontSize(10); doc.setTextColor(0,0,0);
-                    smartText("NOTE: " + note, 20, 258, { maxWidth: 170 });
-                }
-
-                if(back) { doc.addPage(); doc.addImage(back, 'PNG', 0, 0, 210, 297); }
-
-                const customerName = clientName.replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
-                const filenameDate = formatDate(eventDate).slice(0, 5);
-                const fName = `${customerName}-${filenameDate}-SC.pdf`;
-
-                if(isPreview) window.open(doc.output('bloburl'), '_blank');
-                else {
-                    doc.save(fName);
-                    logPdfGeneration(clientName, eventDate, guests, venue, phone, note, lang);
-                }
-
-            } catch(e) { console.error(e); Swal.fire("Error", "PDF Generation failed: " + e.message, "error"); }
         }
 
         // --- PDF log helper ---
