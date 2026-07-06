@@ -101,55 +101,7 @@
             .lang-toggle-btn { padding: 9px 12px; font-size: 13px; }
         }
 
-        /* ===== Translate Button ===== */
-        .translate-row {
-            display: flex;
-            gap: 8px;
-            align-items: flex-start;
-        }
-        .translate-row input,
-        .translate-row textarea {
-            flex: 1;
-        }
-        .btn-translate {
-            flex-shrink: 0;
-            padding: 8px 12px;
-            border: 2px solid var(--gold);
-            background: linear-gradient(135deg, #fefcea, #f8f0d8);
-            color: var(--gold-dark);
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 700;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .btn-translate:hover {
-            background: var(--gold);
-            color: white;
-            transform: scale(1.05);
-        }
-        .btn-translate:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .btn-translate .spinner {
-            display: none;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(0,0,0,0.2);
-            border-top-color: var(--gold-dark);
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-        .btn-translate.loading .spinner { display: inline-block; }
-        .btn-translate.loading .btn-icon { display: none; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
@@ -177,12 +129,7 @@
 
             <div class="form-group">
                 <label id="lbl-title">Client Name</label>
-                <div class="translate-row">
-                    <input type="text" id="title" required>
-                    <button type="button" class="btn-translate" id="btn-tr-title" onclick="translateField('title')" title="Translate to other language">
-                        <span class="btn-icon">🔄</span><span class="spinner"></span>
-                    </button>
-                </div>
+                <input type="text" id="title" required>
             </div>
             <div class="form-group">
                 <label id="lbl-date">Date</label>
@@ -190,12 +137,7 @@
             </div>
             <div class="form-group">
                 <label id="lbl-venue">Venue</label>
-                <div class="translate-row">
-                    <input type="text" id="venue" placeholder="e.g. Swagat Hall">
-                    <button type="button" class="btn-translate" id="btn-tr-venue" onclick="translateField('venue')" title="Translate to other language">
-                        <span class="btn-icon">🔄</span><span class="spinner"></span>
-                    </button>
-                </div>
+                <input type="text" id="venue" placeholder="e.g. Swagat Hall">
             </div>
             <div class="form-group">
                 <label id="lbl-event-type">Event Type</label>
@@ -235,12 +177,7 @@
 
             <div class="form-group">
                 <label id="lbl-desc">Notes</label>
-                <div class="translate-row">
-                    <textarea id="description" rows="3"></textarea>
-                    <button type="button" class="btn-translate" id="btn-tr-desc" onclick="translateField('description')" title="Translate to other language">
-                        <span class="btn-icon">🔄</span><span class="spinner"></span>
-                    </button>
-                </div>
+                <textarea id="description" rows="3"></textarea>
             </div>
             
             <button type="submit" class="btn btn-save" id="btn-submit">Save</button>

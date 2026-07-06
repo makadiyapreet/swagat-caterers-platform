@@ -75,7 +75,7 @@
 
         /* MODAL */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); }
-        .modal-content { background: white; border-radius: 16px; width: 600px; max-height: 90vh; box-shadow: 0 25px 50px rgba(0,0,0,0.25); overflow: hidden; font-family: 'Segoe UI', sans-serif; animation: fadeIn 0.3s ease-out; display: flex; flex-direction: column; }
+        .modal-content { background: white; border-radius: 16px; width: 600px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); overflow: hidden; font-family: 'Segoe UI', sans-serif; animation: fadeIn 0.3s ease-out; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -83,7 +83,7 @@
         .modal-title { color: white; font-family: 'Playfair Display', serif; font-size: 26px; margin: 0; font-weight: 700; letter-spacing: 0.5px; }
         .modal-close-btn { background: none; border: none; font-size: 28px; color: rgba(255,255,255,0.8); cursor: pointer; transition: 0.2s; line-height: 1; }
         .modal-close-btn:hover { color: white; transform: scale(1.1); }
-        .modal-body { padding: 30px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+        .modal-body { padding: 30px; }
 
         .event-select-list { display: flex; flex-direction: column; gap: 10px; }
         .event-select-item { padding: 15px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
@@ -163,8 +163,9 @@
             .btn-big { padding: 16px; font-size: 15px; }
 
             /* Modal */
-            .modal-content { width: 92%; max-height: 85vh; }
-            .modal-header { padding: 15px 20px; flex-shrink: 0; }
+            .modal { padding: 20px 0; box-sizing: border-box; }
+            .modal-content { width: 92%; max-height: calc(100vh - 40px); overflow-y: auto; }
+            .modal-header { padding: 15px 20px; position: sticky; top: 0; z-index: 1; }
             .modal-title { font-size: 20px; }
             .modal-body { padding: 15px; }
             .event-details-grid { grid-template-columns: 1fr; gap: 15px; }
@@ -624,11 +625,17 @@
             const navImg = document.getElementById('nav-img');
             if(user.profile_image && navImg) navImg.src = user.profile_image;
 
-            // 3. FETCH DATA (categories & menu-items are lazy-loaded on demand for PDF)
+            // 3. FETCH DATA
             const headers = { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken')};
-            const eRes = await fetch('/api/menu/events/', { headers });
+            const [cRes, iRes, eRes] = await Promise.all([
+                fetch('/api/menu/categories/', { headers }),
+                fetch('/api/menu/menu-items/', { headers }),
+                fetch('/api/menu/events/', { headers })
+            ]);
 
             allEvents = await eRes.json();
+            categories = await cRes.json();
+            allItems = await iRes.json();
 
             // ============ ROLE-BASED UI VISIBILITY ============
 
@@ -1239,8 +1246,59 @@
 
         modalContent.innerHTML = `<div class="event-details-grid"><div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${formatDateDisplay(event.date)}</span></div><div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${displayVenue}</span></div><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div><div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div><div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px;">${contactInfo}</span>${alternateInfo}</div><div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div><div class="detail-item detail-note"><span class="detail-label">Notes</span><span class="detail-value" style="${guFont}">${noteInfo}</span></div></div>`;
 
-        // Action buttons removed — use dashboard actions instead
-        adminActions.style.display = 'none';
+        // VISIBILITY: Admin & Manager see actions (Print Bill is Admin Only)
+        if (isAdmin || isManager) {
+            adminActions.style.display = 'flex';
+            
+            const billBtnHtml = isAdmin ? `
+                <button class="btn-modal"
+                    onclick="window.location.href=\`${PRINT_BILL_URL}?event_id=${event.id}\`"
+                    style="background:var(--gold); color:white;">
+                    🧾 Print Bill
+                </button>
+            ` : '';
+
+            let manageMenuBtnHtml = '';
+            if (isAdmin || (isManager && event.is_approved)) {
+                manageMenuBtnHtml = `
+                    <button class="btn-modal"
+                        onclick="window.location.href=\`${CREATE_MENU_URL}?event_id=${event.id}\`"
+                        style="background:#2c3e50; color:white;">
+                        🍽️ Manage Menu
+                    </button>
+                `;
+            } else if (isManager && !event.is_approved) {
+                manageMenuBtnHtml = `
+                    <button class="btn-modal" disabled
+                        style="background:#bdc3c7; color:#fff; cursor:not-allowed;" title="Waiting for admin approval">
+                        ⏳ Menu Pending Review
+                    </button>
+                `;
+            }
+
+            adminActions.innerHTML = `
+                    <div class="action-row">
+                        ${manageMenuBtnHtml}
+                        ${billBtnHtml}
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn-modal"
+                            onclick="window.location.href='${BOOKING_URL}?event_id=${event.id}'"
+                            style="background:#f0f0f0; color:#333; border:1px solid #ccc;">
+                            ✏️ Edit Details
+                        </button>
+
+                        <button class="btn-modal"
+                            onclick="deleteEvent(${event.id})"
+                            style="background:#ffebee; color:#c0392b; border:1px solid #ffcdd2;">
+                            🗑️ Delete Event
+                        </button>
+                    </div>`;
+        } else {
+            // Manager does not see the action buttons (Wait, this else block needs to be removed because managers DO see it now!)
+            // adminActions.style.display = 'none'; // REMOVED THIS LINE
+        }
         document.getElementById('eventModal').style.display = 'flex';
     }
 
@@ -1430,20 +1488,15 @@
             return;
         }
 
-        // Lazy-load categories & menu-items if not already fetched
-        const pdfHeaders = { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') };
-        const fetchPromises = [fetch(`/api/menu/menus/${menuId}/`, { headers: pdfHeaders })];
-        if (!categories.length) fetchPromises.push(fetch('/api/menu/categories/', { headers: pdfHeaders }));
-        if (!allItems.length) fetchPromises.push(fetch('/api/menu/menu-items/', { headers: pdfHeaders }));
-
-        const responses = await Promise.all(fetchPromises);
-        let resIdx = 0;
-        const menuRes = responses[resIdx++];
-        if (!categories.length && responses[resIdx]) { categories = await responses[resIdx++].json(); }
-        if (!allItems.length && responses[resIdx]) { allItems = await responses[resIdx++].json(); }
-
-        if(!menuRes.ok) throw new Error("Could not fetch menu items");
-        const menu = await menuRes.json();
+        const res = await fetch(`/api/menu/menus/${menuId}/`, { 
+            headers: { 
+                'Authorization': `Token ${token}`, 
+                'X-CSRFToken': getCookie('csrftoken') 
+            } 
+        });
+        
+        if(!res.ok) throw new Error("Could not fetch menu items");
+        const menu = await res.json();
 
         // Parse custom items
         let customItemsMap = {};
