@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/images/logo/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/images/logo/favicon.png">
+    <title>Review Management - Swagat Caterers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8f6f1; color: #1a1a1a; min-height: 100vh; }
+
+        .header { background: linear-gradient(135deg, #1a1a1a, #111); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 3px solid #D4AF37; }
+        .header-title { color: #D4AF37; font-family: 'Playfair Display', serif; font-size: 1.2rem; }
+        .header-sub { color: rgba(255,255,255,0.6); font-size: 0.72rem; margin-top: 2px; }
+        .header-back { color: #fff; text-decoration: none; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; transition: all 0.2s; }
+        .header-back:hover { background: rgba(255,255,255,0.2); }
+
+        .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px 24px; max-width: 900px; margin: 0 auto; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #f0ece4; }
+        .stat-number { font-size: 1.6rem; font-weight: 800; color: #D4AF37; }
+        .stat-label { font-size: 0.7rem; color: #999; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .section-wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 16px; }
+        .section-card { background: #fff; border-radius: 14px; border: 1px solid #f0ece4; overflow: hidden; }
+        .section-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid #f0ece4; }
+        .section-header:hover { background: #fafaf8; }
+        .section-body { padding: 16px 20px; }
+
+        .controls { max-width: 900px; margin: 0 auto; padding: 0 24px 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .control-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555; }
+        .control-btn:hover { border-color: #D4AF37; color: #D4AF37; }
+        .control-btn.active { background: #D4AF37; color: #fff; border-color: #D4AF37; }
+        .sort-select { padding: 8px 14px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 0.78rem; font-weight: 600; color: #555; cursor: pointer; outline: none; }
+
+        .reviews-container { max-width: 900px; margin: 0 auto; padding: 0 24px 40px; }
+        .review-card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 14px; border: 1px solid #eee; transition: all 0.3s; }
+        .review-card.featured { border-color: #D4AF37; background: #fffdf5; }
+        .review-card.deleting { opacity: 0; transform: translateX(50px); max-height: 0; padding: 0; margin: 0; overflow: hidden; }
+        .review-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+        .review-info { flex: 1; min-width: 200px; }
+        .reviewer-name { font-weight: 700; font-size: 1rem; color: #1a1a1a; }
+        .review-stars { color: #D4AF37; font-size: 1rem; margin-left: 8px; letter-spacing: 1px; }
+        .review-text { color: #555; font-size: 0.88rem; line-height: 1.6; margin: 10px 0; font-style: italic; }
+        .review-meta { font-size: 0.73rem; color: #999; display: flex; gap: 12px; flex-wrap: wrap; }
+        .review-actions { display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
+        .btn-feature { padding: 8px 18px; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-feature.on { background: #D4AF37; color: #fff; }
+        .btn-feature.off { background: #f5f5f5; color: #666; border: 1px solid #ddd; }
+        .btn-feature:hover { transform: scale(1.05); }
+        .btn-delete { padding: 8px 14px; border-radius: 8px; border: 1px solid #ffcccc; background: #fff5f5; color: #e74c3c; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-delete:hover { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+        .btn-edit { padding: 8px 14px; border-radius: 8px; border: 1px solid #d4e5f7; background: #f0f7ff; color: #2980b9; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-edit:hover { background: #2980b9; color: #fff; }
+        .btn-add { padding: 10px 20px; border-radius: 8px; border: none; background: #27ae60; color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .btn-add:hover { background: #219a52; transform: scale(1.03); }
+        .featured-badge { display: inline-block; background: #D4AF37; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sample-badge { display: inline-block; background: #8e44ad; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; color: #666; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: #fff; border-radius: 16px; padding: 28px; width: 90%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal-box h3 { font-family: 'Playfair Display', serif; color: #D4AF37; margin-bottom: 20px; font-size: 1.2rem; }
+        .modal-box label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 4px; margin-top: 12px; }
+        .modal-box input, .modal-box textarea, .modal-box select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.88rem; font-family: inherit; outline: none; }
+        .modal-box input:focus, .modal-box textarea:focus { border-color: #D4AF37; }
+        .modal-box textarea { resize: vertical; min-height: 80px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+        .modal-actions button { padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; border: none; }
+        .modal-save { background: #D4AF37; color: #fff; }
+        .modal-cancel { background: #f5f5f5; color: #666; }
+
+        @media (max-width: 600px) {
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .review-top { flex-direction: column; }
+            .review-actions { width: 100%; }
+            .btn-feature, .btn-delete, .btn-edit { flex: 1; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <div class="header-title">Review Management</div>
+        <div class="header-sub">Swagat Caterers - Admin Panel</div>
+    </div>
+    <a href="/dashboard/" class="header-back">← Dashboard</a>
+</div>
+
+<div class="stats-bar">
+    <div class="stat-card"><div class="stat-number" id="stat-total">-</div><div class="stat-label">Total Reviews</div></div>
+    <div class="stat-card"><div class="stat-number" id="stat-avg">-</div><div class="stat-label">Avg Rating</div></div>
+    <div class="stat-card"><div class="stat-number" id="stat-featured">-</div><div class="stat-label">Featured</div></div>
+    <div class="stat-card"><div class="stat-number" id="stat-samples">-</div><div class="stat-label">Samples</div></div>
+</div>
+
+<!-- Sample Testimonials Section -->
+<div class="section-wrap">
+    <div class="section-card">
+        <div class="section-header" onclick="toggleSection('sample-body', this)">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.1rem;">📌</span>
+                <div>
+                    <span style="font-weight:700; font-size:0.9rem;">Sample Testimonials</span>
+                    <span style="font-size:0.72rem; color:#999; margin-left:8px;" id="sample-count">Loading...</span>
+                </div>
+            </div>
+            <span class="arrow" style="color:#999; font-size:0.8rem;">▼</span>
+        </div>
+        <div id="sample-body" class="section-body">
+            <div style="margin-bottom:14px;">
+                <button class="btn-add" onclick="openSampleModal()">+ Add Sample Review</button>
+            </div>
+            <div id="samples-container">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Controls -->
+<div class="controls" style="margin-top:8px;">
+    <span style="font-size:0.75rem; color:#999; font-weight:600;">FILTER:</span>
+    <button class="control-btn active" onclick="filterReviews('all')" id="filter-all">All</button>
+    <button class="control-btn" onclick="filterReviews('featured')" id="filter-featured">Featured</button>
+    <button class="control-btn" onclick="filterReviews('unfeatured')" id="filter-unfeatured">Not Featured</button>
+    <span style="font-size:0.75rem; color:#999; font-weight:600; margin-left:10px;">SORT:</span>
+    <select class="sort-select" onchange="sortReviews(this.value)">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="highest">Highest Rating</option>
+        <option value="lowest">Lowest Rating</option>
+        <option value="name">Name (A-Z)</option>
+    </select>
+</div>
+
+<div class="reviews-container" id="reviews-container">
+    <div class="empty-state"><div class="empty-state-icon">⏳</div><h3>Loading reviews...</h3></div>
+</div>
+
+<!-- Modal for Add/Edit Sample -->
+<div class="modal-overlay" id="sample-modal">
+    <div class="modal-box">
+        <h3 id="modal-title">Add Sample Review</h3>
+        <input type="hidden" id="modal-sample-id">
+        <label>Name</label>
+        <input type="text" id="modal-name" placeholder="e.g. Mrs. Shilpaben Shah">
+        <label>Review Text</label>
+        <textarea id="modal-text" placeholder="Write the review text..."></textarea>
+        <label>Subtitle / Role</label>
+        <input type="text" id="modal-subtitle" placeholder="e.g. Mother of the Bride">
+        <label>Rating</label>
+        <select id="modal-rating">
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★☆ (4)</option>
+            <option value="3">★★★☆☆ (3)</option>
+            <option value="2">★★☆☆☆ (2)</option>
+            <option value="1">★☆☆☆☆ (1)</option>
+        </select>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeSampleModal()">Cancel</button>
+            <button class="modal-save" onclick="saveSample()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const TOKEN = localStorage.getItem('authToken');
+    let allReviews = [];
+    let allSamples = [];
+    let currentFilter = 'all';
+    let currentSort = 'newest';
+
+    function getCookie(name) { const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'); return v ? v.pop() : ''; }
+    function toggleSection(id, el) {
+        const body = document.getElementById(id);
+        const arrow = el.querySelector('.arrow');
+        if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▼'; }
+        else { body.style.display = 'none'; arrow.textContent = '▶'; }
+    }
+
+    // Init
+    (async () => { await Promise.all([loadReviews(), loadSamples()]); })();
+
+    // === REAL REVIEWS ===
+    async function loadReviews() {
+        try {
+            const res = await fetch('/api/admin/reviews/', { headers: { 'Authorization': `Token ${TOKEN}` } });
+            const data = await res.json();
+            allReviews = data.reviews || [];
+            updateStats();
+            renderReviews();
+        } catch(e) {
+            document.getElementById('reviews-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><h3>Failed to load reviews</h3></div>';
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('stat-total').textContent = allReviews.length;
+        const avg = allReviews.length > 0 ? (allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length).toFixed(1) : '0';
+        document.getElementById('stat-avg').textContent = avg;
+        document.getElementById('stat-featured').textContent = allReviews.filter(r => r.is_featured).length;
+        document.getElementById('stat-samples').textContent = allSamples.filter(s => s.is_active !== false).length;
+    }
+
+    function filterReviews(f) {
+        currentFilter = f;
+        document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`filter-${f}`).classList.add('active');
+        renderReviews();
+    }
+    function sortReviews(s) { currentSort = s; renderReviews(); }
+
+    function getFilteredSorted() {
+        let r = [...allReviews];
+        if (currentFilter === 'featured') r = r.filter(x => x.is_featured);
+        else if (currentFilter === 'unfeatured') r = r.filter(x => !x.is_featured);
+        switch(currentSort) {
+            case 'newest': r.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)); break;
+            case 'oldest': r.sort((a,b) => new Date(a.created_at) - new Date(b.created_at)); break;
+            case 'highest': r.sort((a,b) => b.rating - a.rating); break;
+            case 'lowest': r.sort((a,b) => a.rating - b.rating); break;
+            case 'name': r.sort((a,b) => a.reviewer_name.localeCompare(b.reviewer_name)); break;
+        }
+        return r;
+    }
+
+    function renderReviews() {
+        const c = document.getElementById('reviews-container');
+        const reviews = getFilteredSorted();
+        if (reviews.length === 0) {
+            c.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📝</div><h3>${currentFilter === 'all' ? 'No client reviews yet.' : 'No ' + currentFilter + ' reviews.'}</h3></div>`;
+            return;
+        }
+        let html = '';
+        reviews.forEach(r => {
+            const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+            const fc = r.is_featured ? 'featured' : '';
+            const fb = r.is_featured ? 'on' : 'off';
+            const ft = r.is_featured ? 'Featured ✓' : 'Feature';
+            const badge = r.is_featured ? '<span class="featured-badge">On Homepage</span>' : '';
+            const d = new Date(r.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            
+            // Admin response section
+            let responseHtml = '';
+            if (r.admin_response) {
+                const rd = r.response_at ? new Date(r.response_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                responseHtml = `<div style="margin-top:12px; padding:12px; background:#f0f7ff; border-radius:8px; border-left:3px solid #2980b9;">
+                    <div style="font-size:0.72rem; color:#2980b9; font-weight:700; margin-bottom:4px;">💬 Admin Response ${rd ? '· ' + rd : ''}</div>
+                    <div style="font-size:0.85rem; color:#333;">${r.admin_response}</div>
+                    <button class="btn-edit" style="margin-top:8px; font-size:0.72rem; padding:4px 12px;" onclick="showReplyBox(${r.id}, '${r.admin_response.replace(/'/g,"\\\\'").replace(/\n/g,"\\\\n")}')">Edit Reply</button>
+                </div>`;
+            } else {
+                responseHtml = `<div style="margin-top:10px;">
+                    <button class="btn-edit" style="font-size:0.75rem; padding:5px 14px;" onclick="showReplyBox(${r.id}, '')">💬 Reply</button>
+                </div>`;
+            }
+            
+            html += `<div class="review-card ${fc}" id="rc-${r.id}">
+                <div class="review-top">
+                    <div class="review-info">
+                        <div><span class="reviewer-name">${r.reviewer_name}</span><span class="review-stars">${stars}</span>${badge}</div>
+                        ${r.review_text ? `<div class="review-text">"${r.review_text}"</div>` : '<div class="review-text" style="color:#ccc;font-style:normal;">No text</div>'}
+                        <div class="review-meta"><span>${r.event_type} - ${r.event_title}</span><span>Event: ${r.event_date}</span><span>Reviewed: ${d}</span></div>
+                        ${responseHtml}
+                    </div>
+                    <div class="review-actions">
+                        <button class="btn-feature ${fb}" onclick="toggleFeatured(${r.id})" id="fb-${r.id}">${ft}</button>
+                        <button class="btn-delete" onclick="deleteReview(${r.id}, '${r.reviewer_name.replace(/'/g,"\\'")}')">Delete</button>
+                    </div>
+                </div>
+                <div id="reply-box-${r.id}" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #eee;">
+                    <textarea id="reply-text-${r.id}" rows="3" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit; font-size:0.85rem; resize:vertical;" placeholder="Write your response..."></textarea>
+                    <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+                        <button class="modal-cancel" style="padding:6px 14px; font-size:0.78rem; border-radius:6px; cursor:pointer;" onclick="document.getElementById('reply-box-${r.id}').style.display='none'">Cancel</button>
+                        <button class="btn-add" style="padding:6px 14px; font-size:0.78rem;" onclick="saveResponse(${r.id})">Save Response</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        c.innerHTML = html;
+    }
+
+    async function toggleFeatured(id) {
+        const btn = document.getElementById(`fb-${id}`);
+        btn.textContent = '...'; btn.disabled = true;
+        try {
+            const res = await fetch(`/api/admin/reviews/${id}/toggle-featured/`, { method: 'POST', headers: { 'Authorization': `Token ${TOKEN}`, 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' } });
+            const data = await res.json();
+            const rev = allReviews.find(r => r.id === id);
+            if (rev) rev.is_featured = data.is_featured;
+            updateStats(); renderReviews();
+        } catch(e) { btn.textContent = 'Error'; }
+        btn.disabled = false;
+    }
+
+    async function deleteReview(id, name) {
+        if (!confirm(`Delete review by "${name}"?\n\nThis cannot be undone.`)) return;
+        document.getElementById(`rc-${id}`)?.classList.add('deleting');
+        try {
+            await fetch(`/api/admin/reviews/${id}/delete/`, { method: 'DELETE', headers: { 'Authorization': `Token ${TOKEN}`, 'X-CSRFToken': getCookie('csrftoken') } });
+            allReviews = allReviews.filter(r => r.id !== id);
+            setTimeout(() => { updateStats(); renderReviews(); }, 300);
+        } catch(e) { document.getElementById(`rc-${id}`)?.classList.remove('deleting'); alert('Failed.'); }
+    }
+
+    function showReplyBox(id, currentText) {
+        const box = document.getElementById(`reply-box-${id}`);
+        const textarea = document.getElementById(`reply-text-${id}`);
+        textarea.value = currentText || '';
+        box.style.display = 'block';
+        textarea.focus();
+    }
+
+    async function saveResponse(id) {
+        const textarea = document.getElementById(`reply-text-${id}`);
+        const text = textarea.value.trim();
+        const btn = document.querySelector(`#reply-box-${id} .btn-add`);
+        const originalText = btn.textContent;
+        
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+        
+        try {
+            const res = await fetch(`/api/admin/reviews/${id}/respond/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Token ${TOKEN}`, 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ response: text })
+            });
+            const data = await res.json();
+            
+            const rev = allReviews.find(r => r.id === id);
+            if (rev) {
+                rev.admin_response = data.admin_response;
+                rev.response_at = data.response_at;
+            }
+            renderReviews();
+        } catch(e) {
+            alert('Failed to save response.');
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // === SAMPLE TESTIMONIALS ===
+    async function loadSamples() {
+        try {
+            const res = await fetch('/api/admin/samples/', { headers: { 'Authorization': `Token ${TOKEN}` } });
+            const data = await res.json();
+            allSamples = data.samples || [];
+            document.getElementById('sample-count').textContent = `${allSamples.length} sample${allSamples.length !== 1 ? 's' : ''} • shown on homepage`;
+            renderSamples();
+            updateStats();
+        } catch(e) {
+            document.getElementById('samples-container').innerHTML = '<p style="color:#e74c3c;">Failed to load samples.</p>';
+        }
+    }
+
+    function renderSamples() {
+        const c = document.getElementById('samples-container');
+        if (allSamples.length === 0) {
+            c.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">No sample testimonials. Click "Add Sample Review" to create one.</p>';
+            return;
+        }
+        let html = '';
+        allSamples.forEach(s => {
+            const stars = '★'.repeat(s.rating) + '☆'.repeat(5 - s.rating);
+            const activeStyle = s.is_active ? '' : 'opacity:0.5;';
+            const activeLabel = s.is_active ? '<span style="color:#27ae60;font-size:0.7rem;font-weight:700;">● Active</span>' : '<span style="color:#999;font-size:0.7rem;font-weight:700;">○ Hidden</span>';
+            html += `<div class="review-card" style="border-left:4px solid #8e44ad; margin-bottom:12px; ${activeStyle}" id="sc-${s.id}">
+                <div class="review-top">
+                    <div class="review-info">
+                        <div>
+                            <span class="reviewer-name">${s.name}</span>
+                            <span class="review-stars">${stars}</span>
+                            <span class="sample-badge">SAMPLE</span>
+                            ${activeLabel}
+                        </div>
+                        <div class="review-text">"${s.text}"</div>
+                        <div class="review-meta"><span>${s.subtitle}</span></div>
+                    </div>
+                    <div class="review-actions">
+                        <button class="btn-edit" onclick="editSample(${s.id})">Edit</button>
+                        <button class="btn-feature ${s.is_active ? 'on' : 'off'}" onclick="toggleSampleActive(${s.id})" style="font-size:0.72rem;">${s.is_active ? 'Visible ✓' : 'Hidden'}</button>
+                        <button class="btn-delete" onclick="deleteSample(${s.id}, '${s.name.replace(/'/g,"\\'")}')">Delete</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        c.innerHTML = html;
+    }
+
+    function openSampleModal(sample) {
+        document.getElementById('modal-title').textContent = sample ? 'Edit Sample Review' : 'Add Sample Review';
+        document.getElementById('modal-sample-id').value = sample ? sample.id : '';
+        document.getElementById('modal-name').value = sample ? sample.name : '';
+        document.getElementById('modal-text').value = sample ? sample.text : '';
+        document.getElementById('modal-subtitle').value = sample ? sample.subtitle : '';
+        document.getElementById('modal-rating').value = sample ? sample.rating : 5;
+        document.getElementById('sample-modal').classList.add('show');
+    }
+    function closeSampleModal() { document.getElementById('sample-modal').classList.remove('show'); }
+
+    function editSample(id) {
+        const s = allSamples.find(x => x.id === id);
+        if (s) openSampleModal(s);
+    }
+
+    async function saveSample() {
+        const id = document.getElementById('modal-sample-id').value;
+        const payload = {
+            name: document.getElementById('modal-name').value.trim(),
+            text: document.getElementById('modal-text').value.trim(),
+            subtitle: document.getElementById('modal-subtitle').value.trim(),
+            rating: parseInt(document.getElementById('modal-rating').value),
+        };
+        if (!payload.name || !payload.text) { alert('Name and text are required.'); return; }
+
+        const url = id ? `/api/admin/samples/${id}/update/` : '/api/admin/samples/create/';
+        const method = id ? 'PUT' : 'POST';
+        try {
+            await fetch(url, { method, headers: { 'Authorization': `Token ${TOKEN}`, 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            closeSampleModal();
+            await loadSamples();
+        } catch(e) { alert('Failed to save.'); }
+    }
+
+    async function toggleSampleActive(id) {
+        const s = allSamples.find(x => x.id === id);
+        if (!s) return;
+        try {
+            await fetch(`/api/admin/samples/${id}/update/`, { method: 'PUT', headers: { 'Authorization': `Token ${TOKEN}`, 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !s.is_active }) });
+            await loadSamples();
+        } catch(e) { alert('Failed.'); }
+    }
+
+    async function deleteSample(id, name) {
+        if (!confirm(`Delete sample review by "${name}"?`)) return;
+        try {
+            await fetch(`/api/admin/samples/${id}/delete/`, { method: 'DELETE', headers: { 'Authorization': `Token ${TOKEN}`, 'X-CSRFToken': getCookie('csrftoken') } });
+            allSamples = allSamples.filter(s => s.id !== id);
+            renderSamples(); updateStats();
+            document.getElementById('sample-count').textContent = `${allSamples.length} sample${allSamples.length !== 1 ? 's' : ''} • shown on homepage`;
+        } catch(e) { alert('Failed.'); }
+    }
+</script>
+
+</body>
+</html>

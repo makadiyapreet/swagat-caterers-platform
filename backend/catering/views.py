@@ -399,10 +399,16 @@ def manual_session_login(request):
     
 # --- 9. FRONTEND HOME VIEW ---
 def frontend_home(request):
-    return render(request, "index.html")
+    from .models import Review, SampleTestimonial
+    reviews = Review.objects.filter(is_featured=True).order_by('-created_at')[:6]
+    samples = SampleTestimonial.objects.filter(is_active=True)
+    return render(request, "index.html", {'reviews': reviews, 'sample_testimonials': samples})
 
 def index(request):
-    return render(request, "index.html")
+    from .models import Review, SampleTestimonial
+    reviews = Review.objects.filter(is_featured=True).order_by('-created_at')[:6]
+    samples = SampleTestimonial.objects.filter(is_active=True)
+    return render(request, "index.html", {'reviews': reviews, 'sample_testimonials': samples})
 
 def menu(request):
     return render(request, "menu.html")
@@ -1375,16 +1381,65 @@ def login_history_page(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def login_history_api(request):
-    """Get login history for the current user."""
-    history = UserLoginHistory.objects.filter(user=request.user).order_by('-timestamp')[:50]
-    data = [{
-        'ip': h.ip_address,
-        'user_agent': h.user_agent[:80] if h.user_agent else '',
-        'city': h.city,
-        'country': h.country,
-        'is_new_ip': h.is_new_ip,
-        'timestamp': h.timestamp.isoformat(),
-    } for h in history]
+    """Get login history for the current user with parsed device info."""
+    import re
+    
+    def parse_user_agent(ua):
+        if not ua:
+            return {'browser': 'Unknown', 'os': 'Unknown', 'device': 'Unknown'}
+        
+        # Browser detection
+        browser = 'Unknown'
+        if 'Edg/' in ua: browser = 'Edge'
+        elif 'OPR/' in ua or 'Opera' in ua: browser = 'Opera'
+        elif 'Chrome/' in ua and 'Safari/' in ua: browser = 'Chrome'
+        elif 'Firefox/' in ua: browser = 'Firefox'
+        elif 'Safari/' in ua: browser = 'Safari'
+        elif 'MSIE' in ua or 'Trident/' in ua: browser = 'IE'
+        
+        # OS detection
+        os_name = 'Unknown'
+        if 'Windows NT 10' in ua: os_name = 'Windows 10/11'
+        elif 'Windows NT' in ua: os_name = 'Windows'
+        elif 'Mac OS X' in ua: os_name = 'macOS'
+        elif 'Android' in ua:
+            m = re.search(r'Android ([\d.]+)', ua)
+            os_name = f"Android {m.group(1)}" if m else 'Android'
+        elif 'iPhone' in ua or 'iPad' in ua: os_name = 'iOS'
+        elif 'Linux' in ua: os_name = 'Linux'
+        
+        # Device type
+        device = 'Desktop'
+        if any(x in ua.lower() for x in ['mobile', 'android', 'iphone', 'ipod']):
+            device = 'Mobile'
+        elif 'ipad' in ua.lower() or 'tablet' in ua.lower():
+            device = 'Tablet'
+        
+        return {'browser': browser, 'os': os_name, 'device': device}
+    
+    # Admin sees all users' history, regular user sees only their own
+    if request.user.is_staff:
+        history = UserLoginHistory.objects.select_related('user').order_by('-timestamp')[:100]
+    else:
+        history = UserLoginHistory.objects.filter(user=request.user).order_by('-timestamp')[:50]
+    
+    data = []
+    for h in history:
+        parsed = parse_user_agent(h.user_agent)
+        entry = {
+            'ip': h.ip_address,
+            'user_agent': h.user_agent[:80] if h.user_agent else '',
+            'browser': parsed['browser'],
+            'os': parsed['os'],
+            'device': parsed['device'],
+            'city': h.city,
+            'country': h.country,
+            'is_new_ip': h.is_new_ip,
+            'timestamp': h.timestamp.isoformat(),
+        }
+        if request.user.is_staff:
+            entry['username'] = h.user.username
+        data.append(entry)
     return Response(data)
 
 
@@ -1397,3 +1452,467 @@ def logout_all_sessions(request):
     # Create a fresh token for the current session
     new_token = Token.objects.create(user=request.user)
     return Response({'message': 'All other sessions logged out.', 'new_token': new_token.key})
+
+
+# --- SECTION 23: Review System ---
+
+def review_page(request, token):
+    """Public review page — no login required."""
+    event = get_object_or_404(CateringEvent, review_token=token)
+    
+    # Check if review already exists
+    existing_review = None
+    try:
+        existing_review = event.review
+    except:
+        pass
+    
+    return render(request, 'public/review.html', {
+        'event': event,
+        'existing_review': existing_review,
+        'token': token,
+    })
+
+
+@csrf_exempt
+def submit_review(request, token):
+    """API to submit a review — no login required."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST allowed'}, status=405)
+    
+    event = get_object_or_404(CateringEvent, review_token=token)
+    
+    # Check if review already exists
+    try:
+        if event.review:
+            return JsonResponse({'error': 'Review already submitted for this event'}, status=400)
+    except:
+        pass
+    
+    try:
+        data = json.loads(request.body)
+        reviewer_name = data.get('reviewer_name', '').strip()
+        rating = int(data.get('rating', 0))
+        review_text = data.get('review_text', '').strip()
+        
+        if not reviewer_name:
+            return JsonResponse({'error': 'Name is required'}, status=400)
+        if rating < 1 or rating > 5:
+            return JsonResponse({'error': 'Rating must be 1-5'}, status=400)
+        
+        from .models import Review
+        review = Review.objects.create(
+            event=event,
+            reviewer_name=reviewer_name,
+            rating=rating,
+            review_text=review_text
+        )
+        
+        # Send email notification to admin
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            stars = '★' * rating + '☆' * (5 - rating)
+            admin_email = getattr(settings, 'ADMIN_ALERT_EMAIL', getattr(settings, 'ADMIN_EMAIL', ''))
+            
+            if admin_email:
+                send_mail(
+                    subject=f'⭐ New Review: {stars} by {reviewer_name}',
+                    message=(
+                        f'New Review Received!\n\n'
+                        f'Reviewer: {reviewer_name}\n'
+                        f'Rating: {stars} ({rating}/5)\n'
+                        f'Event: {event.title} ({event.event_type})\n'
+                        f'Event Date: {event.date}\n\n'
+                        f'Review:\n"{review_text}"\n\n'
+                        f'---\n'
+                        f'Manage reviews at: https://swagatcaterers.in/reviews/\n'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[admin_email],
+                    fail_silently=True,
+                )
+                review.email_notified = True
+                review.save()
+        except Exception as email_err:
+            print(f"Review email notification failed: {email_err}")
+        
+        return JsonResponse({'success': True, 'message': 'Thank you for your review!'})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# --- SECTION 24: WhatsApp URL Generator (Server-side emoji encoding) ---
+
+from urllib.parse import quote
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def whatsapp_booking_url(request, event_id):
+    """Generate WhatsApp booking confirmation URL with proper emoji encoding."""
+    event = get_object_or_404(CateringEvent, id=event_id)
+    
+    phone = (event.contact_number or '').replace(' ', '').replace('-', '').replace('+', '')
+    if len(phone) == 10:
+        phone = '91' + phone
+    
+    if not phone:
+        return JsonResponse({'error': 'No contact number'}, status=400)
+    
+    date_str = event.date.strftime('%d-%m-%Y')
+    venue = event.venue or 'Not Specified'
+    event_type = event.event_type or 'Event'
+    guests = event.guests or '-'
+
+    message = f"""🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉
+
+🍽️ *SWAGAT CATERERS*
+_Premium Catering • Rajkot_
+
+🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉
+
+✅ *BOOKING CONFIRMED!*
+
+Hello *{event.title}*,
+
+Your booking is confirmed! We're excited to serve you 🔥
+
+📅 *Date:* {date_str}
+📍 *Venue:* {venue}
+🎊 *Event:* {event_type}
+👥 *Guests:* {guests}
+
+🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉
+
+Our team will make your {event_type.lower()} truly special! ✨
+
+📞 *+91 94282 51083*
+🌐 *swagatcaterers.in*
+
+🙏 _Thank you for choosing Swagat!_"""
+
+    whatsapp_url = (
+        f"https://api.whatsapp.com/send"
+        f"?phone={phone}"
+        f"&text={quote(message, safe='')}"
+    )
+    return JsonResponse({'url': whatsapp_url})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def whatsapp_review_url(request, event_id):
+    """Generate WhatsApp review request URL with proper emoji encoding."""
+    event = get_object_or_404(CateringEvent, id=event_id)
+    
+    phone = (event.contact_number or '').replace(' ', '').replace('-', '').replace('+', '')
+    if len(phone) == 10:
+        phone = '91' + phone
+    
+    if not phone:
+        return JsonResponse({'error': 'No contact number'}, status=400)
+    
+    date_str = event.date.strftime('%d-%m-%Y')
+    event_type = event.event_type or 'Event'
+    review_token = str(event.review_token)
+    platform_link = f"https://swagatcaterers.in/review/{review_token}"
+    google_maps_link = "https://g.page/r/CdwNh_v0ZuUcEBM/review"
+
+    message = f"""🙏 *Namaste {event.title}!*
+
+Hope you loved the food at your *{event_type}* on *{date_str}*! 🎊😋
+
+⭐⭐⭐⭐⭐
+
+We'd love your feedback! It takes just 30 seconds 👇
+
+🌐 *Review on our Website:*
+{platform_link}
+
+📍 *Review on Google Maps:*
+{google_maps_link}
+
+Your words mean everything to us! 💛
+
+🍽️ *Team Swagat Caterers*
+📞 +91 94282 51083"""
+
+    whatsapp_url = (
+        f"https://api.whatsapp.com/send"
+        f"?phone={phone}"
+        f"&text={quote(message, safe='')}"
+    )
+    return JsonResponse({'url': whatsapp_url})
+
+
+# --- SECTION 25: Review Management (Admin) ---
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_reviews_list(request):
+    """List all reviews for admin management."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import Review
+    reviews = Review.objects.select_related('event').order_by('-created_at')
+    data = []
+    for r in reviews:
+        data.append({
+            'id': r.id,
+            'reviewer_name': r.reviewer_name,
+            'rating': r.rating,
+            'review_text': r.review_text,
+            'is_featured': r.is_featured,
+            'admin_response': r.admin_response,
+            'response_at': r.response_at.isoformat() if r.response_at else None,
+            'created_at': r.created_at.isoformat(),
+            'event_title': r.event.title,
+            'event_type': r.event.event_type or '',
+            'event_date': r.event.date.strftime('%d-%m-%Y'),
+        })
+    return JsonResponse({'reviews': data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_review_featured(request, review_id):
+    """Toggle is_featured status for a review."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import Review
+    review = get_object_or_404(Review, id=review_id)
+    review.is_featured = not review.is_featured
+    review.save()
+    return JsonResponse({
+        'id': review.id,
+        'is_featured': review.is_featured,
+        'message': f"Review {'featured' if review.is_featured else 'unfeatured'} successfully."
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def review_respond(request, review_id):
+    """Admin responds to a review."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import Review
+    from django.utils import timezone
+    review = get_object_or_404(Review, id=review_id)
+    data = json.loads(request.body)
+    response_text = data.get('response', '').strip()
+    
+    review.admin_response = response_text
+    review.response_at = timezone.now() if response_text else None
+    review.save()
+    
+    return JsonResponse({
+        'id': review.id,
+        'admin_response': review.admin_response,
+        'response_at': review.response_at.isoformat() if review.response_at else None,
+        'message': 'Response saved.' if response_text else 'Response removed.'
+    })
+
+
+@login_required
+def admin_reviews_page(request):
+    """Render the admin reviews management page."""
+    if not request.user.is_staff:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Admin only")
+    return render(request, 'admin/reviews.html')
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def trigger_backup(request):
+    """Trigger a database backup via the backup_db management command."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+        
+    try:
+        from django.core.management import call_command
+        from io import StringIO
+        
+        out = StringIO()
+        call_command('backup_db', stdout=out)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Database backup completed successfully!',
+            'output': out.getvalue()
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_backups(request):
+    """List all available database backups."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+        
+    from django.conf import settings
+    from pathlib import Path
+    import os
+    
+    backup_dir = Path(settings.BASE_DIR) / 'backups'
+    if not backup_dir.exists():
+        return JsonResponse({'backups': []})
+        
+    backups = []
+    for b in sorted(backup_dir.glob('swagat_db_*'), key=lambda p: p.stat().st_mtime, reverse=True):
+        stat = b.stat()
+        backups.append({
+            'filename': b.name,
+            'size_mb': round(stat.st_size / (1024 * 1024), 2),
+            'timestamp': stat.st_mtime,
+        })
+        
+    return JsonResponse({'backups': backups})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_backup(request, filename):
+    """Securely download a specific database backup."""
+    if not request.user.is_staff:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Admin only")
+        
+    from django.conf import settings
+    from django.http import FileResponse, Http404
+    from pathlib import Path
+    import os
+    
+    # Security check: only allow word chars, dots, hyphens, and underscores
+    import re
+    if not re.match(r'^[\w\-\.]+$', filename):
+        raise Http404("Invalid filename")
+        
+    backup_path = Path(settings.BASE_DIR) / 'backups' / filename
+    
+    if not backup_path.exists() or not backup_path.is_file():
+        raise Http404("Backup file not found")
+        
+    response = FileResponse(open(backup_path, 'rb'), as_attachment=True, filename=filename)
+    return response
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_backup(request, filename):
+    """Securely delete a specific database backup."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+        
+    from django.conf import settings
+    from pathlib import Path
+    import os
+    import re
+    
+    # Security check: only allow word chars, dots, hyphens, and underscores
+    if not re.match(r'^[\w\-\.]+$', filename):
+        return JsonResponse({'error': 'Invalid filename'}, status=400)
+        
+    backup_path = Path(settings.BASE_DIR) / 'backups' / filename
+    
+    if not backup_path.exists() or not backup_path.is_file():
+        return JsonResponse({'error': 'Backup file not found'}, status=404)
+        
+    try:
+        os.remove(backup_path)
+        return JsonResponse({'success': True, 'message': 'Backup deleted successfully'})
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to delete: {str(e)}'}, status=500)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_review(request, review_id):
+    """Delete a review permanently."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import Review
+    review = get_object_or_404(Review, id=review_id)
+    reviewer = review.reviewer_name
+    review.delete()
+    return JsonResponse({'message': f'Review by "{reviewer}" deleted successfully.'})
+
+
+# --- SECTION 26: Sample Testimonials CRUD ---
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sample_testimonials_list(request):
+    """List all sample testimonials."""
+    from .models import SampleTestimonial
+    samples = SampleTestimonial.objects.all()
+    data = [{
+        'id': s.id,
+        'name': s.name,
+        'text': s.text,
+        'subtitle': s.subtitle,
+        'rating': s.rating,
+        'is_active': s.is_active,
+    } for s in samples]
+    return JsonResponse({'samples': data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def sample_testimonial_create(request):
+    """Create a new sample testimonial."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import SampleTestimonial
+    data = json.loads(request.body)
+    s = SampleTestimonial.objects.create(
+        name=data.get('name', '').strip(),
+        text=data.get('text', '').strip(),
+        subtitle=data.get('subtitle', '').strip(),
+        rating=int(data.get('rating', 5)),
+        is_active=data.get('is_active', True),
+    )
+    return JsonResponse({'id': s.id, 'message': 'Sample testimonial created.'})
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def sample_testimonial_update(request, sample_id):
+    """Update a sample testimonial."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import SampleTestimonial
+    s = get_object_or_404(SampleTestimonial, id=sample_id)
+    data = json.loads(request.body)
+    
+    if 'name' in data: s.name = data['name'].strip()
+    if 'text' in data: s.text = data['text'].strip()
+    if 'subtitle' in data: s.subtitle = data['subtitle'].strip()
+    if 'rating' in data: s.rating = int(data['rating'])
+    if 'is_active' in data: s.is_active = data['is_active']
+    s.save()
+    return JsonResponse({'id': s.id, 'message': 'Updated successfully.'})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def sample_testimonial_delete(request, sample_id):
+    """Delete a sample testimonial."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Admin only'}, status=403)
+    
+    from .models import SampleTestimonial
+    s = get_object_or_404(SampleTestimonial, id=sample_id)
+    s.delete()
+    return JsonResponse({'message': 'Deleted successfully.'})

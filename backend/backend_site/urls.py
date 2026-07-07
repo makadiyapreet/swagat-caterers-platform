@@ -45,7 +45,7 @@ urlpatterns = [
     path('contact/', views.contact, name='contact'),
     path('book-now/', views.book_now, name='book_now'),
     path("custom-menu/", views.custom_menu, name="custom_menu"),
-    path("index/", views.index, name="index"),
+    path("home/", views.index, name="index"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("registration-pending/", views.registration_pending, name="registration_pending"),
     path("login/", views.login_page, name="login"),
@@ -89,7 +89,34 @@ urlpatterns = [
     # Section 19: Login History Page
     path('login-history/', views.login_history_page, name='login_history_page'),
 
-    path('api/', include('catering.urls'))
+    # Section 23: Review System
+    path('review/<uuid:token>/', views.review_page, name='review_page'),
+    path('api/review/<uuid:token>/', views.submit_review, name='submit_review'),
+
+    # Section 24: WhatsApp URL Generator (server-side emoji encoding)
+    path('api/whatsapp/booking/<int:event_id>/', views.whatsapp_booking_url, name='whatsapp_booking_url'),
+    path('api/whatsapp/review/<int:event_id>/', views.whatsapp_review_url, name='whatsapp_review_url'),
+
+    # Section 25: Review Management (Admin)
+    path('reviews/', views.admin_reviews_page, name='admin_reviews_page'),
+    path('api/admin/reviews/', views.admin_reviews_list, name='admin_reviews_list'),
+    path('api/admin/reviews/<int:review_id>/toggle-featured/', views.toggle_review_featured, name='toggle_review_featured'),
+    path('api/admin/reviews/<int:review_id>/respond/', views.review_respond, name='review_respond'),
+    path('api/admin/reviews/<int:review_id>/delete/', views.delete_review, name='delete_review'),
+
+    # Section 26: Sample Testimonials CRUD
+    path('api/admin/samples/', views.sample_testimonials_list, name='sample_testimonials_list'),
+    path('api/admin/samples/create/', views.sample_testimonial_create, name='sample_testimonial_create'),
+    path('api/admin/samples/<int:sample_id>/update/', views.sample_testimonial_update, name='sample_testimonial_update'),
+    path('api/admin/samples/<int:sample_id>/delete/', views.sample_testimonial_delete, name='sample_testimonial_delete'),
+    
+    # Section 27: Database Backup Trigger
+    path('api/admin/backup/', views.trigger_backup, name='trigger_backup'),
+    path('api/admin/backups/', views.list_backups, name='list_backups'),
+    path('api/admin/backups/<str:filename>/download/', views.download_backup, name='download_backup'),
+    path('api/admin/backups/<str:filename>/delete/', views.delete_backup, name='delete_backup'),
+
+    path('api/', include('catering.urls')),
 ]
 urlpatterns += [
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),

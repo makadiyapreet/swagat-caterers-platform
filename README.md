@@ -106,8 +106,12 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | **Bill Generator** | Printable invoices with cost breakdown, GST, and professional formatting |
 | **Export System** | Export events and bookings as CSV/PDF with preview pages in light theme |
 | **Gallery Manager** | Upload, reorder, and delete gallery images with Cloudinary CDN |
+| **Review Management** | Full CRUD for testimonials, admin response system, and DB-driven homepage samples |
+| **Database Backups** | Automated and on-demand PostgreSQL/SQLite backups via `backup_db` command |
 | **Login History** | Track login sessions with IP, device, browser, and timestamp |
 | **User Management** | View all users, approve registrations via email, assign roles |
+| **WhatsApp Integration** | 📲 Admin-only buttons to send Booking Confirmations and ⭐ Review Requests directly to customers via `api.whatsapp.com` with auto-filled details |
+| **Optimized UI (Mobile)** | Event Details modal optimized with better scrolling, z-index, spacing, and bold contact info. Unused translation UI removed for a cleaner look |
 
 ### 👔 Manager Dashboard
 
@@ -458,11 +462,11 @@ Swagat_caterers/
 
 | Page | URL | Description |
 |------|-----|-------------|
-| Home | `/` | Landing page with hero, packages, testimonials, stats |
+| Home | `/home/` | Landing page with hero, packages, testimonials, stats |
 | Menu | `/menu/` | Interactive menu browser with category filtering |
 | About | `/about/` | Company story, team, and highlights |
 | Gallery | `/gallery/` | Event and food photo showcase |
-| Contact | `/contact/` | Contact form, WhatsApp, email, phone, map |
+| Contact | `/contact/` | Contact form, WhatsApp, email, phone (9428251083), map |
 | Book Now | `/book-now/` | Multi-step event booking form |
 | Calendar | `/calendar/` | Public availability calendar (supports `?date=` deep links) |
 | Menu Builder | `/customize-menu/` | Custom menu creation with live pricing |
@@ -483,6 +487,7 @@ Swagat_caterers/
 | My Tasks | `/my-tasks/` | All | View assigned tasks, update status |
 | View Menu | `/view-menu/` | Staff | Read-only menu in English & Gujarati |
 | Activity Review | `/activity-review/` | Admin | Manager action audit with deep links |
+| Review Management | `/reviews/` | Admin | Manage client testimonials and homepage samples |
 | Gallery Manager | `/dashboard/gallery/` | Admin | Upload and manage gallery images |
 | Login History | `/login-history/` | Admin | Session tracking and logout-all |
 | Export Events | `/export/events/preview/` | Admin | Preview and export events |
@@ -502,7 +507,7 @@ Swagat_caterers/
 | **Role Gating** | All dashboard sections use client-side `user.user_type` checks + server-side `@login_required` and `@permission_classes` |
 | **Password Hashing** | Django's PBKDF2 with SHA-256 (default) |
 | **HTTPS** | Enforced via Railway SSL |
-| **Session Security** | Login history tracking with IP, device, browser fingerprint |
+| **Session Security** | Login history tracking with IP, OS, device, custom User-Agent parser, and timestamp |
 
 ---
 
@@ -517,6 +522,8 @@ Powered by **Brevo (Sendinblue)** via `django-anymail`:
 | Booking submitted | Admin + User | Booking confirmation with event details |
 | Task assigned | Staff/Manager | Task details, deadline, and priority |
 | Contact form | Admin | Customer enquiry with details |
+| Review submitted | Admin | Client review with rating and text |
+| Database backup | Admin | Status of automated DB backups |
 
 ---
 

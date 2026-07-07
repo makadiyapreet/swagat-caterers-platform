@@ -284,6 +284,19 @@
             </a>
         </div>
 
+        <!-- Admin Tools: Reviews + Login History (Admin only) -->
+        <div class="bottom-actions" style="margin-top: 20px; grid-template-columns: 1fr 1fr 1fr;" id="admin-tools-row">
+            <a href="/reviews/" class="btn-big" style="background:linear-gradient(135deg,#D4AF37,#b8960c); color:#fff; border-bottom:5px solid #9a7e0a; text-align:center;">
+                ⭐ Review Management
+            </a>
+            <a href="/login-history/" class="btn-big" style="background:linear-gradient(135deg,#2c3e50,#1a252f); color:#D4AF37; border-bottom:5px solid #0d1318; text-align:center;">
+                🔐 Login History
+            </a>
+            <button onclick="openBackupModal()" class="btn-big" id="btn-backup-open" style="background:linear-gradient(135deg,#27ae60,#2ecc71); color:#fff; border:none; border-bottom:5px solid #1e8449; text-align:center; font-family:inherit; cursor:pointer;">
+                💾 DB Backups
+            </button>
+        </div>
+
         <!-- Task Assignment Section (Admin only) — Links to dedicated page -->
         <div id="task-section" style="margin-top:30px; display:none;">
             <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 15px rgba(0,0,0,0.06); border:1px solid #f0ece4;">
@@ -427,11 +440,127 @@
         </div>
     </div>
 
+    <!-- BACKUPS MODAL -->
+    <div id="backup-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">💾 Database Backups</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('backup-modal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px; text-align: right;">
+                    <button onclick="triggerBackup()" id="btn-create-backup" style="background:#27ae60; color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.9rem;">
+                        + Create New Backup
+                    </button>
+                </div>
+                
+                <div id="backup-list-container">
+                    <p style="text-align:center; padding:20px; color:#999;">Loading backups...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     // --- CONFIGURATION & GLOBALS ---
     const CREATE_MENU_URL = "{% url 'create_menu' %}";
     const PRINT_BILL_URL = "{% url 'print_bill' %}";
     const BOOKING_URL = "/dashboard/booking/";
+
+    function openBackupModal() {
+        document.getElementById('backup-modal').style.display = 'flex';
+        loadBackups();
+    }
+
+    async function loadBackups() {
+        const container = document.getElementById('backup-list-container');
+        try {
+            const res = await fetch('/api/admin/backups/', {
+                headers: { 'Authorization': `Token ${localStorage.getItem('authToken')}` }
+            });
+            const data = await res.json();
+            
+            if (!data.backups || data.backups.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No backups found.</p>';
+                return;
+            }
+            
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            data.backups.forEach((b, index) => {
+                const date = new Date(b.timestamp * 1000).toLocaleString('en-IN', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                });
+                html += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:8px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <div style="font-weight:600; color:#333; font-size:0.95rem;">
+                                <span style="color:#2980b9; margin-right:5px;">#${index + 1}</span> ${b.filename}
+                            </div>
+                            <div style="color:#666; font-size:0.75rem; margin-top:4px;">${date} &middot; ${b.size_mb} MB</div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <a href="/api/admin/backups/${b.filename}/download/" target="_blank" style="background:#2980b9; color:#fff; text-decoration:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600;">Download</a>
+                            <button onclick="deleteBackup('${b.filename}')" style="background:#e74c3c; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<p style="color:red; text-align:center;">Failed to load backups.</p>';
+        }
+    }
+
+    async function triggerBackup() {
+        const btn = document.getElementById('btn-create-backup');
+        const ogText = btn.innerHTML;
+        btn.innerHTML = '⏳ Backing up...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/admin/backup/', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Token ${localStorage.getItem('authToken')}`,
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadBackups();
+            } else {
+                alert('Backup failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Failed to connect to backup server.');
+        } finally {
+            btn.innerHTML = ogText;
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteBackup(filename) {
+        if (!confirm(`Are you sure you want to completely delete ${filename}?`)) return;
+        
+        try {
+            const res = await fetch(`/api/admin/backups/${filename}/delete/`, {
+                method: 'DELETE',
+                headers: { 
+                    'Authorization': `Token ${localStorage.getItem('authToken')}`,
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadBackups(); // reload the list
+            } else {
+                alert('Delete failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Failed to connect to server.');
+        }
+    }
 
     let currentDate = new Date();
     
@@ -668,8 +797,9 @@
                 document.querySelector('.btn-booking')?.style.setProperty('display', 'flex');
                 document.querySelector('.btn-quick-menu')?.style.setProperty('display', 'flex');
                 
-                // Hide: gallery, exports, task assignment
+                // Hide: gallery, exports, task assignment, admin tools
                 document.getElementById('upgrade-actions')?.style.setProperty('display', 'none');
+                document.getElementById('admin-tools-row')?.style.setProperty('display', 'none');
                 document.getElementById('task-section')?.style.setProperty('display', 'none');
                 
                 // Show manager's assigned tasks
@@ -688,6 +818,7 @@
                 // Hide ALL action buttons
                 document.querySelector('.bottom-actions')?.style.setProperty('display', 'none');
                 document.getElementById('upgrade-actions')?.style.setProperty('display', 'none');
+                document.getElementById('admin-tools-row')?.style.setProperty('display', 'none');
                 document.getElementById('task-section')?.style.setProperty('display', 'none');
                 
                 // Show staff task view
@@ -1294,7 +1425,21 @@
                             style="background:#ffebee; color:#c0392b; border:1px solid #ffcdd2;">
                             🗑️ Delete Event
                         </button>
-                    </div>`;
+                    </div>
+                    ${isAdmin ? `
+                    <div class="action-row">
+                        <button class="btn-modal"
+                            onclick="sendBookingWhatsApp(${JSON.stringify(event).replace(/"/g, '&quot;')})"
+                            style="background:#25D366; color:white;">
+                            📲 Send Booking Confirmation
+                        </button>
+                        <button class="btn-modal"
+                            onclick="sendReviewWhatsApp(${JSON.stringify(event).replace(/"/g, '&quot;')})"
+                            style="background:#1a1a1a; color:#D4AF37; border:1px solid #D4AF37;">
+                            ⭐ Send Review Request
+                        </button>
+                    </div>
+                    ` : ''}`;
         } else {
             // Manager does not see the action buttons (Wait, this else block needs to be removed because managers DO see it now!)
             // adminActions.style.display = 'none'; // REMOVED THIS LINE
@@ -1320,6 +1465,42 @@
             }
         } catch (e) { 
             alert("Network Error: Could not connect to server."); 
+        }
+    }
+
+    // --- WHATSAPP: SEND BOOKING CONFIRMATION (Admin Only) ---
+    async function sendBookingWhatsApp(event) {
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`/api/whatsapp/booking/${event.id}/`, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.open(data.url, '_blank');
+            } else {
+                alert(data.error || 'Could not generate WhatsApp link');
+            }
+        } catch(e) {
+            alert('Network error. Please try again.');
+        }
+    }
+
+    // --- WHATSAPP: SEND REVIEW REQUEST (Admin Only) ---
+    async function sendReviewWhatsApp(event) {
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`/api/whatsapp/review/${event.id}/`, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.open(data.url, '_blank');
+            } else {
+                alert(data.error || 'Could not generate WhatsApp link');
+            }
+        } catch(e) {
+            alert('Network error. Please try again.');
         }
     }
 
@@ -1902,6 +2083,9 @@
     document.getElementById('eventModal').addEventListener('click', function(e) {
         if (e.target === this) this.style.display = 'none';
     });
+    document.getElementById('backup-modal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
 
     // Hook: when event-details-content is updated, show our upgrade sections
     const observer = new MutationObserver(function() {
@@ -2281,7 +2465,7 @@
                     setTimeout(() => row.remove(), 300);
                 }
             } else {
-                alert(`❌ Error: ${data.error}`);
+                alert(`Error: ${data.error}`);
             }
         } catch(e) {
             console.error('deleteTeamUser error:', e);
@@ -2289,6 +2473,8 @@
         }
     }
 </script>
+
+
 
 <!-- Support Footer -->
 <footer style="background:linear-gradient(135deg,#1a1a1a,#111); padding:25px 30px; margin-top:40px; border-top:3px solid #D4AF37;">

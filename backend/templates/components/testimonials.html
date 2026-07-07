@@ -6,44 +6,49 @@
         
         <div class="row g-4 justify-content-center">
             
-            <div class="col-lg-4 col-md-6" data-aos="fade-up">
+            {% for sample in sample_testimonials %}
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ forloop.counter0 }}00">
                 <div class="card p-4 shadow-sm border-0 h-100">
                     <div class="mb-3 text-gold">
-                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= sample.rating %}
+                                <i class="bi bi-star-fill"></i>
+                            {% else %}
+                                <i class="bi bi-star" style="color: #ddd;"></i>
+                            {% endif %}
+                        {% endfor %}
                     </div>
-                    <p class="fst-italic text-muted">"We were really worried about the food for my daughter's engagement, but the team handled it perfectly. The **Sitafal Basundi** was the highlight. Guests are still calling to ask who the caterer was!"</p>
+                    <p class="fst-italic text-muted">"{{ sample.text }}"</p>
                     <div class="mt-auto pt-3">
-                        <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">Mrs. Shilpaben Shah</h5>
-                        <small class="text-muted">Mother of the Bride</small>
+                        <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">{{ sample.name }}</h5>
+                        <small class="text-muted">{{ sample.subtitle }}</small>
                     </div>
                 </div>
             </div>
+            {% endfor %}
 
-            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
-                <div class="card p-4 shadow-sm border-0 h-100">
+            {% for review in reviews %}
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:3 }}00">
+                <div class="card p-4 shadow-sm border-0 h-100" style="border-left: 4px solid #D4AF37 !important;">
                     <div class="mb-3 text-gold">
-                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= review.rating %}
+                                <i class="bi bi-star-fill"></i>
+                            {% else %}
+                                <i class="bi bi-star" style="color: #ddd;"></i>
+                            {% endif %}
+                        {% endfor %}
                     </div>
-                    <p class="fst-italic text-muted">"Managing a crowd of 1,200 people is not easy, but Swagat managed it effortlessly. The food was served hot until the very last guest ate. The **Live Jalebi Counter** was the star of the night!"</p>
+                    {% if review.review_text %}
+                    <p class="fst-italic text-muted">"{{ review.review_text }}"</p>
+                    {% endif %}
                     <div class="mt-auto pt-3">
-                        <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">Rohan Mehta</h5>
-                        <small class="text-muted">Groom (Wedding Reception)</small>
+                        <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">{{ review.reviewer_name }}</h5>
+                        <small class="text-muted">{{ review.event.event_type }} — {{ review.event.date|date:"M Y" }}</small>
                     </div>
                 </div>
             </div>
-
-            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-                <div class="card p-4 shadow-sm border-0 h-100">
-                    <div class="mb-3 text-gold">
-                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                    </div>
-                    <p class="fst-italic text-muted">"We came from the USA for my brother's wedding and wanted proper Desi food. Swagat made the best **Kathiyawadi Ringan Olo and Rotla**. The taste took us back to our childhood!"</p>
-                    <div class="mt-auto pt-3">
-                        <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">Keyur Desai</h5>
-                        <small class="text-muted">NRI Client (USA)</small>
-                    </div>
-                </div>
-            </div>
+            {% endfor %}
 
         </div>
     </div>

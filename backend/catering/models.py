@@ -174,6 +174,9 @@ class CateringEvent(models.Model):
     notes_updated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     is_approved = models.BooleanField(default=True)  # False = pending admin review (manager-created)
+    
+    # --- SECTION 23: Review System ---
+    review_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, help_text='Unique token for public review link')
 
     def __str__(self):
         return f"{self.title} ({self.date})"
@@ -522,3 +525,34 @@ class PdfLog(models.Model):
 
     def __str__(self):
         return f"PDF by {self.generated_by} on {self.generated_at}"
+
+# 19. REVIEW MODEL
+class Review(models.Model):
+    event = models.OneToOneField(CateringEvent, on_delete=models.CASCADE, related_name='review')
+    reviewer_name = models.CharField(max_length=100)
+    rating = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)], help_text='1-5 star rating')
+    review_text = models.TextField(blank=True, default='')
+    is_featured = models.BooleanField(default=False, help_text='Show on homepage')
+    admin_response = models.TextField(blank=True, default='', help_text='Admin reply to the review')
+    response_at = models.DateTimeField(null=True, blank=True)
+    email_notified = models.BooleanField(default=False, help_text='Admin was emailed about this review')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.reviewer_name} - {self.rating}★ for {self.event.title}"
+
+
+class SampleTestimonial(models.Model):
+    """Admin-created sample testimonials shown on homepage."""
+    name = models.CharField(max_length=100)
+    text = models.TextField()
+    subtitle = models.CharField(max_length=150, help_text='e.g. Mother of the Bride, NRI Client')
+    rating = models.IntegerField(default=5, choices=[(i, str(i)) for i in range(1, 6)])
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.name} - {self.rating}★ (Sample)"

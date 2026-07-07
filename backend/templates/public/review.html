@@ -1,0 +1,472 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review — Swagat Caterers</title>
+    <link rel="icon" href="{% static 'images/logo/favicon.png' %}" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'images/logo/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --gold-dark: #aa8c2c;
+            --bg: #faf9f6;
+            --text: #2c3e50;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .review-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 4px solid var(--gold);
+        }
+
+        .review-header img {
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .review-header h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--gold);
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .review-header p {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        /* Container */
+        .review-container {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 25px 20px 40px;
+        }
+
+        /* Event Info Card */
+        .event-card {
+            background: white;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border-left: 5px solid var(--gold);
+            margin-bottom: 25px;
+        }
+
+        .event-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .event-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #666;
+            background: #f8f8f8;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        /* Rating Section */
+        .review-form-card {
+            background: white;
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+
+        .form-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .form-subtitle {
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--gold);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Star Rating */
+        .star-rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 15px 0 25px;
+        }
+
+        .star-btn {
+            background: none;
+            border: none;
+            font-size: 40px;
+            cursor: pointer;
+            color: #ddd;
+            transition: all 0.2s ease;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .star-btn:hover,
+        .star-btn.active {
+            color: var(--gold);
+            transform: scale(1.15);
+        }
+
+        .star-btn.active {
+            text-shadow: 0 2px 10px rgba(212,175,55,0.4);
+        }
+
+        .rating-label {
+            text-align: center;
+            font-size: 14px;
+            color: var(--gold-dark);
+            font-weight: 600;
+            min-height: 20px;
+            margin-bottom: 10px;
+        }
+
+        /* Submit Button */
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(212,175,55,0.3);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212,175,55,0.4);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Thank You State */
+        .thank-you {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .thank-you-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .thank-you h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: var(--gold-dark);
+            margin-bottom: 10px;
+        }
+
+        .thank-you p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .stars-display {
+            color: var(--gold);
+            font-size: 28px;
+            letter-spacing: 4px;
+            margin: 15px 0;
+        }
+
+        /* Footer */
+        .review-footer {
+            text-align: center;
+            padding: 20px;
+            color: #bbb;
+            font-size: 12px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 480px) {
+            .review-header h1 { font-size: 20px; }
+            .star-btn { font-size: 34px; }
+            .review-container { padding: 20px 15px 40px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="review-header">
+        <img src="{% static 'images/logo/logo.png' %}" alt="Swagat Caterers">
+        <h1>Swagat Caterers</h1>
+        <p>Premium Catering Services, Rajkot</p>
+    </div>
+
+    <div class="review-container">
+        <!-- Event Info -->
+        <div class="event-card">
+            <h3>{{ event.title }}</h3>
+            <div class="event-meta">
+                <div class="event-meta-item">📅 {{ event.date|date:"d M Y" }}</div>
+                <div class="event-meta-item">🎊 {{ event.event_type }}</div>
+                {% if event.venue and event.venue != "Not Specified" %}
+                <div class="event-meta-item">📍 {{ event.venue }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if existing_review %}
+        <!-- Already Reviewed -->
+        <div class="review-form-card">
+            <div class="thank-you">
+                <div class="thank-you-icon">🙏</div>
+                <h2>Thank You!</h2>
+                <div class="stars-display">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= existing_review.rating %}★{% else %}☆{% endif %}
+                    {% endfor %}
+                </div>
+                <p><strong>{{ existing_review.reviewer_name }}</strong></p>
+                {% if existing_review.review_text %}
+                <p style="margin-top:10px; font-style:italic; color:#888;">"{{ existing_review.review_text }}"</p>
+                {% endif %}
+                <p style="margin-top:15px; color:#aaa; font-size:13px;">Your review has been submitted. We truly appreciate your feedback!</p>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Review Form -->
+        <div class="review-form-card" id="review-form-card">
+            <h3 class="form-title">How was your experience?</h3>
+            <p class="form-subtitle">Your feedback helps us serve better 🙏</p>
+
+            <label style="display:block; text-align:center; font-weight:600; font-size:13px; color:#555; text-transform:uppercase; letter-spacing:0.5px;">Tap to Rate</label>
+            <div class="star-rating" id="star-rating">
+                <button type="button" class="star-btn" data-value="1">☆</button>
+                <button type="button" class="star-btn" data-value="2">☆</button>
+                <button type="button" class="star-btn" data-value="3">☆</button>
+                <button type="button" class="star-btn" data-value="4">☆</button>
+                <button type="button" class="star-btn" data-value="5">☆</button>
+            </div>
+            <div class="rating-label" id="rating-label"></div>
+
+            <div class="form-group">
+                <label>Your Name</label>
+                <input type="text" id="reviewer-name" placeholder="e.g. Rahul Patel" required>
+            </div>
+
+            <div class="form-group">
+                <label>Your Experience (Optional)</label>
+                <textarea id="review-text" placeholder="Tell us what you loved about the food and service..."></textarea>
+            </div>
+
+            <button class="btn-submit" id="btn-submit" onclick="submitReview()" disabled>
+                Submit Review
+            </button>
+        </div>
+
+        <!-- Thank You (hidden, shown after submit) -->
+        <div class="review-form-card" id="thank-you-card" style="display:none;">
+            <div class="thank-you">
+                <div class="thank-you-icon">🎉</div>
+                <h2>Thank You!</h2>
+                <div class="stars-display" id="thank-you-stars"></div>
+                <p>Your review means a lot to us!</p>
+                <p style="margin-top:15px; color:#999; font-size:13px;">— Team Swagat Caterers</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="review-footer">
+        © Swagat Caterers • Premium Catering Services, Rajkot
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    {% if not existing_review %}
+    <script>
+        let selectedRating = 0;
+        const ratingLabels = ['', 'Poor 😞', 'Fair 😐', 'Good 🙂', 'Very Good 😊', 'Excellent 🤩'];
+        const stars = document.querySelectorAll('.star-btn');
+        const ratingLabel = document.getElementById('rating-label');
+        const submitBtn = document.getElementById('btn-submit');
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                selectedRating = parseInt(star.dataset.value);
+                updateStars();
+            });
+            star.addEventListener('mouseenter', () => {
+                highlightStars(parseInt(star.dataset.value));
+            });
+        });
+
+        document.getElementById('star-rating').addEventListener('mouseleave', () => {
+            highlightStars(selectedRating);
+        });
+
+        function highlightStars(count) {
+            stars.forEach((s, i) => {
+                if (i < count) {
+                    s.textContent = '★';
+                    s.classList.add('active');
+                } else {
+                    s.textContent = '☆';
+                    s.classList.remove('active');
+                }
+            });
+        }
+
+        function updateStars() {
+            highlightStars(selectedRating);
+            ratingLabel.textContent = ratingLabels[selectedRating] || '';
+            submitBtn.disabled = selectedRating === 0;
+        }
+
+        function showToast(msg, isError = true) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? '#e74c3c' : '#27ae60';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        async function submitReview() {
+            const name = document.getElementById('reviewer-name').value.trim();
+            const text = document.getElementById('review-text').value.trim();
+
+            if (!name) {
+                showToast('Please enter your name');
+                return;
+            }
+            if (selectedRating === 0) {
+                showToast('Please select a rating');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                const res = await fetch('/api/review/{{ token }}/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reviewer_name: name,
+                        rating: selectedRating,
+                        review_text: text
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Show thank you
+                    document.getElementById('review-form-card').style.display = 'none';
+                    const tyCard = document.getElementById('thank-you-card');
+                    tyCard.style.display = 'block';
+                    document.getElementById('thank-you-stars').textContent = '★'.repeat(selectedRating) + '☆'.repeat(5 - selectedRating);
+                } else {
+                    showToast(data.error || 'Something went wrong');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Review';
+                }
+            } catch(e) {
+                showToast('Network error. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Review';
+            }
+        }
+    </script>
+    {% endif %}
+
+</body>
+</html>
