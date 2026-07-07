@@ -1874,7 +1874,7 @@ def sample_testimonial_create(request):
         return JsonResponse({'error': 'Admin only'}, status=403)
     
     from .models import SampleTestimonial
-    data = json.loads(request.body)
+    data = request.data
     s = SampleTestimonial.objects.create(
         name=data.get('name', '').strip(),
         text=data.get('text', '').strip(),
@@ -1894,7 +1894,7 @@ def sample_testimonial_update(request, sample_id):
     
     from .models import SampleTestimonial
     s = get_object_or_404(SampleTestimonial, id=sample_id)
-    data = json.loads(request.body)
+    data = request.data
     
     if 'name' in data: s.name = data['name'].strip()
     if 'text' in data: s.text = data['text'].strip()
