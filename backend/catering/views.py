@@ -1591,7 +1591,7 @@ Our team will make your {event_type.lower()} truly special! ✨
 📞 *+91 94282 51083*
 🌐 *swagatcaterers.in*
 
-🙏 _Thank you for choosing Swagat!_"""
+🙏 _Thank you for choosing Swagat Caterers!_"""
 
     whatsapp_url = (
         f"https://api.whatsapp.com/send"
