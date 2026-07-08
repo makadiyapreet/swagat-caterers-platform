@@ -617,6 +617,17 @@
         return yyyy_mm_dd;
     }
 
+    function formatGuestCount(menus, defaultGuests) {
+        if (!menus || menus.length === 0) return defaultGuests || 0;
+        if (menus.length === 1) return menus[0].guest_count || 0;
+        let guestsStrs = [];
+        menus.forEach(m => {
+            let titleShort = m.title ? m.title.split(' ')[0] : 'Menu';
+            guestsStrs.push(`${m.guest_count || 0} (${titleShort})`);
+        });
+        return guestsStrs.join(' + ');
+    }
+
     // --- AUTH: LOGOUT ---
     function logoutUser() {
         localStorage.clear();
@@ -1231,7 +1242,7 @@
                     <div class="reminder-date"><span class="date-num">${new Date(e.date).getDate()}</span></div>
                     <div>
                         <strong>${e.title}</strong>${pendingBadge}<br>
-                        <small>${formatDateDisplay(e.date)} | ${e.guests} Guests</small>
+                        <small>${formatDateDisplay(e.date)} | ${formatGuestCount(e.menus, e.guests)} Guests</small>
                     </div>
                 </div>`;
         });
@@ -1302,7 +1313,7 @@
         listContainer.style.display = 'flex';
         let html = '';
         events.forEach(e => {
-            html += `<div class="event-select-item" onclick="handleDateClick(null, ${e.id})"><div><div class="event-select-title">${e.title}</div><div class="event-select-meta">${formatDateDisplay(e.date)} | ${e.guests} Guests</div></div><div style="font-size:20px; color:#aaa;">›</div></div>`;
+            html += `<div class="event-select-item" onclick="handleDateClick(null, ${e.id})"><div><div class="event-select-title">${e.title}</div><div class="event-select-meta">${formatDateDisplay(e.date)} | ${formatGuestCount(e.menus, e.guests)} Guests</div></div><div style="font-size:20px; color:#aaa;">›</div></div>`;
         });
         listContainer.innerHTML = html;
         document.getElementById('eventModal').style.display = 'flex';
@@ -1323,6 +1334,7 @@
             venue_gu: ev.venue_gu || '',
             date: ev.date,
             guests: ev.guests,
+            menus: ev.menus,
             contact: ev.contact_number || ''
         };
         downloadMenuPDF(menuId, lang, eventData, isPreview);
@@ -1409,6 +1421,24 @@
                 menuListHtml += `<tr><td style="padding:6px; border-bottom:1px solid #eee;"><strong>${m.title}</strong>${priceDisplay}${createdByDisplay}</td><td style="padding:6px; border-bottom:1px solid #eee; text-align:right;">${actionsHtml}</td></tr>`;
             });
             menuListHtml += `</table>`;
+
+            if (event.menus.length > 1) {
+                if (isAdmin) {
+                    menuListHtml += `
+                    <div style="margin-top: 10px; text-align: center; border-top: 1px solid #eee; padding-top: 10px;">
+                        <span style="font-size:12px; color:#666; display:block; margin-bottom:5px;">Download Combined (All Menus)</span>
+                        <button class="btn-dl" style="padding: 6px 12px;" onclick="_pdfDownload('all', 'en', false)">⬇ ENG</button>
+                        <button class="btn-dl" style="padding: 6px 12px;" onclick="_pdfDownload('all', 'gu', false)">⬇ GUJ</button>
+                    </div>`;
+                } else if (isManager) {
+                    menuListHtml += `
+                    <div style="margin-top: 10px; text-align: center; border-top: 1px solid #eee; padding-top: 10px;">
+                        <span style="font-size:12px; color:#666; display:block; margin-bottom:5px;">Download Combined (All Menus)</span>
+                        <button class="btn-dl" style="padding: 6px 12px; background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="_pdfDownload('all', 'en', false)">⬇ ENG</button>
+                        <button class="btn-dl" style="padding: 6px 12px; background:#e8f5e9; border-color:#4caf50; color:#2e7d32;" onclick="_pdfDownload('all', 'gu', false)">⬇ GUJ</button>
+                    </div>`;
+                }
+            }
         }
 
         // Feature 1: Multiple Dates display
@@ -1441,7 +1471,7 @@
             <div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${dateDisplay}</span></div>
             <div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${displayVenue}</span></div>
             <div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div>
-            <div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div>
+            <div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${formatGuestCount(event.menus, event.guests)}</span></div>
             <div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div>
             ${advanceHtml}
             ${paidHtml}
@@ -1861,36 +1891,78 @@
             return;
         }
 
-        const res = await fetch(`/api/menu/menus/${menuId}/`, { 
-            headers: { 
-                'Authorization': `Token ${token}`, 
-                'X-CSRFToken': getCookie('csrftoken') 
-            } 
-        });
+        let menusToProcess = [];
         
-        if(!res.ok) throw new Error("Could not fetch menu items");
-        const menu = await res.json();
-
-        // Parse custom items
-        let customItemsMap = {};
-        if (menu.custom_items_text) {
-            try {
-                const parsed = JSON.parse(menu.custom_items_text);
-                if (Array.isArray(parsed)) {
-                    parsed.forEach(ci => {
-                        const cid = String(ci.categoryId);
-                        if (!customItemsMap[cid]) customItemsMap[cid] = [];
-                        customItemsMap[cid].push(ci.name);
-                    });
-                } else if (typeof parsed === 'object') {
-                    Object.keys(parsed).forEach(cid => {
-                        customItemsMap[String(cid)] = parsed[cid];
-                    });
-                }
-            } catch(e) { console.log('Could not parse custom_items_text for PDF:', e); }
+        if (menuId === 'all') {
+            if (!eventData.menus || eventData.menus.length === 0) {
+                alert("No menus found to download.");
+                if(btn && btn.tagName === 'BUTTON') { btn.innerText = originalText; btn.disabled = false; }
+                return;
+            }
+            menusToProcess = eventData.menus;
+        } else {
+            const res = await fetch(`/api/menu/menus/${menuId}/`, { 
+                headers: { 
+                    'Authorization': `Token ${token}`, 
+                    'X-CSRFToken': getCookie('csrftoken') 
+                } 
+            });
+            
+            if(!res.ok) throw new Error("Could not fetch menu items");
+            menusToProcess = [await res.json()];
         }
+        
+        let menuDataArray = [];
+        
+        for (let menu of menusToProcess) {
+            // Parse custom items
+            let customItemsMap = {};
+            if (menu.custom_items_text) {
+                try {
+                    const parsed = JSON.parse(menu.custom_items_text);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach(ci => {
+                            const cid = String(ci.categoryId);
+                            if (!customItemsMap[cid]) customItemsMap[cid] = [];
+                            customItemsMap[cid].push(ci.name);
+                        });
+                    } else if (typeof parsed === 'object') {
+                        Object.keys(parsed).forEach(cid => {
+                            customItemsMap[String(cid)] = parsed[cid];
+                        });
+                    }
+                } catch(e) { console.log('Could not parse custom_items_text for PDF:', e); }
+            }
 
-        const menuItems = allItems.filter(i => menu.items.includes(i.id));
+            const menuItems = allItems.filter(i => menu.items.includes(i.id));
+
+            // Build menu groups
+            const menuGroups = [];
+            for (let cat of categories) {
+                const itemsInCat = menuItems.filter(item => item.category == cat.id);
+                const custLines = customItemsMap[String(cat.id)] || [];
+                if (itemsInCat.length === 0 && custLines.length === 0) continue;
+                const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
+                const items = [
+                    ...itemsInCat.map(item => (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name),
+                    ...custLines.map(l => String(l))
+                ];
+                menuGroups.push({ catName, items });
+            }
+
+            let isUserAdmin = (typeof isAdmin !== 'undefined') ? isAdmin : false;
+            let priceDisplay = isUserAdmin ? (menu.price_per_plate || "0") : "**";
+            
+            // Fix single menu guest count: specifically for this menu
+            let specificGuests = menu.guest_count !== undefined && menu.guest_count !== null ? menu.guest_count : (eventData.guests || 0);
+
+            menuDataArray.push({
+                menu,
+                menuGroups,
+                priceDisplay,
+                eventGuests: specificGuests
+            });
+        }
 
         // Resolve event info per language — print as saved
         // Gujarati PDF: use Gujarati title/venue if saved, else fall back to English
@@ -1900,27 +1972,10 @@
         const enTitle = eventData.title || eventData.title_gu;
         const enVenue = eventData.venue || eventData.venue_gu;
 
-        // Build menu groups
-        const menuGroups = [];
-        for (let cat of categories) {
-            const itemsInCat = menuItems.filter(item => item.category == cat.id);
-            const custLines = customItemsMap[String(cat.id)] || [];
-            if (itemsInCat.length === 0 && custLines.length === 0) continue;
-            const catName = (lang === 'gu' && cat.gujarati_name) ? cat.gujarati_name : cat.name;
-            const items = [
-                ...itemsInCat.map(item => (lang === 'gu' && item.gujarati_name) ? item.gujarati_name : item.name),
-                ...custLines.map(l => String(l))
-            ];
-            menuGroups.push({ catName, items });
-        }
-
-        let isUserAdmin = (typeof isAdmin !== 'undefined') ? isAdmin : false;
-        let priceDisplay = isUserAdmin ? (menu.price_per_plate || "0") : "**";
-
         if (lang === 'gu') {
-            await dashboardGujaratiPDF(guTitle, eventData.date, eventData.guests, guVenue, eventData.contact, menu, menuGroups, priceDisplay, isPreview, enTitle, guTitle);
+            await dashboardGujaratiPDF(guTitle, eventData.date, guVenue, eventData.contact, menuDataArray, isPreview, enTitle, guTitle);
         } else {
-            await dashboardEnglishPDF(enTitle, eventData.date, eventData.guests, enVenue, eventData.contact, menu, menuGroups, priceDisplay, isPreview, lang, enTitle, guTitle);
+            await dashboardEnglishPDF(enTitle, eventData.date, enVenue, eventData.contact, menuDataArray, isPreview, lang, enTitle, guTitle);
         }
 
     } catch(e) { 
@@ -1935,12 +1990,11 @@
 }
 
     // --- DASHBOARD GUJARATI PDF: MULTI-PAGE SUPPORT ---
-    async function dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, enTitle, guTitle) {
+    async function dashboardGujaratiPDF(eventTitle, eventDate, eventVenue, eventContact, menuDataArray, isPreview, enTitle, guTitle) {
         const bgUrl = '{% static "images/background.png" %}';
         const coverUrl = '{% static "images/cover.png" %}';
         const backUrl = '{% static "images/last.png" %}';
         const fontFamily = "'Noto Sans Gujarati', sans-serif";
-        const noteText = menu.note;
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -2012,8 +2066,13 @@
             await capturePageDiv(coverDiv);
         }
 
-        // --- Build all category blocks ---
-        const allBlocks = [];
+        // Loop through each menu in the array
+        for (let mIdx = 0; mIdx < menuDataArray.length; mIdx++) {
+            const { menu, menuGroups, priceDisplay, eventGuests } = menuDataArray[mIdx];
+            const noteText = menu.note;
+
+            // --- Build all category blocks ---
+            const allBlocks = [];
         menuGroups.forEach(group => {
             const catDiv = document.createElement('div');
             catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
@@ -2149,6 +2208,7 @@
 
             await capturePageDiv(pageDiv);
         }
+        } // End of menuDataArray loop
 
         // Back cover
         if (!isPreview) {
@@ -2166,12 +2226,11 @@
     }
 
     // --- DASHBOARD ENGLISH PDF: MULTI-PAGE SUPPORT ---
-    async function dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang, enTitle, guTitle) {
+    async function dashboardEnglishPDF(eventTitle, eventDate, eventVenue, eventContact, menuDataArray, isPreview, lang, enTitle, guTitle) {
         const bgUrl = '{% static "images/background.png" %}';
         const coverUrl = '{% static "images/cover.png" %}';
         const backUrl = '{% static "images/last.png" %}';
         const fontFamily = "'Noto Sans Gujarati', 'Segoe UI', Helvetica, sans-serif";
-        const noteText = menu.note;
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -2243,8 +2302,13 @@
             await capturePageDiv(coverDiv);
         }
 
-        // --- Build all category blocks ---
-        const allBlocks = [];
+        // Loop through each menu in the array
+        for (let mIdx = 0; mIdx < menuDataArray.length; mIdx++) {
+            const { menu, menuGroups, priceDisplay, eventGuests } = menuDataArray[mIdx];
+            const noteText = menu.note;
+
+            // --- Build all category blocks ---
+            const allBlocks = [];
         menuGroups.forEach(group => {
             const catDiv = document.createElement('div');
             catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
@@ -2380,6 +2444,7 @@
 
             await capturePageDiv(pageDiv);
         }
+        } // End of menuDataArray loop
 
         // Back cover
         if (!isPreview) {

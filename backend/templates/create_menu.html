@@ -575,6 +575,7 @@
                 currentMenuId = null; selectedIds.clear();
                 document.getElementById('menu-title').value = "Lunch"; 
                 document.getElementById('menu-note').value = ""; 
+                document.getElementById('ev-guests').value = ""; 
                 if(isAdmin) document.getElementById('menu-price').value = "";
                 saveBtn.innerText = "💾 Save Menu"; saveBtn.className = "btn-action btn-save";
             } else {
@@ -585,6 +586,7 @@
                     menuToEdit.items.forEach(id => selectedIds.add(id));
                     document.getElementById('menu-title').value = menuToEdit.title;
                     document.getElementById('menu-note').value = menuToEdit.note || "";
+                    document.getElementById('ev-guests').value = menuToEdit.guest_count || 0;
                     if(isAdmin) document.getElementById('menu-price').value = menuToEdit.price_per_plate;
                     // Restore custom items from saved JSON
                     if (menuToEdit.custom_items_text) {
@@ -681,7 +683,8 @@
             const note = document.getElementById('menu-note').value;
             if(!title) return alert("Please select Menu Name");
             if(selectedIds.size === 0 && customItems.length === 0) return alert("Select at least one item.");
-            const payload = { event: eventId, title: title, price_per_plate: price || 0, items: Array.from(selectedIds), custom_items_text: JSON.stringify(customItems), note: note, created_by: window.currentUsername || '' };
+            const guestCount = parseInt(document.getElementById('ev-guests').value) || 0;
+            const payload = { event: eventId, title: title, guest_count: guestCount, price_per_plate: price || 0, items: Array.from(selectedIds), custom_items_text: JSON.stringify(customItems), note: note, created_by: window.currentUsername || '' };
             try {
                 let url = '/api/menu/menus/'; let method = 'POST';
                 if (currentMenuId) { url = `/api/menu/menus/${currentMenuId}/`; method = 'PATCH'; }

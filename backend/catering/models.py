@@ -121,7 +121,7 @@ class CateringEvent(models.Model):
     contact_number = models.CharField(max_length=15, blank=True, null=True)
     
     date = models.DateField()
-    guests = models.IntegerField()
+    guests = models.IntegerField(default=0)
     event_type = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     event_city = models.CharField(max_length=100, blank=True, default='')
@@ -154,13 +154,16 @@ class CateringEvent(models.Model):
     
     @property
     def total_cost(self):
-        """Calculates Total Bill: Guests * Rate"""
+        """Calculates Total Bill from Menus (or fallback to Guests * Rate)"""
+        menus = self.menus.all()
+        if menus.exists():
+            return sum(menu.guest_count * menu.price_per_plate for menu in menus)
         return self.guests * self.rate
 
     @property
     def pending_amount(self):
         """Calculates Pending: Total Cost + Misc - Advance"""
-        return (self.guests * self.rate) + self.miscellaneous_amount - self.advance_amount
+        return self.total_cost + self.miscellaneous_amount - self.advance_amount
 
     @property
     def is_settled(self):
@@ -203,6 +206,7 @@ class EventDate(models.Model):
 class Menu(models.Model):
     event = models.ForeignKey(CateringEvent, on_delete=models.CASCADE, related_name='menus')
     title = models.CharField(max_length=100) 
+    guest_count = models.IntegerField(default=0)
     price_per_plate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     items = models.ManyToManyField(Menu_item, blank=True)
     custom_items_text = models.TextField(blank=True, default='')  # JSON array of custom items [{name, categoryId}]

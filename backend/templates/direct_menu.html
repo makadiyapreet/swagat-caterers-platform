@@ -181,9 +181,15 @@
             </div>
 
             <div class="client-inputs" id="linked-inputs" style="display:none; background: #fffcf5; border: 1px solid #ffe082; padding: 15px; border-radius: 8px;">
-                <div style="font-size: 15px; color: #555; width: 100%;">
-                    <strong style="color:#aa8c2c">Booking:</strong> <span id="linked-name" style="font-weight:bold; color:#000;">-</span> | 
-                    <span id="linked-date">-</span> | <span id="linked-guests">-</span> Guests
+                <div style="font-size: 15px; color: #555; width: 100%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <strong style="color:#aa8c2c">Booking:</strong> <span id="linked-name" style="font-weight:bold; color:#000;">-</span> | 
+                        <span id="linked-date">-</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <label style="font-size:12px; font-weight:bold; color:#555; text-transform:uppercase;">Menu Guests</label>
+                        <input type="number" id="linked-guest-count" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="0">
+                    </div>
                 </div>
             </div>
         </div>
@@ -345,8 +351,9 @@
                 currentEventData = await res.json();
                 
                 document.getElementById('linked-name').innerText = currentEventData.title;
-                document.getElementById('linked-date').innerText = currentEventData.date;
-                document.getElementById('linked-guests').innerText = currentEventData.guests;
+                document.getElementById('linked-date').innerText = formatDate(currentEventData.date);
+                // default to 0 if creating a new menu in linked mode
+                document.getElementById('linked-guest-count').value = ""; 
                 document.getElementById('page-title').innerText = "Manage Menu";
                 document.getElementById('page-subtitle').innerText = `Editing menu for: ${currentEventData.title}`;
 
@@ -370,6 +377,7 @@
                     selectedItems.add(parseInt(id));
                 });
                 
+                if (menu.guest_count) document.getElementById('linked-guest-count').value = menu.guest_count;
                 if(menu.note) document.getElementById('menu-note').value = menu.note;
                 
                 // Restore custom items from saved JSON into category textareas
@@ -584,7 +592,7 @@
             if (eventId) {
                 clientName = currentEventData.title;
                 eventDate = currentEventData.date;
-                guests = currentEventData.guests;
+                guests = document.getElementById('linked-guest-count').value || currentEventData.guests || 0;
                 venue = currentEventData.venue;
                 phone = currentEventData.contact_number;
             } else {
@@ -680,11 +688,6 @@
                 blockHeights.push(measureSingle.scrollHeight + 12);
             }
             document.body.removeChild(measureSingle);
-
-            // --- Split blocks into pages by simulating 2 columns ---
-            const HEADER_HEIGHT = 260;
-            const PAGE_CONTENT_HEIGHT = 680;
-            const CONTINUATION_TOP = 155;
 
             // --- Split blocks ---
             const PAGE_CONTENT_HEIGHT = 650; // Reduced to leave room for note
@@ -842,9 +845,11 @@
                 }
             });
             
+            const guestCount = eventId ? (parseInt(document.getElementById('linked-guest-count').value) || 0) : (parseInt(document.getElementById('guest-count').value) || 0);
             const payload = {
                 event: eventId,
                 title: "Menu " + new Date().toLocaleDateString(),
+                guest_count: guestCount,
                 items: Array.from(selectedItems),
                 note: document.getElementById('menu-note').value,
                 custom_items_text: JSON.stringify(customItemsData),

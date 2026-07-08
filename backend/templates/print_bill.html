@@ -823,11 +823,11 @@
                 eventObj.menus.forEach(menu => {
                     const price = parseFloat(menu.price_per_plate) || 0;
                     const description = `${menu.title} - ${dateStr}`;
-                    addRow(description, price, eventObj.guests);
+                    addRow(description, price, menu.guest_count || 0);
                 });
             } else {
                 const description = `${eventObj.event_type || 'Catering Service'} - ${dateStr}`;
-                addRow(description, eventObj.rate || 0, eventObj.guests);
+                addRow(description, eventObj.rate || 0, eventObj.guests || 0);
             }
 
             // Include extra dates as their own row
@@ -835,7 +835,7 @@
                 eventObj.extra_dates.forEach(extra => {
                     const extraDateStr = formatDate(extra.date);
                     const label = extra.label ? ` (${extra.label})` : '';
-                    addRow(`${eventObj.event_type || 'Catering Service'} - ${extraDateStr}${label}`, eventObj.rate || 0, eventObj.guests);
+                    addRow(`${eventObj.event_type || 'Catering Service'} - ${extraDateStr}${label}`, eventObj.rate || 0, eventObj.guests || 0);
                 });
             }
         }
