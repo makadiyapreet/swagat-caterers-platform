@@ -1680,7 +1680,7 @@
         if (!confirm('Are you sure you want to delete this incoming request?')) return;
         try {
             const token = localStorage.getItem('authToken');
-            const res = await fetch(`/api/admin/bookings/${id}/`, {
+            const res = await fetch(`/api/admin/bookings/${id}/delete/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }
             });
