@@ -103,7 +103,8 @@ All code, designs, and intellectual property are owned exclusively by **Preet Ma
 | **Notes System** | Internal notes with role-based visibility — auto-deleted after 60 days, CSV download for admins |
 | **Activity Logs** | Audit trail for manager actions with deep links to Calendar or Booking entries for quick review and approval |
 | **Staff Tracker** | Track staff members, daily wages, advances, settlements, and generate financial graphs |
-| **Bill Generator** | Printable invoices with cost breakdown, GST, and professional formatting |
+| **Bill Generator** | Advanced A4 invoice generation with responsive premium layouts, real-time total recalculations, and high-fidelity PDF exports via html2canvas |
+| **Multi-Event Billing** | Merge multiple events (e.g., Sangeet + Wedding) into a single unified client invoice with intelligent contact matching and highlighting |
 | **Export System** | Export events and bookings as CSV/PDF with preview pages in light theme |
 | **Gallery Manager** | Upload, reorder, and delete gallery images with Cloudinary CDN |
 | **Review Management** | Full CRUD for testimonials, admin response system, and DB-driven homepage samples |

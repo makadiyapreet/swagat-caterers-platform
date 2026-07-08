@@ -1916,3 +1916,138 @@ def sample_testimonial_delete(request, sample_id):
     s = get_object_or_404(SampleTestimonial, id=sample_id)
     s.delete()
     return JsonResponse({'message': 'Deleted successfully.'})
+
+
+# =========================================
+# FEATURE 1: Multiple Dates per Event (Admin Only)
+# =========================================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def event_dates_api(request, event_id):
+    """Manage additional dates for an event. Admin only."""
+    from .models import EventDate
+    from .serializers import EventDateSerializer
+    
+    event = get_object_or_404(CateringEvent, id=event_id)
+    
+    if request.method == 'GET':
+        dates = EventDate.objects.filter(event=event)
+        serializer = EventDateSerializer(dates, many=True)
+        return Response(serializer.data)
+    
+    if request.method == 'POST':
+        # Admin only for adding dates
+        if getattr(request.user, 'user_type', '') != 'admin':
+            return Response({'error': 'Admin only'}, status=403)
+        
+        data = request.data.copy()
+        data['event'] = event_id
+        serializer = EventDateSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def event_date_delete(request, event_id, date_id):
+    """Delete an additional date from an event. Admin only."""
+    from .models import EventDate
+    
+    if getattr(request.user, 'user_type', '') != 'admin':
+        return Response({'error': 'Admin only'}, status=403)
+    
+    date_obj = get_object_or_404(EventDate, id=date_id, event_id=event_id)
+    date_obj.delete()
+    return Response({'message': 'Date removed successfully.'})
+
+
+# =========================================
+# FEATURE 3: Public Bookings Management (Admin Only)
+# =========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_bookings_list(request):
+    """List all public bookings from the Book Now page. Admin only."""
+    from .serializers import BookingSerializer
+    
+    if getattr(request.user, 'user_type', '') != 'admin':
+        return Response({'error': 'Admin only'}, status=403)
+    
+    bookings = Booking.objects.all().order_by('-created_at')
+    serializer = BookingSerializer(bookings, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_booking_accept(request, booking_id):
+    """Accept a public booking → creates a CateringEvent from it. Admin only."""
+    if getattr(request.user, 'user_type', '') != 'admin':
+        return Response({'error': 'Admin only'}, status=403)
+    
+    booking = get_object_or_404(Booking, id=booking_id)
+    
+    # Create a CateringEvent from the booking data
+    event = CateringEvent.objects.create(
+        title=booking.name,
+        title_gu=booking.name_gu or '',
+        venue=booking.venue or 'Not Specified',
+        venue_gu=booking.venue_gu or '',
+        contact_number=booking.phone,
+        date=booking.event_date,
+        guests=booking.guest_count,
+        event_type=booking.event_type or 'General',
+        description=f"Package: {booking.package_type or '-'}\nMeal Time: {booking.meal_time or '-'}\nMessage: {booking.message or '-'}",
+        status='confirmed',
+        is_approved=True,
+    )
+    
+    # Delete the booking after converting
+    booking.delete()
+    
+    return Response({
+        'message': f'Booking accepted. Event #{event.id} created.',
+        'event_id': event.id
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_booking_delete(request, booking_id):
+    """Delete/dismiss a public booking. Admin only."""
+    if getattr(request.user, 'user_type', '') != 'admin':
+        return Response({'error': 'Admin only'}, status=403)
+    
+    booking = get_object_or_404(Booking, id=booking_id)
+    booking.delete()
+    return Response({'message': 'Booking deleted successfully.'})
+
+
+# =========================================
+# FEATURE 7: Mark Event as Paid/Unpaid (Admin Only)
+# =========================================
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def mark_event_paid(request, event_id):
+    """Toggle is_paid status on a CateringEvent. Admin only."""
+    if getattr(request.user, 'user_type', '') != 'admin':
+        return Response({'error': 'Admin only'}, status=403)
+    
+    event = get_object_or_404(CateringEvent, id=event_id)
+    
+    # If 'is_paid' is sent in request body, use it; otherwise toggle
+    if 'is_paid' in request.data:
+        event.is_paid = request.data['is_paid']
+    else:
+        event.is_paid = not event.is_paid
+    
+    event.save()
+    return Response({
+        'message': f'Event marked as {"PAID" if event.is_paid else "UNPAID"}.',
+        'is_paid': event.is_paid
+    })

@@ -297,6 +297,22 @@
             </button>
         </div>
 
+        <!-- Incoming Bookings Section (Admin only) -->
+        <div id="incoming-bookings-section" style="margin-top:30px; display:none;">
+            <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 15px rgba(0,0,0,0.06); border:1px solid #f0ece4; border-left:4px solid #e74c3c;">
+                <div style="padding:18px 22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid #f0ece4;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.3rem;">🔔</span>
+                        <div>
+                            <div style="color:#1a1a1a;font-weight:700;font-size:0.95rem;">Incoming Web Bookings</div>
+                            <div id="incoming-bookings-text" style="color:#999;font-size:0.75rem;margin-top:2px;">Loading new requests...</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="incoming-bookings-list" style="padding:0 22px;max-height:250px;overflow-y:auto;"></div>
+            </div>
+        </div>
+
         <!-- Task Assignment Section (Admin only) — Links to dedicated page -->
         <div id="task-section" style="margin-top:30px; display:none;">
             <div style="background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 15px rgba(0,0,0,0.06); border:1px solid #f0ece4;">
@@ -762,7 +778,23 @@
                 fetch('/api/menu/events/', { headers })
             ]);
 
-            allEvents = await eRes.json();
+            const fetchedEvents = await eRes.json();
+            
+            // Feature 1: Normalize events for Multiple Dates
+            let normalizedEvents = [];
+            fetchedEvents.forEach(e => {
+                // Main date
+                normalizedEvents.push(e);
+                // Extra dates
+                if (e.extra_dates && e.extra_dates.length > 0) {
+                    e.extra_dates.forEach(d => {
+                        let evCopy = { ...e, date: d.date, is_extra_date: true, extra_label: d.label };
+                        normalizedEvents.push(evCopy);
+                    });
+                }
+            });
+            allEvents = normalizedEvents;
+            
             categories = await cRes.json();
             allItems = await iRes.json();
 
@@ -786,6 +818,10 @@
                 
                 // Load team members for management
                 loadTeamMembers();
+                
+                // Feature 3: Load incoming web bookings
+                document.getElementById('incoming-bookings-section').style.display = 'block';
+                loadIncomingBookings(headers);
             }
             
             // All staff (admin, manager, staff) get to see their admin notes
@@ -1375,7 +1411,44 @@
             menuListHtml += `</table>`;
         }
 
-        modalContent.innerHTML = `<div class="event-details-grid"><div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${formatDateDisplay(event.date)}</span></div><div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${displayVenue}</span></div><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div><div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div><div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div><div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px; font-weight:700;">${contactInfo}</span>${alternateInfo}</div><div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div><div class="detail-item detail-note"><span class="detail-label">Notes</span><span class="detail-value" style="${guFont}">${noteInfo}</span></div></div>`;
+        // Feature 1: Multiple Dates display
+        let dateDisplay = formatDateDisplay(event.date);
+        if (event.is_extra_date) {
+            dateDisplay += ` <span style="font-size:11px; background:#eee; padding:2px 6px; border-radius:4px; margin-left:5px;">${event.extra_label || 'Additional'}</span>`;
+        } else if (event.extra_dates && event.extra_dates.length > 0) {
+            let edList = event.extra_dates.map(ed => `${formatDateDisplay(ed.date)} (${ed.label})`).join(', ');
+            dateDisplay += `<div style="font-size:12px; color:#666; margin-top:4px;">+ ${edList}</div>`;
+        }
+
+        // Feature 5: Advance Amount (Admin only)
+        let advanceHtml = '';
+        if (isAdmin) {
+            advanceHtml = `<div class="detail-item"><span class="detail-label">Advance</span><span class="detail-value" style="color:#2ecc71; font-weight:bold;">₹${event.advance_amount || '0.00'}</span></div>`;
+        }
+
+        // Feature 7: Paid Status (Admin only)
+        let paidHtml = '';
+        if (isAdmin) {
+            let isPaid = event.is_paid;
+            paidHtml = `<div class="detail-item"><span class="detail-label">Payment</span>
+                <span class="detail-value">
+                    <span style="display:inline-block; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold; color:#fff; background:${isPaid ? '#27ae60' : '#e74c3c'};">${isPaid ? 'PAID' : 'UNPAID'}</span>
+                </span>
+            </div>`;
+        }
+
+        modalContent.innerHTML = `<div class="event-details-grid">
+            <div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${dateDisplay}</span></div>
+            <div class="detail-item"><span class="detail-label">Venue</span><span class="detail-value">${displayVenue}</span></div>
+            <div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${event.event_type || 'General'}</span></div>
+            <div class="detail-item"><span class="detail-label">Guests</span><span class="detail-value">${event.guests}</span></div>
+            <div class="detail-item"><span class="detail-label">Status</span><span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span></div>
+            ${advanceHtml}
+            ${paidHtml}
+            <div class="detail-item"><span class="detail-label">Contact Info</span><span class="detail-value" style="font-family:monospace; font-size:16px; font-weight:700;">${contactInfo}</span>${alternateInfo}</div>
+            <div class="detail-item" style="grid-column: 1 / -1; background:#fffcf5; padding:10px; border:1px solid #ffe082; border-radius:6px;"><span class="detail-label" style="color:#b59020;">Menus & Downloads</span><div style="margin-top:5px;">${menuListHtml}</div></div>
+            <div class="detail-item detail-note" style="grid-column: 1 / -1;"><span class="detail-label">Notes</span><span class="detail-value" style="${guFont}">${noteInfo}</span></div>
+        </div>`;
 
         // VISIBILITY: Admin & Manager see actions (Print Bill is Admin Only)
         if (isAdmin || isManager) {
@@ -1407,10 +1480,19 @@
                 `;
             }
 
+            const paidBtnHtml = isAdmin ? `
+                <button class="btn-modal"
+                    onclick="togglePaidStatus(${event.id}, ${!event.is_paid})"
+                    style="background:${event.is_paid ? '#e74c3c' : '#27ae60'}; color:white;">
+                    ${event.is_paid ? '❌ Mark Unpaid' : '✅ Mark Paid'}
+                </button>
+            ` : '';
+
             adminActions.innerHTML = `
                     <div class="action-row">
                         ${manageMenuBtnHtml}
                         ${billBtnHtml}
+                        ${paidBtnHtml}
                     </div>
 
                     <div class="action-row">
@@ -1445,6 +1527,36 @@
             // adminActions.style.display = 'none'; // REMOVED THIS LINE
         }
         document.getElementById('eventModal').style.display = 'flex';
+    }
+
+    // --- FEATURE 7: Toggle Paid Status ---
+    async function togglePaidStatus(eventId, isPaid) {
+        if(!confirm(`Are you sure you want to mark this event as ${isPaid ? 'PAID' : 'UNPAID'}?`)) return;
+        try {
+            const res = await fetch(`/api/events/${eventId}/mark-paid/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Token ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ is_paid: isPaid })
+            });
+            if (res.ok) {
+                // Find event in allEvents and update
+                const event = allEvents.find(e => e.id === eventId);
+                if (event) {
+                    event.is_paid = isPaid;
+                    // re-render if it's currently open
+                    renderEventDetails(event);
+                }
+            } else {
+                alert("Failed to update status.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error updating status.");
+        }
     }
 
     // --- DELETE EVENT (Admin Only) ---
@@ -1501,6 +1613,86 @@
             }
         } catch(e) {
             alert('Network error. Please try again.');
+        }
+    }
+
+    // --- FEATURE 3: INCOMING BOOKINGS (Admin Only) ---
+    async function loadIncomingBookings(headers) {
+        try {
+            const res = await fetch('/api/admin/bookings/', { headers });
+            const bookings = await res.json();
+            const listEl = document.getElementById('incoming-bookings-list');
+            const txtEl = document.getElementById('incoming-bookings-text');
+            
+            if (bookings.length === 0) {
+                txtEl.innerText = 'No new incoming requests.';
+                listEl.innerHTML = '<p style="color:#999; font-size:13px; font-style:italic;">All caught up!</p>';
+                return;
+            }
+            
+            txtEl.innerText = `${bookings.length} new request(s) waiting`;
+            let html = '';
+            bookings.forEach(b => {
+                html += `
+                <div style="background:#fcfcfc; border:1px solid #eee; padding:12px; margin-bottom:10px; border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <strong style="color:#333; font-size:15px;">${b.name}</strong>
+                            <div style="color:#666; font-size:12px; margin-top:3px;">📅 ${formatDateDisplay(b.event_date)} &nbsp;|&nbsp; 👥 ${b.guest_count} Guests</div>
+                            <div style="color:#666; font-size:12px;">📞 ${b.phone}</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="acceptIncomingBooking(${b.id})" style="background:#27ae60; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">Accept</button>
+                            <button onclick="deleteIncomingBooking(${b.id})" style="background:#e74c3c; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            listEl.innerHTML = html;
+        } catch(e) {
+            console.error('Failed to load incoming bookings', e);
+        }
+    }
+
+    async function acceptIncomingBooking(id) {
+        if (!confirm('Accept this booking and create a new event?')) return;
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`/api/admin/bookings/${id}/accept/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                alert('Booking accepted and event created!');
+                // Redirect to edit the newly created event details
+                window.location.href = `/booking/?event_id=${data.event_id}`;
+            } else {
+                alert('Failed to accept booking.');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Error accepting booking.');
+        }
+    }
+
+    async function deleteIncomingBooking(id) {
+        if (!confirm('Are you sure you want to delete this incoming request?')) return;
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`/api/admin/bookings/${id}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            if (res.ok) {
+                // reload list
+                loadIncomingBookings({ 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') });
+            } else {
+                alert('Failed to delete request.');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Error deleting request.');
         }
     }
 
@@ -1742,7 +1934,7 @@
     }
 }
 
-    // --- DASHBOARD GUJARATI PDF: html2canvas approach ---
+    // --- DASHBOARD GUJARATI PDF: MULTI-PAGE SUPPORT ---
     async function dashboardGujaratiPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, enTitle, guTitle) {
         const bgUrl = '{% static "images/background.png" %}';
         const coverUrl = '{% static "images/cover.png" %}';
@@ -1756,7 +1948,6 @@
 
         async function capturePageDiv(pageDiv) {
             document.body.appendChild(pageDiv);
-            // Wait for fonts to load fully before capturing
             if (document.fonts && document.fonts.ready) {
                 await document.fonts.ready;
             }
@@ -1773,7 +1964,6 @@
             firstPage = false;
         }
 
-        // Pre-load cover image as actual img element for reliable html2canvas rendering
         async function preloadImage(url) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -1790,7 +1980,6 @@
             const coverDiv = document.createElement('div');
             coverDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; overflow:hidden; background:#000;`;
 
-            // Use actual img element instead of CSS background (more reliable with html2canvas)
             if (coverImg) {
                 const imgEl = document.createElement('img');
                 imgEl.src = coverUrl;
@@ -1799,7 +1988,6 @@
                 coverDiv.appendChild(imgEl);
             }
 
-            // Text overlay — positioned in the golden ornamental frame area
             const textOverlay = document.createElement('div');
             textOverlay.style.cssText = `
                 position: absolute;
@@ -1824,40 +2012,8 @@
             await capturePageDiv(coverDiv);
         }
 
-        // Menu content page
-        const menuDiv = document.createElement('div');
-        menuDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
-
-        const header = document.createElement('div');
-        header.style.cssText = 'padding: 155px 60px 0 60px;';
-        header.innerHTML = `
-            <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
-                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">નામ :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${eventTitle || '-'}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">ડીશ :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${eventGuests || '-'}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">ભાવ :</span>
-                    <span style="color:#000; font-weight:600;">${priceDisplay}</span>
-                </div>
-                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">તારીખ :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${formatDateDisplay(eventDate)}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:75px;">મોબાઈલ :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${eventContact || '-'}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">પ્રસંગ :</span>
-                    <span style="color:#000; font-weight:600;">${menu.title || '-'}</span>
-                </div>
-                <div style="display:flex; gap:10px; font-size:15px;">
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">સ્થળ :</span>
-                    <span style="color:#000; font-weight:600;">${eventVenue || '-'}</span>
-                </div>
-            </div>
-        `;
-        menuDiv.appendChild(header);
-
-        const contentArea = document.createElement('div');
-        contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 680px;';
+        // --- Build all category blocks ---
+        const allBlocks = [];
         menuGroups.forEach(group => {
             const catDiv = document.createElement('div');
             catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
@@ -1865,23 +2021,134 @@
                 <div style="background:#C6994F; color:#000; padding:6px 15px; border-radius:5px; font-weight:700; font-size:16px; margin-bottom:6px; font-family:${fontFamily};">${group.catName}</div>
                 ${group.items.map(name => `<div style="font-size:15px; padding:2px 15px; color:#1e1e1e; font-family:${fontFamily};">${name}</div>`).join('')}
             `;
-            contentArea.appendChild(catDiv);
+            allBlocks.push(catDiv);
         });
 
         if (noteText) {
-            const noteDiv = document.createElement('div');
-            noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
-            noteDiv.innerHTML = `
-                <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
-                    <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">વિશેષ નોંધ</div>
-                    <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
-                </div>
-            `;
-            contentArea.appendChild(noteDiv);
+            // Note text will be rendered separately at the end, full width
         }
 
-        menuDiv.appendChild(contentArea);
-        await capturePageDiv(menuDiv);
+        // --- Measure block heights individually ---
+        const blockHeights = [];
+        const measureSingle = document.createElement('div');
+        measureSingle.style.cssText = `position:fixed; left:-9999px; top:0; width:322px; font-family:${fontFamily};`;
+        document.body.appendChild(measureSingle);
+
+        for (let i = 0; i < allBlocks.length; i++) {
+            measureSingle.innerHTML = '';
+            measureSingle.appendChild(allBlocks[i].cloneNode(true));
+            await new Promise(r => setTimeout(r, 20));
+            blockHeights.push(measureSingle.scrollHeight + 12);
+        }
+        document.body.removeChild(measureSingle);
+
+        // --- Split blocks ---
+        const PAGE_CONTENT_HEIGHT = 650; // Reduced to leave room for note
+        const CONTINUATION_TOP = 155; 
+        const pages = [];
+        let currentPageBlocks = { col1: [], col2: [] };
+        let isFirstContentPage = true;
+        
+        let currentMaxHeight = PAGE_CONTENT_HEIGHT;
+        let col1Height = 0;
+        let col2Height = 0;
+
+        for (let i = 0; i < allBlocks.length; i++) {
+            let h = blockHeights[i];
+            if (col1Height + h <= currentMaxHeight) {
+                col1Height += h;
+                currentPageBlocks.col1.push(allBlocks[i]);
+            } else if (col2Height + h <= currentMaxHeight) {
+                col2Height += h;
+                currentPageBlocks.col2.push(allBlocks[i]);
+            } else {
+                pages.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
+                isFirstContentPage = false;
+                currentMaxHeight = 1123 - CONTINUATION_TOP - 100; // Leave room for note
+                currentPageBlocks = { col1: [allBlocks[i]], col2: [] };
+                col1Height = h;
+                col2Height = 0;
+            }
+        }
+        if (currentPageBlocks.col1.length > 0 || currentPageBlocks.col2.length > 0) {
+            pages.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
+        }
+
+        // --- Render Pages ---
+        for (let p = 0; p < pages.length; p++) {
+            const page = pages[p];
+            const pageDiv = document.createElement('div');
+            pageDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
+
+            if (page.isFirst) {
+                const header = document.createElement('div');
+                header.style.cssText = 'padding: 155px 60px 0 60px;';
+                header.innerHTML = `
+                    <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
+                        <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">નામ :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${eventTitle || '-'}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:55px;">ડીશ :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${eventGuests || '-'}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:55px;">ભાવ :</span>
+                            <span style="color:#000; font-weight:600;">${priceDisplay}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">તારીખ :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${formatDateDisplay(eventDate)}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:75px;">મોબાઈલ :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${eventContact || '-'}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">પ્રસંગ :</span>
+                            <span style="color:#000; font-weight:600;">${menu.title || '-'}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; font-size:15px;">
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">સ્થળ :</span>
+                            <span style="color:#000; font-weight:600;">${eventVenue || '-'}</span>
+                        </div>
+                    </div>
+                `;
+                pageDiv.appendChild(header);
+            } else {
+                const contHeader = document.createElement('div');
+                contHeader.style.cssText = 'padding: 155px 60px 0 60px;';
+                contHeader.innerHTML = `<div style="text-align:center; color:#C6994F; font-size:13px; font-weight:600; margin-bottom:15px; font-family:${fontFamily};">— આગળ ચાલુ —</div>`;
+                pageDiv.appendChild(contHeader);
+            }
+
+            // Content area with Flexbox columns to prevent html2canvas overflow bugs
+            const contentArea = document.createElement('div');
+            const contentHeight = page.isFirst ? 650 : (1123 - CONTINUATION_TOP - 100);
+            contentArea.style.cssText = `padding: 0 60px; display:flex; flex-direction:column; height: ${contentHeight}px;`;
+
+            const columnsWrapper = document.createElement('div');
+            columnsWrapper.style.cssText = `display:flex; gap:30px; align-items:flex-start; flex:1;`;
+            
+            const col1 = document.createElement('div');
+            col1.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+            page.blocks.col1.forEach(b => col1.appendChild(b.cloneNode(true)));
+
+            const col2 = document.createElement('div');
+            col2.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+            page.blocks.col2.forEach(b => col2.appendChild(b.cloneNode(true)));
+
+            columnsWrapper.appendChild(col1);
+            columnsWrapper.appendChild(col2);
+            contentArea.appendChild(columnsWrapper);
+
+            if (p === pages.length - 1 && noteText) {
+                const noteDiv = document.createElement('div');
+                noteDiv.style.cssText = `margin-top:15px; background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden; width:100%; break-inside: avoid;`;
+                noteDiv.innerHTML = `
+                    <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">વિશેષ નોંધ</div>
+                    <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
+                `;
+                contentArea.appendChild(noteDiv);
+            }
+
+            pageDiv.appendChild(contentArea);
+
+            await capturePageDiv(pageDiv);
+        }
 
         // Back cover
         if (!isPreview) {
@@ -1892,15 +2159,13 @@
 
         if (isPreview) { window.open(doc.output('bloburl'), '_blank'); }
         else {
-            // Filename: <CustomerName>-<DD-MM>-GUJ-Swagat_Caterers.pdf
-            // Use customer name as-is (supports Unicode). Strip only filesystem-unsafe chars.
             const customerName = (guTitle || enTitle || eventTitle || 'Menu').replace(/[\\/:*?"<>|]/g, '').trim() || 'Menu';
             const filenameDate = formatDateDisplay(eventDate).replace(/\//g, "-").slice(0,5);
             doc.save(`${customerName}-${filenameDate}-GUJ-Swagat_Caterers.pdf`);
         }
     }
 
-    // --- DASHBOARD ENGLISH PDF: jsPDF native text ---
+    // --- DASHBOARD ENGLISH PDF: MULTI-PAGE SUPPORT ---
     async function dashboardEnglishPDF(eventTitle, eventDate, eventGuests, eventVenue, eventContact, menu, menuGroups, priceDisplay, isPreview, lang, enTitle, guTitle) {
         const bgUrl = '{% static "images/background.png" %}';
         const coverUrl = '{% static "images/cover.png" %}';
@@ -1978,40 +2243,8 @@
             await capturePageDiv(coverDiv);
         }
 
-        // Menu content page
-        const menuDiv = document.createElement('div');
-        menuDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
-
-        const header = document.createElement('div');
-        header.style.cssText = 'padding: 155px 60px 0 60px;';
-        header.innerHTML = `
-            <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
-                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Name :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${eventTitle || '-'}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">Dish :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${eventGuests || '-'}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:55px;">Rate :</span>
-                    <span style="color:#000; font-weight:600;">${priceDisplay}</span>
-                </div>
-                <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Date :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${formatDateDisplay(eventDate)}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:75px;">Contact :</span>
-                    <span style="color:#000; font-weight:600; flex:1;">${eventContact || '-'}</span>
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Event :</span>
-                    <span style="color:#000; font-weight:600;">${menu.title || '-'}</span>
-                </div>
-                <div style="display:flex; gap:10px; font-size:15px;">
-                    <span style="color:#D4AF37; font-weight:700; min-width:65px;">Venue :</span>
-                    <span style="color:#000; font-weight:600;">${eventVenue || '-'}</span>
-                </div>
-            </div>
-        `;
-        menuDiv.appendChild(header);
-
-        const contentArea = document.createElement('div');
-        contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 680px;';
+        // --- Build all category blocks ---
+        const allBlocks = [];
         menuGroups.forEach(group => {
             const catDiv = document.createElement('div');
             catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
@@ -2019,23 +2252,134 @@
                 <div style="background:#C6994F; color:#000; padding:6px 15px; border-radius:5px; font-weight:700; font-size:16px; margin-bottom:6px; font-family:${fontFamily};">${group.catName}</div>
                 ${group.items.map(name => `<div style="font-size:15px; padding:2px 15px; color:#1e1e1e; font-family:${fontFamily};">${name}</div>`).join('')}
             `;
-            contentArea.appendChild(catDiv);
+            allBlocks.push(catDiv);
         });
 
         if (noteText) {
-            const noteDiv = document.createElement('div');
-            noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
-            noteDiv.innerHTML = `
-                <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
-                    <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">SPECIAL NOTE</div>
-                    <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
-                </div>
-            `;
-            contentArea.appendChild(noteDiv);
+            // Note text will be rendered separately at the end, full width
         }
 
-        menuDiv.appendChild(contentArea);
-        await capturePageDiv(menuDiv);
+        // --- Measure block heights individually ---
+        const blockHeights = [];
+        const measureSingle = document.createElement('div');
+        measureSingle.style.cssText = `position:fixed; left:-9999px; top:0; width:322px; font-family:${fontFamily};`;
+        document.body.appendChild(measureSingle);
+
+        for (let i = 0; i < allBlocks.length; i++) {
+            measureSingle.innerHTML = '';
+            measureSingle.appendChild(allBlocks[i].cloneNode(true));
+            await new Promise(r => setTimeout(r, 20));
+            blockHeights.push(measureSingle.scrollHeight + 12);
+        }
+        document.body.removeChild(measureSingle);
+
+        // --- Split blocks ---
+        const PAGE_CONTENT_HEIGHT = 650; // Reduced to leave room for note
+        const CONTINUATION_TOP = 155; 
+        const pages = [];
+        let currentPageBlocks = { col1: [], col2: [] };
+        let isFirstContentPage = true;
+
+        let currentMaxHeight = PAGE_CONTENT_HEIGHT;
+        let col1Height = 0;
+        let col2Height = 0;
+
+        for (let i = 0; i < allBlocks.length; i++) {
+            let h = blockHeights[i];
+            if (col1Height + h <= currentMaxHeight) {
+                col1Height += h;
+                currentPageBlocks.col1.push(allBlocks[i]);
+            } else if (col2Height + h <= currentMaxHeight) {
+                col2Height += h;
+                currentPageBlocks.col2.push(allBlocks[i]);
+            } else {
+                pages.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
+                isFirstContentPage = false;
+                currentMaxHeight = 1123 - CONTINUATION_TOP - 100; // Leave room for note
+                currentPageBlocks = { col1: [allBlocks[i]], col2: [] };
+                col1Height = h;
+                col2Height = 0;
+            }
+        }
+        if (currentPageBlocks.col1.length > 0 || currentPageBlocks.col2.length > 0) {
+            pages.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
+        }
+
+        // --- Render Pages ---
+        for (let p = 0; p < pages.length; p++) {
+            const page = pages[p];
+            const pageDiv = document.createElement('div');
+            pageDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; font-family:${fontFamily}; overflow:hidden;`;
+
+            if (page.isFirst) {
+                const header = document.createElement('div');
+                header.style.cssText = 'padding: 155px 60px 0 60px;';
+                header.innerHTML = `
+                    <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
+                        <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">Name :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${eventTitle || '-'}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:55px;">Dish :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${eventGuests || '-'}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:55px;">Rate :</span>
+                            <span style="color:#000; font-weight:600;">${priceDisplay}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">Date :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${formatDateDisplay(eventDate)}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:75px;">Contact :</span>
+                            <span style="color:#000; font-weight:600; flex:1;">${eventContact || '-'}</span>
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">Event :</span>
+                            <span style="color:#000; font-weight:600;">${menu.title || '-'}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; font-size:15px;">
+                            <span style="color:#D4AF37; font-weight:700; min-width:65px;">Venue :</span>
+                            <span style="color:#000; font-weight:600;">${eventVenue || '-'}</span>
+                        </div>
+                    </div>
+                `;
+                pageDiv.appendChild(header);
+            } else {
+                const contHeader = document.createElement('div');
+                contHeader.style.cssText = 'padding: 155px 60px 0 60px;';
+                contHeader.innerHTML = `<div style="text-align:center; color:#C6994F; font-size:13px; font-weight:600; margin-bottom:15px; font-family:${fontFamily};">— Menu Continued —</div>`;
+                pageDiv.appendChild(contHeader);
+            }
+
+            // Content area with Flexbox columns to prevent html2canvas overflow bugs
+            const contentArea = document.createElement('div');
+            const contentHeight = page.isFirst ? 650 : (1123 - CONTINUATION_TOP - 100);
+            contentArea.style.cssText = `padding: 0 60px; display:flex; flex-direction:column; height: ${contentHeight}px;`;
+
+            const columnsWrapper = document.createElement('div');
+            columnsWrapper.style.cssText = `display:flex; gap:30px; align-items:flex-start; flex:1;`;
+            
+            const col1 = document.createElement('div');
+            col1.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+            page.blocks.col1.forEach(b => col1.appendChild(b.cloneNode(true)));
+
+            const col2 = document.createElement('div');
+            col2.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+            page.blocks.col2.forEach(b => col2.appendChild(b.cloneNode(true)));
+
+            columnsWrapper.appendChild(col1);
+            columnsWrapper.appendChild(col2);
+            contentArea.appendChild(columnsWrapper);
+
+            if (p === pages.length - 1 && noteText) {
+                const noteDiv = document.createElement('div');
+                noteDiv.style.cssText = `margin-top:15px; background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden; width:100%; break-inside: avoid;`;
+                noteDiv.innerHTML = `
+                    <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">SPECIAL NOTE</div>
+                    <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
+                `;
+                contentArea.appendChild(noteDiv);
+            }
+
+            pageDiv.appendChild(contentArea);
+
+            await capturePageDiv(pageDiv);
+        }
 
         // Back cover
         if (!isPreview) {

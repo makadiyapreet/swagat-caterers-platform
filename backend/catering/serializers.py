@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.core.signing import TimestampSigner
 from djoser.serializers import UserSerializer as BaseUserSerializer
-from .models import Category, Menu_item, CateringEvent, Member, MemberLog 
+from .models import Category, Menu_item, CateringEvent, Member, MemberLog, EventDate, Booking
 from .models import *
 
 User = get_user_model()
@@ -181,10 +181,25 @@ class MenuSerializer(serializers.ModelSerializer):
         model = Menu
         fields = '__all__'
 
+# Feature 1: EventDate Serializer
+class EventDateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventDate
+        fields = ['id', 'event', 'date', 'label']
+        read_only_fields = ['id']
+
 class CateringEventSerializer(serializers.ModelSerializer):
     # This will fetch all menus associated with the event automatically
     menus = MenuSerializer(many=True, read_only=True)
+    # Feature 1: Include extra dates
+    extra_dates = EventDateSerializer(many=True, read_only=True)
 
     class Meta:
         model = CateringEvent
+        fields = '__all__'
+
+# Feature 3: Booking Serializer (for public bookings management)
+class BookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
         fields = '__all__'

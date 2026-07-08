@@ -50,8 +50,8 @@
         .cat-header { padding: 15px 20px; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 16px; transition: 0.2s; }
         .cat-header:hover { background: #fdfdfd; color: var(--dark-gold); }
         .cat-header.active { background: #fffcf5; color: var(--gold); border-bottom: 1px solid #eee; }
-        .cat-body { padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #fafafa; }
-        .cat-body.open { padding: 20px; max-height: 2000px; border-top: 1px solid #f0f0f0; }
+        .cat-body { padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; background: #fafafa; }
+        .cat-body.open { padding: 20px; max-height: none; border-top: 1px solid #f0f0f0; overflow: visible; }
 
         .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
         .item-check { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: white; border: 1px solid #eee; border-radius: 6px; cursor: pointer; transition: 0.2s; min-height: 40px; }
@@ -131,7 +131,9 @@
             .page-header { padding: 15px; }
             .header-title h1 { font-size: 20px; }
             .header-title p { font-size: 12px; }
-            .item-grid { grid-template-columns: 1fr; }
+            .item-grid { grid-template-columns: 1fr 1fr; }
+            .item-check { padding: 7px; min-height: 36px; }
+            .item-label { font-size: 12px; }
             .input-group label { font-size: 11px; }
             .input-group input { padding: 8px; font-size: 13px; }
             .lang-switch { margin-bottom: 12px; }
@@ -615,7 +617,7 @@
             await generatePDF_DM_HTML(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview);
         }
 
-        // --- HTML2CANVAS PDF for Direct Menu ---
+        // --- HTML2CANVAS PDF for Direct Menu (MULTI-PAGE SUPPORT) ---
         async function generatePDF_DM_HTML(clientName, eventDate, guests, venue, phone, note, menuGroups, lang, isPreview) {
             const bgUrl = '{% static "images/background.png" %}';
             const coverUrl = '{% static "images/cover.png" %}';
@@ -628,10 +630,12 @@
 
             async function capturePageDiv(pageDiv) {
                 document.body.appendChild(pageDiv);
-                await new Promise(r => setTimeout(r, 300));
+                if (document.fonts && document.fonts.ready) await document.fonts.ready;
+                await new Promise(r => setTimeout(r, 400));
                 const canvas = await html2canvas(pageDiv, {
                     scale: 3, useCORS: true, allowTaint: true,
-                    width: 794, height: 1123, logging: false
+                    width: 794, height: 1123, logging: false,
+                    backgroundColor: null
                 });
                 document.body.removeChild(pageDiv);
                 const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -646,39 +650,10 @@
             coverDiv.innerHTML = `<div style="position:absolute; bottom:350px; width:100%; text-align:center; color:#D4AF37; font-size:28px; font-weight:700; font-family:${fontFamily};">${clientName} - ${formatDate(eventDate)}</div>`;
             await capturePageDiv(coverDiv);
 
-            // --- Menu content page ---
-            const menuDiv = document.createElement('div');
-            menuDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; background-position:center; font-family:${fontFamily}; overflow:hidden;`;
-
-            // Header
-            const header = document.createElement('div');
-            header.style.cssText = 'padding: 155px 60px 0 60px;';
+            // --- Build all category blocks as individual elements ---
             const isGu = lang === 'gu';
-            header.innerHTML = `
-                <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
-                    <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'નામ :' : 'Name :'}</span>
-                        <span style="color:#000; font-weight:600; flex:1;">${clientName || "-"}</span>
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'વ્યક્તિ :' : 'Guests :'}</span>
-                        <span style="color:#000; font-weight:600; flex:1;">${guests || "-"}</span>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'તારીખ :' : 'Date :'}</span>
-                        <span style="color:#000; font-weight:600; flex:1;">${formatDate(eventDate)}</span>
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'સ્થળ :' : 'Venue :'}</span>
-                        <span style="color:#000; font-weight:600; flex:1;">${venue || "-"}</span>
-                    </div>
-                    ${phone ? `<div style="display:flex; gap:10px; font-size:15px;">
-                        <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'ફોન :' : 'Phone :'}</span>
-                        <span style="color:#000; font-weight:600;">${phone}</span>
-                    </div>` : ''}
-                </div>
-            `;
-            menuDiv.appendChild(header);
+            const allBlocks = [];
 
-            // Content (2-column)
-            const contentArea = document.createElement('div');
-            contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 680px;';
             menuGroups.forEach(group => {
                 const catDiv = document.createElement('div');
                 catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
@@ -686,25 +661,136 @@
                     <div style="background:#C6994F; color:#000; padding:6px 15px; border-radius:5px; font-weight:700; font-size:16px; margin-bottom:6px; font-family:${fontFamily};">${group.catName}</div>
                     ${group.items.map(name => `<div style="font-size:15px; padding:2px 15px; color:#1e1e1e; font-family:${fontFamily};">${name}</div>`).join('')}
                 `;
-                contentArea.appendChild(catDiv);
+                allBlocks.push(catDiv);
             });
 
-            // Note
-            if (note) {
-                const noteDiv = document.createElement('div');
-                noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
-                const isGu = lang === 'gu';
-                noteDiv.innerHTML = `
-                    <div style="background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden;">
-                        <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">${isGu ? 'નોંધ' : 'Note'}</div>
-                        <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${note}</div>
-                    </div>
-                `;
-                contentArea.appendChild(noteDiv);
+
+            // --- Measure each block's height individually ---
+            const blockHeights = [];
+            const measureSingle = document.createElement('div');
+            // 322px is approx width of one column: (794 - 120 (padding) - 30 (gap)) / 2
+            measureSingle.style.cssText = `position:fixed; left:-9999px; top:0; width:322px; font-family:${fontFamily};`;
+            document.body.appendChild(measureSingle);
+
+            for (let i = 0; i < allBlocks.length; i++) {
+                measureSingle.innerHTML = '';
+                measureSingle.appendChild(allBlocks[i].cloneNode(true));
+                await new Promise(r => setTimeout(r, 20)); // allow rendering
+                // Add 12px for the margin-bottom we defined in block css
+                blockHeights.push(measureSingle.scrollHeight + 12);
+            }
+            document.body.removeChild(measureSingle);
+
+            // --- Split blocks into pages by simulating 2 columns ---
+            const HEADER_HEIGHT = 260;
+            const PAGE_CONTENT_HEIGHT = 680;
+            const CONTINUATION_TOP = 155;
+
+            // --- Split blocks ---
+            const PAGE_CONTENT_HEIGHT = 650; // Reduced to leave room for note
+            const CONTINUATION_TOP = 155; 
+            const pages = [];
+            let currentPageBlocks = { col1: [], col2: [] };
+            let isFirstContentPage = true;
+            
+            let currentMaxHeight = PAGE_CONTENT_HEIGHT;
+            let col1Height = 0;
+            let col2Height = 0;
+
+            for (let i = 0; i < allBlocks.length; i++) {
+                let h = blockHeights[i];
+                if (col1Height + h <= currentMaxHeight) {
+                    col1Height += h;
+                    currentPageBlocks.col1.push(allBlocks[i]);
+                } else if (col2Height + h <= currentMaxHeight) {
+                    col2Height += h;
+                    currentPageBlocks.col2.push(allBlocks[i]);
+                } else {
+                    pages.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
+                    isFirstContentPage = false;
+                    currentMaxHeight = 1123 - CONTINUATION_TOP - 100; // Leave room for note
+                    currentPageBlocks = { col1: [allBlocks[i]], col2: [] };
+                    col1Height = h;
+                    col2Height = 0;
+                }
+            }
+            if (currentPageBlocks.col1.length > 0 || currentPageBlocks.col2.length > 0) {
+                pages.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
             }
 
-            menuDiv.appendChild(contentArea);
-            await capturePageDiv(menuDiv);
+            // --- Render each page ---
+            for (let p = 0; p < pages.length; p++) {
+                const page = pages[p];
+                const pageDiv = document.createElement('div');
+                pageDiv.style.cssText = `position:fixed; left:-9999px; top:0; width:794px; height:1123px; background:white; background-image:url('${bgUrl}'); background-size:cover; background-position:center; font-family:${fontFamily}; overflow:hidden;`;
+
+                if (page.isFirst) {
+                    // First page has the header with client info
+                    const header = document.createElement('div');
+                    header.style.cssText = 'padding: 155px 60px 0 60px;';
+                    header.innerHTML = `
+                        <div style="border-top: 2px solid #D4AF37; border-bottom: 2px solid #D4AF37; padding: 12px 0; margin-bottom: 25px;">
+                            <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                                <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'નામ :' : 'Name :'}</span>
+                                <span style="color:#000; font-weight:600; flex:1;">${clientName || "-"}</span>
+                                <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'વ્યક્તિ :' : 'Guests :'}</span>
+                                <span style="color:#000; font-weight:600; flex:1;">${guests || "-"}</span>
+                            </div>
+                            <div style="display:flex; gap:10px; margin-bottom:6px; font-size:15px;">
+                                <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'તારીખ :' : 'Date :'}</span>
+                                <span style="color:#000; font-weight:600; flex:1;">${formatDate(eventDate)}</span>
+                                <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'સ્થળ :' : 'Venue :'}</span>
+                                <span style="color:#000; font-weight:600; flex:1;">${venue || "-"}</span>
+                            </div>
+                            ${phone ? `<div style="display:flex; gap:10px; font-size:15px;">
+                                <span style="color:#D4AF37; font-weight:700; min-width:65px;">${isGu ? 'ફોન :' : 'Phone :'}</span>
+                                <span style="color:#000; font-weight:600;">${phone}</span>
+                            </div>` : ''}
+                        </div>
+                    `;
+                    pageDiv.appendChild(header);
+                } else {
+                    // Continuation pages: just top padding + "continued" label
+                    const contHeader = document.createElement('div');
+                    contHeader.style.cssText = 'padding: 155px 60px 0 60px;';
+                    contHeader.innerHTML = `<div style="text-align:center; color:#C6994F; font-size:13px; font-weight:600; margin-bottom:15px; font-family:${fontFamily};">${isGu ? '— આગળ ચાલુ —' : '— Menu Continued —'}</div>`;
+                    pageDiv.appendChild(contHeader);
+                }
+
+                // Content area with Flexbox columns to prevent html2canvas overflow bugs
+                const contentArea = document.createElement('div');
+                const contentHeight = page.isFirst ? 650 : (1123 - CONTINUATION_TOP - 100);
+                contentArea.style.cssText = `padding: 0 60px; display:flex; flex-direction:column; height: ${contentHeight}px;`;
+
+                const columnsWrapper = document.createElement('div');
+                columnsWrapper.style.cssText = `display:flex; gap:30px; align-items:flex-start; flex:1;`;
+                
+                const col1 = document.createElement('div');
+                col1.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+                page.blocks.col1.forEach(b => col1.appendChild(b.cloneNode(true)));
+
+                const col2 = document.createElement('div');
+                col2.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+                page.blocks.col2.forEach(b => col2.appendChild(b.cloneNode(true)));
+
+                columnsWrapper.appendChild(col1);
+                columnsWrapper.appendChild(col2);
+                contentArea.appendChild(columnsWrapper);
+
+                if (p === pages.length - 1 && noteText) {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.style.cssText = `margin-top:15px; background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden; width:100%; break-inside: avoid;`;
+                    noteDiv.innerHTML = `
+                        <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">${isGu ? 'વિશેષ નોંધ' : 'SPECIAL NOTE'}</div>
+                        <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
+                    `;
+                    contentArea.appendChild(noteDiv);
+                }
+
+                pageDiv.appendChild(contentArea);
+
+                await capturePageDiv(pageDiv);
+            }
 
             // --- Back cover ---
             const backDiv = document.createElement('div');

@@ -143,6 +143,8 @@ class CateringEvent(models.Model):
     # --- NEW FIELDS FOR TRACKER & ANALYTICS ---
     rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Rate per plate for this event")
     advance_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    miscellaneous_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    miscellaneous_reason = models.CharField(max_length=200, blank=True, null=True, help_text="Reason for miscellaneous charges")
     staff_count = models.IntegerField(default=0, help_text="Number of staff assigned")
     
     # We keep this for backward compatibility
@@ -157,8 +159,8 @@ class CateringEvent(models.Model):
 
     @property
     def pending_amount(self):
-        """Calculates Pending: Total Cost - Advance"""
-        return self.total_cost - self.advance_amount
+        """Calculates Pending: Total Cost + Misc - Advance"""
+        return (self.guests * self.rate) + self.miscellaneous_amount - self.advance_amount
 
     @property
     def is_settled(self):
@@ -175,11 +177,27 @@ class CateringEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     is_approved = models.BooleanField(default=True)  # False = pending admin review (manager-created)
     
+    # --- FEATURE 7: Payment Tracking ---
+    is_paid = models.BooleanField(default=False, help_text='Whether the bill has been fully paid')
+    
     # --- SECTION 23: Review System ---
     review_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, help_text='Unique token for public review link')
 
     def __str__(self):
         return f"{self.title} ({self.date})"
+
+# 6b. EVENT DATE MODEL (Feature 1 — Multiple dates per event)
+class EventDate(models.Model):
+    event = models.ForeignKey(CateringEvent, on_delete=models.CASCADE, related_name='extra_dates')
+    date = models.DateField()
+    label = models.CharField(max_length=100, blank=True, default='', help_text='e.g. Day 1 - Haldi, Day 2 - Wedding')
+
+    class Meta:
+        ordering = ['date']
+        unique_together = ('event', 'date')
+
+    def __str__(self):
+        return f"{self.event.title} — {self.label or self.date}"
 
 # 7. NEW: MENU MODEL (For Multiple Menus per Event)
 class Menu(models.Model):

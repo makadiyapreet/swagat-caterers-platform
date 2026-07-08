@@ -134,6 +134,16 @@
             <div class="form-group">
                 <label id="lbl-date">Date</label>
                 <input type="date" id="date" required>
+                <!-- Feature 1: Multiple Dates (Admin only) -->
+                <div id="extra-dates-container" class="admin-only-field" style="display:none; margin-top: 15px; padding: 10px; background: #fafafa; border: 1px dashed #ccc; border-radius: 6px;">
+                    <label style="font-size: 13px; color: #555;">Additional Dates (Admin Only)</label>
+                    <div id="extra-dates-list" style="margin-bottom: 10px;"></div>
+                    <div style="display:flex; gap:8px; align-items: stretch;">
+                        <input type="date" id="new_extra_date" style="flex:1; min-width:100px;">
+                        <input type="text" id="new_extra_label" placeholder="Label (e.g. Haldi)" style="flex:1; min-width:80px;">
+                        <button type="button" id="btn-add-date" style="background:#555; color:white; border:none; border-radius:5px; padding: 0 15px; font-size:12px; font-weight:bold; cursor:pointer;">Add</button>
+                    </div>
+                </div>
             </div>
             <div class="form-group">
                 <label id="lbl-venue">Venue</label>
@@ -164,6 +174,12 @@
             <div class="form-group">
                 <label id="lbl-contact">Contact Number</label>
                 <input type="text" id="contact_number" required>
+            </div>
+
+            <!-- Feature 5: Advance Amount (Admin only) -->
+            <div class="form-group admin-only-field" style="display:none;">
+                <label id="lbl-advance">Advance Amount (₹)</label>
+                <input type="number" id="advance_amount" value="0.00" step="0.01">
             </div>
             
             <div class="form-group" id="status-group">
@@ -482,6 +498,79 @@
             return cookieValue;
         }
 
+        // Local state for extra dates
+        let extraDates = [];
+
+        function renderExtraDates() {
+            const list = document.getElementById('extra-dates-list');
+            list.innerHTML = '';
+            if (extraDates.length === 0) {
+                list.innerHTML = '<div style="font-size:12px; color:#888; font-style:italic;">No additional dates.</div>';
+                return;
+            }
+            extraDates.forEach((ed, index) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#fff; padding:6px 10px; margin-bottom:5px; border-radius:4px; border:1px solid #ddd; font-size:13px;';
+                row.innerHTML = `
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${ed.date}</strong> ${ed.label ? `— ${ed.label}` : ''}</span>
+                    <button type="button" style="background:#e74c3c; color:white; border:none; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer; font-weight:bold; flex-shrink:0;" onclick="removeExtraDate(${index}, ${ed.id || 'null'})">✕</button>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        async function removeExtraDate(index, dateId) {
+            if (dateId && eventId) {
+                // Delete from backend
+                try {
+                    const res = await fetch(`/api/events/${eventId}/dates/${dateId}/delete/`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Token ${token}`, 'X-CSRFToken': getCookie('csrftoken') }
+                    });
+                    if (!res.ok) throw new Error("Failed to delete date");
+                } catch(e) {
+                    console.error(e);
+                    alert("Error deleting date");
+                    return;
+                }
+            }
+            extraDates.splice(index, 1);
+            renderExtraDates();
+        }
+
+        document.getElementById('btn-add-date').addEventListener('click', async () => {
+            const dateInput = document.getElementById('new_extra_date').value;
+            const labelInput = document.getElementById('new_extra_label').value.trim();
+            if (!dateInput) return alert("Select a date first.");
+
+            const payload = { date: dateInput, label: labelInput };
+
+            if (eventId) {
+                // Save to backend immediately
+                try {
+                    const res = await fetch(`/api/events/${eventId}/dates/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error("Failed to save date");
+                    const data = await res.json();
+                    extraDates.push(data);
+                } catch(e) {
+                    console.error(e);
+                    alert("Error saving date");
+                    return;
+                }
+            } else {
+                // Save locally to be sent after creating the event
+                extraDates.push(payload);
+            }
+            
+            document.getElementById('new_extra_date').value = '';
+            document.getElementById('new_extra_label').value = '';
+            renderExtraDates();
+        });
+
         async function init() {
             try {
                 const uRes = await fetch('/auth/users/me/', { headers: { 'Authorization': `Token ${token}` , 'X-CSRFToken': getCookie('csrftoken') } });
@@ -497,9 +586,14 @@
                     document.getElementById('status-group').classList.add('hidden');
                 }
 
+                if (isAdmin) {
+                    document.querySelectorAll('.admin-only-field').forEach(el => el.style.display = 'block');
+                }
+
                 // Set page title and button text in current language
                 updatePageTitle();
                 updateButtonText();
+                renderExtraDates();
 
                 if (eventId) {
                     loadEventData(eventId);
@@ -550,6 +644,14 @@
                 
                 if (document.getElementById('status')) {
                     document.getElementById('status').value = data.status || "pending";
+                }
+
+                if (isAdmin) {
+                    document.getElementById('advance_amount').value = data.advance_amount || "0.00";
+                    if (data.extra_dates) {
+                        extraDates = data.extra_dates;
+                        renderExtraDates();
+                    }
                 }
 
             } catch(e) { 
@@ -603,6 +705,10 @@
                 description_gu: descGu
             };
 
+            if (isAdmin) {
+                payload.advance_amount = parseFloat(document.getElementById('advance_amount').value) || 0.00;
+            }
+
             const url = eventId ? `/api/menu/events/${eventId}/` : `/api/menu/events/`;
             const method = eventId ? 'PATCH' : 'POST';
 
@@ -618,6 +724,20 @@
                 });
 
                 if (res.ok) {
+                    const savedEvent = await res.json();
+                    const newEventId = eventId || savedEvent.id;
+
+                    // If it's a new event, we need to save the extra dates now
+                    if (!eventId && extraDates.length > 0 && isAdmin) {
+                        for (let ed of extraDates) {
+                            await fetch(`/api/events/${newEventId}/dates/`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Token ${token}`, 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                                body: JSON.stringify({ date: ed.date, label: ed.label })
+                            });
+                        }
+                    }
+
                     const msg = currentLang === 'gu' ? 'બુકિંગ સફળતાપૂર્વક સેવ થયું!' : 'Booking Saved Successfully!';
                     alert(msg);
                     window.location.href = "/dashboard/";

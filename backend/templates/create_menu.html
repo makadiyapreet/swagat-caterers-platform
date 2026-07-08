@@ -841,17 +841,9 @@
                 return header.offsetTop + header.offsetHeight;
             }
 
-            // Layout: 2-column
-            let currentPage = createPage();
-            document.body.appendChild(currentPage);
-            createHeader(currentPage);
-
-            const contentArea = document.createElement('div');
-            contentArea.style.cssText = 'padding: 0 60px; columns: 2; column-gap: 30px; column-fill: auto; height: 700px;';
-            currentPage.appendChild(contentArea);
-
+            // 1) Build all content blocks first
+            const allBlocks = [];
             menuGroups.forEach(group => {
-                // Category header
                 const catDiv = document.createElement('div');
                 catDiv.style.cssText = 'break-inside: avoid; margin-bottom: 12px;';
                 catDiv.innerHTML = `
@@ -860,27 +852,101 @@
                     </div>
                     ${group.items.map(name => `<div style="font-size: 15px; padding: 2px 15px; color: #1e1e1e; font-family: ${fontFamily};">${name}</div>`).join('')}
                 `;
-                contentArea.appendChild(catDiv);
+                allBlocks.push(catDiv);
             });
 
-            // Add note if present
-            if (noteText) {
-                const noteDiv = document.createElement('div');
-                noteDiv.style.cssText = 'break-inside: avoid; margin-top: 15px;';
-                noteDiv.innerHTML = `
-                    <div style="background: #FFFCF5; border: 1px solid #C6994F; border-radius: 5px; padding: 0; overflow: hidden;">
-                        <div style="background: #C6994F; color: #fff; padding: 5px 15px; font-weight: 700; font-size: 14px; text-align: center;">${isGu ? 'વિશેષ નોંધ' : 'SPECIAL NOTE'}</div>
-                        <div style="padding: 8px 15px; font-size: 14px; font-family: ${fontFamily};">${noteText}</div>
-                    </div>
-                `;
-                contentArea.appendChild(noteDiv);
+            // 2) Measure block heights individually
+            const blockHeights = [];
+            const measureSingle = document.createElement('div');
+            measureSingle.style.cssText = `position:fixed; left:-9999px; top:0; width:322px; font-family:${fontFamily};`;
+            document.body.appendChild(measureSingle);
+
+            allBlocks.forEach(b => {
+                measureSingle.innerHTML = '';
+                measureSingle.appendChild(b.cloneNode(true));
+                blockHeights.push(measureSingle.scrollHeight + 12);
+            });
+            document.body.removeChild(measureSingle);
+
+            // 3) Split into pages and columns
+            const PAGE_CONTENT_HEIGHT = 650;
+            const CONTINUATION_TOP = 155;
+            let currentMaxHeight = PAGE_CONTENT_HEIGHT;
+            let col1Height = 0;
+            let col2Height = 0;
+            let currentPageBlocks = { col1: [], col2: [] };
+            let isFirstContentPage = true;
+
+            const pageConfigs = [];
+
+            for (let i = 0; i < allBlocks.length; i++) {
+                let h = blockHeights[i];
+                if (col1Height + h <= currentMaxHeight) {
+                    col1Height += h;
+                    currentPageBlocks.col1.push(allBlocks[i]);
+                } else if (col2Height + h <= currentMaxHeight) {
+                    col2Height += h;
+                    currentPageBlocks.col2.push(allBlocks[i]);
+                } else {
+                    pageConfigs.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
+                    isFirstContentPage = false;
+                    currentMaxHeight = 1123 - CONTINUATION_TOP - 100;
+                    currentPageBlocks = { col1: [allBlocks[i]], col2: [] };
+                    col1Height = h;
+                    col2Height = 0;
+                }
+            }
+            if (currentPageBlocks.col1.length > 0 || currentPageBlocks.col2.length > 0) {
+                pageConfigs.push({ blocks: currentPageBlocks, isFirst: isFirstContentPage });
             }
 
-            document.body.removeChild(currentPage);
-            pages.push(currentPage);
+            // 4) Render HTML for each page
+            for (let p = 0; p < pageConfigs.length; p++) {
+                const config = pageConfigs[p];
+                const currentPage = createPage();
 
-            // Check if content overflows and needs multiple pages
-            // For now, single page handles most menus. Multi-page logic can be extended.
+                if (config.isFirst) {
+                    createHeader(currentPage);
+                } else {
+                    const contHeader = document.createElement('div');
+                    contHeader.style.cssText = 'padding: 155px 60px 0 60px;';
+                    contHeader.innerHTML = `<div style="text-align:center; color:#C6994F; font-size:13px; font-weight:600; margin-bottom:15px; font-family:${fontFamily};">${isGu ? '— આગળ ચાલુ —' : '— Menu Continued —'}</div>`;
+                    currentPage.appendChild(contHeader);
+                }
+
+                const contentArea = document.createElement('div');
+                const contentHeight = config.isFirst ? 650 : (1123 - CONTINUATION_TOP - 100);
+                contentArea.style.cssText = `padding: 0 60px; display:flex; flex-direction:column; height: ${contentHeight}px;`;
+
+                const columnsWrapper = document.createElement('div');
+                columnsWrapper.style.cssText = `display:flex; gap:30px; align-items:flex-start; flex:1;`;
+                
+                const col1 = document.createElement('div');
+                col1.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+                config.blocks.col1.forEach(b => col1.appendChild(b.cloneNode(true)));
+
+                const col2 = document.createElement('div');
+                col2.style.cssText = `flex: 1; display:flex; flex-direction:column; gap:0; width: 322px; max-width: 322px;`;
+                config.blocks.col2.forEach(b => col2.appendChild(b.cloneNode(true)));
+
+                columnsWrapper.appendChild(col1);
+                columnsWrapper.appendChild(col2);
+                contentArea.appendChild(columnsWrapper);
+
+                if (p === pageConfigs.length - 1 && noteText) {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.style.cssText = `margin-top:15px; background:#FFFCF5; border:1px solid #C6994F; border-radius:5px; overflow:hidden; width:100%; break-inside: avoid;`;
+                    noteDiv.innerHTML = `
+                        <div style="background:#C6994F; color:#fff; padding:5px 15px; font-weight:700; font-size:14px; text-align:center;">${isGu ? 'વિશેષ નોંધ' : 'SPECIAL NOTE'}</div>
+                        <div style="padding:8px 15px; font-size:14px; font-family:${fontFamily};">${noteText}</div>
+                    `;
+                    contentArea.appendChild(noteDiv);
+                }
+
+                currentPage.appendChild(contentArea);
+                pages.push(currentPage);
+            }
+
 
             return pages;
         }

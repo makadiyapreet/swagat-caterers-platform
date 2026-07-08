@@ -86,4 +86,16 @@ urlpatterns = [
     # Section 19: Login History
     path('api/login-history/', views.login_history_api, name='login_history_api'),
     path('api/logout-all/', views.logout_all_sessions, name='logout_all_sessions'),
+
+    # --- FEATURE 1: Multiple Dates per Event ---
+    path('api/events/<int:event_id>/dates/', views.event_dates_api, name='event_dates_api'),
+    path('api/events/<int:event_id>/dates/<int:date_id>/delete/', views.event_date_delete, name='event_date_delete'),
+
+    # --- FEATURE 3: Public Bookings Management (Admin) ---
+    path('api/admin/bookings/', views.admin_bookings_list, name='admin_bookings_list'),
+    path('api/admin/bookings/<int:booking_id>/accept/', views.admin_booking_accept, name='admin_booking_accept'),
+    path('api/admin/bookings/<int:booking_id>/delete/', views.admin_booking_delete, name='admin_booking_delete'),
+
+    # --- FEATURE 7: Mark Event Paid/Unpaid ---
+    path('api/events/<int:event_id>/mark-paid/', views.mark_event_paid, name='mark_event_paid'),
 ]
